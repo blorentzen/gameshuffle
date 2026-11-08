@@ -7,6 +7,10 @@ import { RoomBody, RoomHeader } from "@/components/home/HomeRoom";
 import { DUEL_SHOWN } from "@/lib/originals/dailies";
 import { duelChallenger } from "@/lib/originals/duel/store";
 import { gsDay } from "@/lib/time/gsClock";
+import { MerchShelf } from "@/components/store/ShopEntry";
+import { shopVisibleToVisitors } from "@/lib/store/visibility";
+import { spaceById } from "@/lib/games/spaces";
+import { isStaffRole } from "@/lib/subscription";
 
 /**
  * /home: your room (journeys picks 2026-11-06, 6A and 7A, https://claude.ai/artifact/DqZuBnVSJFAuDSDY4Ssb11). Signed
@@ -26,12 +30,20 @@ export default async function HomeRoomPage() {
   const room = await homeRoom(viewer.userId, { pro: viewer.pro, supporter: viewer.supporter }, viewer.next, duelToday, viewer.role)
     .catch((e) => { console.error("[home] room failed:", e); return null; });
   if (!room) redirect("/?front=1");
+  // Wear it (shop picks 2026-11-08): merch after Your games, designs for the games you play first, while visitors can
+  // see the shop (staff before).
+  const shopShown = (await shopVisibleToVisitors().catch(() => false)) || isStaffRole(viewer.role);
+  const mine = room.games.map((g) => spaceById(g.id)?.merch?.source).filter((x): x is string => !!x);
+  const wear = shopShown ? (
+    <MerchShelf from="home-room" prefer={mine.length ? new RegExp(mine.join("|"), "i") : undefined}
+      line={mine.length ? "From the GameShuffle shop, starting with the games you play." : "From the GameShuffle shop, made when you order."} className="room-wear" />
+  ) : null;
   return (
     <>
       <RoomHeader head={room.head} showing={room.showing} interests={room.interests} band={room.band} />
       <main>
         <Container>
-          <RoomBody room={room} userId={viewer.userId} />
+          <RoomBody room={room} userId={viewer.userId} wear={wear} />
         </Container>
       </main>
     </>

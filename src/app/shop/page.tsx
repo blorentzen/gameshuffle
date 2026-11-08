@@ -1,15 +1,17 @@
 /**
  * /shop: GameShuffle merch (since 2026-11-03; the card packs are on hold), made
- * in Printful and arranged in Platform ▸ Shop ▸ Merch. Collections as
- * sections with item chips on top (MerchShelf), each product on its own page
+ * in Printful and arranged in Platform ▸ Shop ▸ Merch. The header shows three
+ * real products on our colors; below it the collections as tiles, a filter bar
+ * and one grid (MerchShop, shop picks 2026-11-08), each product on its own page
  * (/shop/[slug]). Marketing page, always light. Copy: src/lib/store/copy.ts.
  *
  * While the shop is hidden (`shop_open` and `shop_coming_soon` both off),
  * visitors get page not found. With `shop_coming_soon` on they get the Coming soon
  * version: the live products without prices or a cart, and an email signup
- * for launch. Staff get the full shop to test, including products that aren't
- * live yet, and `?view=soon` shows them the Coming soon version. Not indexed
- * until it opens.
+ * for launch. Staff get the full shop to test, and `?view=soon` shows them the
+ * Coming soon version. Only live products are ever listed, for staff too
+ * (2026-11-08); a product that isn't live opens from Admin ▸ Shop ▸ Merch as a
+ * preview (/shop/<slug>?preview=1). Not indexed until it opens.
  */
 
 import type { Metadata } from "next";
@@ -17,14 +19,16 @@ import Link from "next/link";
 import { Alert, Container } from "@empac/cascadeds";
 import { MarketingHeroField } from "@/components/marketing/MarketingHeroField";
 import { MarketingHeroCurve } from "@/components/marketing/MarketingHeroCurve";
-import { MerchShelf } from "@/components/store/MerchShelf";
+import { MerchShop } from "@/components/store/MerchShop";
 import { ShopUpdates } from "@/components/store/ShopUpdates";
 import { shopUpdatesConfigured } from "@/lib/store/updates";
 import { createClient } from "@/lib/supabase/server";
 import { listShopProducts, ShopNotReady, type ShopProduct } from "@/lib/store/products";
 import { devPreviewFromPrintful, listMerchListings, type MerchListing } from "@/lib/store/merchCatalog";
 import { MerchNotReady } from "@/lib/store/merchSync";
-import { shopCopy } from "@/lib/store/copy";
+import { merchCopy, shopCopy } from "@/lib/store/copy";
+import { coverImage, heroPicks, toneOf } from "@/lib/store/merchFilters";
+import { collectionOf } from "@/lib/store/merch";
 import { holidayState } from "@/lib/store/rules";
 import { getPlatformFlag } from "@/lib/platform/flags";
 import { isStaffRequest } from "@/lib/auth/raw";
@@ -60,7 +64,7 @@ export default async function ShopPage({ searchParams }: { searchParams: Promise
   let listings: MerchListing[] = [];
   let notReady = false;
   try {
-    [products, listings] = await Promise.all([listShopProducts({ onlyOnSale: true }), listMerchListings({ preview: staff && !soon })]);
+    [products, listings] = await Promise.all([listShopProducts({ onlyOnSale: true }), listMerchListings()]);
   } catch (err) {
     if (err instanceof ShopNotReady || err instanceof MerchNotReady) notReady = true;
     else throw err;
@@ -78,15 +82,42 @@ export default async function ShopPage({ searchParams }: { searchParams: Promise
     signedIn = !!(await supabase.auth.getUser()).data.user;
   }
   const notify = soon && shopUpdatesConfigured();
+  const merch = merchCopy();
+  const picks = heroPicks(listings);
+  // The header's second button: the collection with the most products after the brand's own.
+  const counts = new Map<string, number>();
+  for (const l of listings) if (l.collection !== "gameshuffle") counts.set(l.collection, (counts.get(l.collection) ?? 0) + 1);
+  const top = [...counts.entries()].sort((a, b) => b[1] - a[1])[0]?.[0];
+  const feature = top ? collectionOf(top) : null;
 
   return (
-    <main className="shop-page" style={{ background: PAGE_BG }}>
+    <main className="shop-page" style={{ background: PAGE_BG, ["--shop-bg" as string]: PAGE_BG }}>
       <section className="marketing-hero">
         <MarketingHeroField category="merch" />
         <Container>
-          <p className="marketing-eyebrow">{soon ? copy.soon.eyebrow : copy.hero.eyebrow}</p>
-          <h1 className="marketing-hero__title">{copy.hero.title}</h1>
-          <p className="marketing-hero__sub">{soon ? copy.soon.lead : copy.hero.lead}</p>
+          <div className={`shop-hero${picks.length ? " shop-hero--pics" : ""}`}>
+            <div className="shop-hero__text">
+              <p className="marketing-eyebrow">{soon ? copy.soon.eyebrow : copy.hero.eyebrow}</p>
+              <h1 className="marketing-hero__title">{copy.hero.title}</h1>
+              <p className="marketing-hero__sub">{soon ? copy.soon.lead : copy.hero.lead}</p>
+              {listings.length > 0 && (
+                <div className="shop-hero__btns">
+                  <a href="#shelf" className="empac-button empac-button--primary empac-button--medium">{merch.shopAll}</a>
+                  {feature && <Link href={`/shop?collection=${feature.id}#shelf`} className="empac-button empac-button--secondary empac-button--medium shop-hero__btn2">{feature.name}</Link>}
+                </div>
+              )}
+            </div>
+            {picks.length > 0 && (
+              <div className="shop-hero__pics" aria-hidden="true">
+                {picks.map((l, i) => (
+                  <span key={l.id} className={`shop-hero__pic shop-hero__pic--${i} merch-coll--${toneOf(l.collection)}`}>
+                    {/* eslint-disable-next-line @next/next/no-img-element -- Printful's mockups are plain files */}
+                    <img src={coverImage(l)!} alt="" width={360} height={360} fetchPriority={i === 0 ? "high" : undefined} />
+                  </span>
+                ))}
+              </div>
+            )}
+          </div>
         </Container>
         <MarketingHeroCurve color={PAGE_BG} />
       </section>
@@ -104,7 +135,7 @@ export default async function ShopPage({ searchParams }: { searchParams: Promise
             </Alert>
           )}
           {staff && notReady && <Alert variant="warning" title="Not set up yet">Run supabase/merch-m1.sql, then press Sync from Printful in Platform ▸ Shop ▸ Merch.{devPreview ? " Dev server: showing every Printful product straight from Printful." : ""}</Alert>}
-          {staff && !notReady && listings.length === 0 && <Alert variant="info" title="No products yet">Press Sync from Printful in <Link href="/admin/shop?tab=merch">Platform ▸ Shop ▸ Merch</Link>, then put products live.</Alert>}
+          {staff && !notReady && listings.length === 0 && <Alert variant="info" title="No products live yet">Put products live in <Link href="/admin/shop?tab=merch">Admin ▸ Shop ▸ Merch</Link>. Only live products show here.</Alert>}
           {checkout === "canceled" && !soon && <Alert variant="info">{copy.errors.canceled}</Alert>}
           {soon && <ShopUpdates signedIn={signedIn} ready={notify} />}
           {holiday !== "none" && (
@@ -119,7 +150,7 @@ export default async function ShopPage({ searchParams }: { searchParams: Promise
               <p>{copy.closed.body}</p>
             </section>
           )) : (
-            <MerchShelf listings={listings} products={products} soon={soon} preview={staff && !soon} />
+            <MerchShop listings={listings} products={products} soon={soon} />
           )}
 
           {!soon && <section className="shop-section shop-shipping" aria-labelledby="shop-shipping">

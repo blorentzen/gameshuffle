@@ -24,16 +24,14 @@ import { LabeledCarousel } from "@/components/ui/LabeledCarousel";
  * The homepage's merch row: up to four live products and a link to the shop. A game space (round two picks 8A) shows
  * the same row under its own heading, with the designs about its game first (`prefer`, matched on the name).
  */
-export async function MerchRow({ from = "home-band", prefer, heading, line, className, preview = false }: {
+export async function MerchRow({ from = "home-band", prefer, heading, line, className }: {
   from?: ShopPlacement;
-  /** Staff: designs that aren't live yet too (a staff-only space shows what's coming). */
-  preview?: boolean;
   prefer?: RegExp;
   heading?: string;
   line?: string;
   className?: string;
 } = {}) {
-  const [all, open] = await Promise.all([listMerchListings({ preview }).catch(() => []), getPlatformFlag("shop_open", false)]);
+  const [all, open] = await Promise.all([listMerchListings().catch(() => []), getPlatformFlag("shop_open", false)]);
   const listings = prefer ? [...all.filter((l) => prefer.test(l.name)), ...all.filter((l) => !prefer.test(l.name))] : all;
   if (!listings.length) return null;
   const c = shopCopy().entry.band;
@@ -71,15 +69,14 @@ export async function MerchRow({ from = "home-band", prefer, heading, line, clas
  * the heading and Shop merch on one line, then a carousel of up to eight pieces, that game's designs first, four at a
  * time on desktop and two on phones, ending on a "Shop all merch" tile like the card store's.
  */
-export async function MerchShelf({ from = "space", prefer, heading = "Wear it", line, className, preview = false }: {
+export async function MerchShelf({ from = "space", prefer, heading = "Wear it", line, className }: {
   from?: ShopPlacement;
   prefer?: RegExp;
   heading?: string;
   line?: string;
   className?: string;
-  preview?: boolean;
 }) {
-  const [all, open] = await Promise.all([listMerchListings({ preview }).catch(() => []), getPlatformFlag("shop_open", false)]);
+  const [all, open] = await Promise.all([listMerchListings().catch(() => []), getPlatformFlag("shop_open", false)]);
   const listings = (prefer ? [...all.filter((l) => prefer.test(l.name)), ...all.filter((l) => !prefer.test(l.name))] : all).slice(0, 8);
   if (!listings.length) return null;
   const m = merchCopy();

@@ -17,7 +17,10 @@ import Link from "next/link";
 import {
   Accordion, Alert, Button, Chip, Select, Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@empac/cascadeds";
-import { IconShoppingCartPlus } from "@tabler/icons-react";
+import { IconCheck, IconPlus, IconRuler2, IconShoppingCartPlus } from "@tabler/icons-react";
+import { ArrowLink } from "@/components/ui/ArrowLink";
+import { coverImage } from "@/lib/store/merchFilters";
+import { Select as SiteSelect } from "@/components/ui/Select";
 import { formatPrice, merchCopy } from "@/lib/store/copy";
 import { EVENTS, track } from "@/lib/analytics/events";
 import type { MerchListing } from "@/lib/store/merchCatalog";
@@ -26,12 +29,62 @@ import type { ShopProduct } from "@/lib/store/products";
 import { TableScroll } from "@/components/ui/TableScroll";
 import { CartButton, QuantityStepper, ShopCartProvider, useShopCart } from "./ShopCart";
 
-export function MerchProduct({ listing, products, preview = false, soon = false }: { listing: MerchListing; products: ShopProduct[]; preview?: boolean; soon?: boolean }) {
+export function MerchProduct({ listing, products, pairs = [], preview = false, soon = false }: { listing: MerchListing; products: ShopProduct[]; pairs?: MerchListing[]; preview?: boolean; soon?: boolean }) {
   return (
     <ShopCartProvider products={products}>
       {!soon && <CartButton />}
       <ProductBody listing={listing} preview={preview} soon={soon} />
+      {pairs.length > 0 && <PairWith listing={listing} pairs={pairs} soon={soon} />}
     </ShopCartProvider>
+  );
+}
+
+/**
+ * "Pair it with" (shop picks 2026-11-08): three products of other kinds (pairsFor). One that has nothing to choose
+ * (one color, one size, no pick) adds from the row; the rest say what to choose and open their page.
+ */
+function PairWith({ listing, pairs, soon }: { listing: MerchListing; pairs: MerchListing[]; soon: boolean }) {
+  const copy = merchCopy();
+  const cart = useShopCart();
+  const [added, setAdded] = useState<string | null>(null);
+  return (
+    <section className="shop-section merch-pairs" aria-labelledby="merch-pairs">
+      <div className="merch-collection__head">
+        <h2 id="merch-pairs" className="shop-h2">{copy.pair.heading}</h2>
+        <p className="shop-section__line">{copy.pair.line(listing.name)}</p>
+      </div>
+      <ul className="merch-pairs__list">
+        {pairs.map((l) => {
+          const only = l.variants.length === 1 ? l.variants[0] : null;
+          const direct = !soon && !!only && only.onSale && !only.personal && cart.limit(only.sku) > 0;
+          const image = coverImage(l);
+          const href = `/shop/${l.slug}`;
+          return (
+            <li key={l.id} className="merch-pair">
+              <Link href={href} className="merch-pair__pic" tabIndex={-1} aria-hidden="true">
+                {/* eslint-disable-next-line @next/next/no-img-element -- Printful's mockups are plain files */}
+                {image && <img src={image} alt="" width={88} height={88} loading="lazy" />}
+              </Link>
+              <div className="merch-pair__text">
+                <Link href={href} className="merch-pair__name">{l.name}</Link>
+                {!soon && <span className="merch-pair__price">{l.priceVaries ? copy.from(l.fromCents) : formatPrice(l.fromCents)}</span>}
+                {direct ? (
+                  <Button variant="secondary" size="small" iconBefore={added === l.id ? IconCheck : IconPlus} aria-label={copy.pair.addLabel(l.name)} onClick={() => {
+                    cart.add(only!.sku, 1);
+                    cart.open();
+                    setAdded(l.id);
+                    window.setTimeout(() => setAdded((cur) => (cur === l.id ? null : cur)), 2000);
+                    track(EVENTS.merchAddedToCart, { item: l.itemType, from: "pair" });
+                  }}>{added === l.id ? copy.pair.added : copy.pair.add}</Button>
+                ) : (
+                  <ArrowLink href={href}>{copy.pair.choose(l.optionLabel === "Phone" ? "phone" : l.optionLabel === "Size" && l.options.length > 1 ? "size" : l.colors.length > 1 ? "color" : "none")}</ArrowLink>
+                )}
+              </div>
+            </li>
+          );
+        })}
+      </ul>
+    </section>
   );
 }
 
@@ -130,18 +183,28 @@ function ProductBody({ listing, preview, soon }: { listing: MerchListing; previe
 
         {listing.optionLabel === "Size" && options.length > 0 && (
           <div className="merch-field">
-            <p className="merch-field__label" id="merch-size">{copy.size} <span>{option ?? copy.pickSize}</span></p>
-            {/* One size (a 32 oz bottle, a 15 by 17 inch bag): it's already chosen, so it's just the line above. */}
-            {options.length > 1 && <div className="merch-field__chips" role="group" aria-labelledby="merch-size">
-              {options.map((o) => {
-                const extra = (forColor.find((v) => v.option === o)?.priceCents ?? base) - base;
-                return <Chip key={o} clickable selected={option === o} variant={option === o ? "primary" : "default"} onClick={() => setOption(o)} label={extra > 0 ? `${o} +${formatPrice(extra).replace(/\.00$/, "")}` : o} />;
-              })}
-            </div>}
+            {/* One size (a 32 oz bottle, a 15 by 17 inch bag): it's already chosen, so it's just this line. */}
+            {options.length <= 1 && <p className="merch-field__label" id="merch-size">{copy.size} <span>{option ?? copy.pickSize}</span></p>}
+            {/* Several sizes: a dropdown, as stores do (2026-11-08: nine chips across two rows read as a wall). */}
+            {options.length > 1 && (
+              <div className="merch-field__select">
+                <SiteSelect
+                  floatingLabel={copy.size}
+                  placeholder={copy.pickSize}
+                  value={option ?? undefined}
+                  onChange={(v) => setOption(String(v))}
+                  fullWidth
+                  options={options.map((o) => {
+                    const extra = (forColor.find((v) => v.option === o)?.priceCents ?? base) - base;
+                    return { value: o, label: extra > 0 ? `${o} (+${formatPrice(extra).replace(/\.00$/, "")})` : o };
+                  })}
+                />
+              </div>
+            )}
             {listing.sizeGuide && (
-              <Accordion variant="flush" className="merch-guide" items={[{
+              <Accordion variant="bordered" className="merch-guide" items={[{
                 id: "size-guide",
-                title: copy.sizeGuide,
+                title: <span className="merch-guide__title"><IconRuler2 size={18} aria-hidden="true" />{copy.sizeGuide}</span>,
                 content: (
                   <TableScroll label={copy.sizeGuide}>
                     <Table>

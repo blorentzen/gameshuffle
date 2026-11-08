@@ -88,12 +88,17 @@ export function missesChristmas(shipState: string | null | undefined, now: Date 
  * Pacific date, skipping weekends and no_ship_days. YYYY-MM-DD.
  */
 export function shipByDay(orderedAt: Date, config: ShopConfig = SHOP): string {
+  return addBusinessDays(orderedAt, config.shipping.ship_within_business_days, config);
+}
+
+/** `n` business days after a moment's Pacific date, skipping weekends and no_ship_days. YYYY-MM-DD. */
+export function addBusinessDays(from: Date, n: number, config: ShopConfig = SHOP): string {
   const tz = config.shipping.timezone;
-  const day = new Intl.DateTimeFormat("en-CA", { timeZone: tz, year: "numeric", month: "2-digit", day: "2-digit" }).format(orderedAt);
+  const day = new Intl.DateTimeFormat("en-CA", { timeZone: tz, year: "numeric", month: "2-digit", day: "2-digit" }).format(from);
   const skip = new Set(config.shipping.no_ship_days);
   // Walk calendar days at UTC noon so DST never shifts the date.
   const d = new Date(`${day}T12:00:00Z`);
-  let left = config.shipping.ship_within_business_days;
+  let left = n;
   while (left > 0) {
     d.setUTCDate(d.getUTCDate() + 1);
     const iso = d.toISOString().slice(0, 10);

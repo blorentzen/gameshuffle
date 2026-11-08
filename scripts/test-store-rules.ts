@@ -5,7 +5,7 @@
  */
 import assert from "node:assert/strict";
 import { SHOP, isOnSale, stripeLookupKey, stripeProductId } from "../src/lib/store/config";
-import { holidayState, missesChristmas, orderCode, postageCents, refundCents, shipByDay, shipMethodFor, shipWeightOz, shippingCents, stateTotals, toFreeShippingCents, type StateOrder } from "../src/lib/store/rules";
+import { addBusinessDays, holidayState, missesChristmas, orderCode, postageCents, refundCents, shipByDay, shipMethodFor, shipWeightOz, shippingCents, stateTotals, toFreeShippingCents, type StateOrder } from "../src/lib/store/rules";
 import { shopDate } from "../src/lib/store/copy";
 
 let passed = 0;
@@ -46,21 +46,35 @@ test("with stamped mail on: 1 single letter, 2 to 4 flat, 5+ or any bundle parce
   assert.equal(shipMethodFor([{ sku: "ready-deck", quantity: 0 }, { sku: "spark-spook-1", quantity: 1 }], { config }), "letter", "zero-quantity lines don't count");
 });
 
-test("shipping: $4.99 under $25, free from $25", () => {
-  assert.equal(shippingCents(799), 499);
-  assert.equal(shippingCents(2499), 499);
-  assert.equal(shippingCents(2500), 0);
-  assert.equal(shippingCents(5999), 0);
-  assert.equal(toFreeShippingCents(1999), 501);
-  assert.equal(toFreeShippingCents(2599), 0);
+// The threshold comes from the shop's settings ($50 since the merch shop, Nov 4; the card packs' was $25).
+test("shipping: standard under the free threshold, free from it", () => {
+  const free = SHOP.shipping.rate.free_threshold_cents;
+  const standard = SHOP.shipping.rate.standard_cents;
+  assert.equal(shippingCents(799), standard);
+  assert.equal(shippingCents(free - 1), standard);
+  assert.equal(shippingCents(free), 0);
+  assert.equal(shippingCents(free + 3499), 0);
+  assert.equal(toFreeShippingCents(free - 501), 501);
+  assert.equal(toFreeShippingCents(free + 99), 0);
 });
 
+// The card packs shipped within 2 business days; these pin that setting to test the weekend and holiday skipping.
+const TWO_DAYS = { ...SHOP, shipping: { ...SHOP.shipping, ship_within_business_days: 2 } };
 test("ship-by date: 2 business days, Pacific, skipping weekends and no-ship days", () => {
-  assert.equal(shipByDay(new Date("2026-11-02T10:00:00-08:00")), "2026-11-04", "Monday -> Wednesday");
-  assert.equal(shipByDay(new Date("2026-11-09T10:00:00-08:00")), "2026-11-12", "Monday -> Thursday (Veterans Day skipped)");
-  assert.equal(shipByDay(new Date("2026-11-13T10:00:00-08:00")), "2026-11-17", "Friday -> Tuesday");
-  assert.equal(shipByDay(new Date("2026-11-24T23:30:00-08:00")), "2026-11-27", "Tuesday night -> Friday (Thanksgiving skipped)");
-  assert.equal(shipByDay(new Date("2026-11-03T07:30:00Z")), "2026-11-04", "11:30pm Monday Pacific (7:30am UTC Tuesday) counts as Monday");
+  assert.equal(shipByDay(new Date("2026-11-02T10:00:00-08:00"), TWO_DAYS), "2026-11-04", "Monday -> Wednesday");
+  assert.equal(shipByDay(new Date("2026-11-09T10:00:00-08:00"), TWO_DAYS), "2026-11-12", "Monday -> Thursday (Veterans Day skipped)");
+  assert.equal(shipByDay(new Date("2026-11-13T10:00:00-08:00"), TWO_DAYS), "2026-11-17", "Friday -> Tuesday");
+  assert.equal(shipByDay(new Date("2026-11-24T23:30:00-08:00"), TWO_DAYS), "2026-11-27", "Tuesday night -> Friday (Thanksgiving skipped)");
+  assert.equal(shipByDay(new Date("2026-11-03T07:30:00Z"), TWO_DAYS), "2026-11-04", "11:30pm Monday Pacific (7:30am UTC Tuesday) counts as Monday");
+});
+
+// Merch (made when you order) ships within 5 business days.
+test("ship-by date: merch's 5 business days, and arrival days", () => {
+  assert.equal(SHOP.shipping.ship_within_business_days, 5);
+  assert.equal(shipByDay(new Date("2026-11-02T10:00:00-08:00")), "2026-11-09", "Monday -> next Monday");
+  assert.equal(shipByDay(new Date("2026-11-09T10:00:00-08:00")), "2026-11-17", "Monday -> next Tuesday (Veterans Day skipped)");
+  assert.equal(shipByDay(new Date("2026-11-24T23:30:00-08:00")), "2026-12-02", "Tuesday night -> next Wednesday (Thanksgiving skipped)");
+  assert.equal(addBusinessDays(new Date("2026-11-02T10:00:00-08:00"), 10), "2026-11-17", "10 business days from Monday Nov 2");
 });
 
 test("weight adds the method's packaging", () => {
@@ -85,16 +99,21 @@ test("on sale = active and before its end date", () => {
   assert.equal(orderCode(1047), "GS-1047");
 });
 
+// The card packs' holiday window (banner from Dec 1). Merch has it off until Printful's holiday dates are in (below).
+const PACK_HOLIDAY = { ...SHOP, holiday: { ...SHOP.holiday, banner_start: "2026-12-01T00:00:00-08:00" } };
 test("Christmas banner and cutoffs come from the config, Pacific time", () => {
-  assert.equal(holidayState(new Date("2026-11-30T23:00:00-08:00")), "none");
-  assert.equal(holidayState(new Date("2026-12-01T00:00:00-08:00")), "before_cutoff");
-  assert.equal(holidayState(new Date("2026-12-13T23:59:00-08:00")), "before_cutoff");
-  assert.equal(holidayState(new Date("2026-12-14T00:01:00-08:00")), "after_cutoff");
-  assert.equal(holidayState(new Date("2026-12-26T00:00:00-08:00")), "none");
+  assert.equal(holidayState(new Date("2026-11-30T23:00:00-08:00"), PACK_HOLIDAY), "none");
+  assert.equal(holidayState(new Date("2026-12-01T00:00:00-08:00"), PACK_HOLIDAY), "before_cutoff");
+  assert.equal(holidayState(new Date("2026-12-13T23:59:00-08:00"), PACK_HOLIDAY), "before_cutoff");
+  assert.equal(holidayState(new Date("2026-12-14T00:01:00-08:00"), PACK_HOLIDAY), "after_cutoff");
+  assert.equal(holidayState(new Date("2026-12-26T00:00:00-08:00"), PACK_HOLIDAY), "none");
   const dec13noon = new Date("2026-12-13T12:00:00-08:00");
-  assert.equal(missesChristmas("WA", dec13noon), false);
-  assert.equal(missesChristmas("HI", dec13noon), true, "Alaska and Hawaii cut off a day earlier");
-  assert.equal(missesChristmas("AK", new Date("2026-12-12T23:00:00-08:00")), false);
+  assert.equal(missesChristmas("WA", dec13noon, PACK_HOLIDAY), false);
+  assert.equal(missesChristmas("HI", dec13noon, PACK_HOLIDAY), true, "Alaska and Hawaii cut off a day earlier");
+  assert.equal(missesChristmas("AK", new Date("2026-12-12T23:00:00-08:00"), PACK_HOLIDAY), false);
+  // Merch today: no banner and no "arrives after Christmas" note until the dates are set.
+  assert.equal(holidayState(new Date("2026-12-10T12:00:00-08:00")), "none", "merch: holiday banner off");
+  assert.equal(missesChristmas("WA", new Date("2026-12-20T12:00:00-08:00")), false, "merch: no after-Christmas note");
   assert.equal(shopDate("2026-12-13T23:59:59-08:00", { weekday: true }), "Sunday, Dec 13");
   assert.equal(shopDate("2026-12-12T23:59:59-08:00", { weekday: true }), "Saturday, Dec 12");
 });

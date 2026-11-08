@@ -2,80 +2,33 @@
 
 /**
  * Platform admin ▸ Shop ▸ Orders and Products (staff): run the GameShuffle Shop.
- *   Orders    to ship (oldest first) / shipped / refunded and canceled / all,
- *             search by order number, email or name. An order opens with the
- *             full address, items, totals and timeline: mark shipped (the
- *             buyer gets the tracking email), fix tracking, refund (optionally
- *             back in stock), restock, notes, resend the confirmation.
+ *   Orders    the queue (ShopOrdersQueue: what needs you first, then by where
+ *             orders are); each order has its own page (ShopOrderPage).
  *   Products  the catalog: add, edit (a price change makes a new Stripe price),
  *             stock, on/off, archive and restore. Changes go to Stripe too.
  */
 
 import { useCallback, useEffect, useState } from "react";
 import {
-  Alert, Badge, Button, Checkbox, Input, Modal, Select, StatCard, Switch, Textarea, Timeline,
+  Alert, Badge, Button, Checkbox, Input, Modal, Select, Switch, Textarea,
   Table, TableBody, TableCell, TableEmpty, TableHead, TableHeader, TableRow,
 } from "@empac/cascadeds";
 import { useToast } from "@/components/toast/ToastProvider";
 import { useConfirm } from "@/components/confirm/ConfirmProvider";
 import { LoadingLines } from "@/components/loading/LoadingLines";
 import { formatPrice } from "@/lib/store/copy";
-import type { AdminOrderDetail, AdminOrderRow, AdminRefundQuote, OrderFilter, OrdersSummary, RefundReason, StateSales } from "@/lib/store/manage";
+import type { AdminOrderDetail, AdminRefundQuote, RefundReason, StateSales } from "@/lib/store/manage";
 import type { StateTotals } from "@/lib/store/rules";
 import { refundCents } from "@/lib/store/rules";
-import { AdminHeader, AdminRowMenu, AdminStats, AdminTable } from "@/components/account/admin/AdminKit";
-import { IconCash, IconPackage, IconPlus, IconReceipt, IconReceiptRefund, IconRefresh } from "@tabler/icons-react";
+import { AdminHeader, AdminRowMenu, AdminTable } from "@/components/account/admin/AdminKit";
+import { IconPlus, IconRefresh } from "@tabler/icons-react";
 import type { AdminProduct, ProductInput } from "@/lib/store/catalog";
+import { ShopOrdersQueue } from "./shop/ShopOrdersQueue";
+import { errorText } from "./shop/orderBits";
 
-const STATUS: Record<AdminOrderRow["status"], { label: string; variant: "warning" | "success" | "default" | "info" }> = {
-  paid: { label: "To ship", variant: "warning" },
-  shipped: { label: "Shipped", variant: "success" },
-  refunded: { label: "Refunded", variant: "default" },
-  canceled: { label: "Canceled", variant: "default" },
-};
-const ERRORS: Record<string, string> = {
-  bad_tracking: "That doesn't look like a tracking number.", not_shippable: "Only unshipped orders can be marked shipped.",
-  not_refundable: "This order can't be refunded.", already_restocked: "Already back in stock.", never_taken: "This order never took stock.",
-  empty_note: "Write the note first.", no_email: "This order has no email.", live_locked: "Live mode is locked. An admin can turn on \"Edit products in Stripe live mode\" on the Switches screen.",
-  bad_sku: "SKU: lowercase letters, numbers and dashes.", sku_taken: "That SKU is taken.", bad_price: "Price must be $0.50 to $1,000.",
-  bad_name: "Add a name.", missing_fields: "Add a name and a price.", bad_max: "Max per order is 1 to 20.", bad_weight: "Weight must be above 0.",
-  bad_stock: "Stock must be a whole number, 0 or more.", bad_image: "Image link must start with https:// or /images/.",
-  nothing_to_refund: "Pick something to refund.", too_much: "That's more than is left to refund.", bad_amount: "Enter an amount above $0.",
-  too_many_items: "That's more units than are left to refund.", shipping_refunded: "Shipping was already refunded.",
-  stripe_failed: "Stripe didn't take the refund. Nothing was refunded; try again.", refund_failed: "The refund didn't go through. Nothing was refunded.",
-  no_payment: "This order has no payment to refund.",
-  test_order: "Test orders never go to Printful.", not_paid: "Only paid orders can go to Printful.",
-};
-/** Where a merch order stands with Printful, in a line. */
-const PRINTFUL_LINE: Record<string, string> = {
-  creating: "Making the Printful draft…",
-  draft: "Waiting in Printful as a draft. Nothing is charged until you send it.",
-  pending: "Sent to Printful. Waiting for Printful to accept it.",
-  inreview: "Printful is reviewing it.",
-  inprocess: "Printful is making it.",
-  onhold: "On hold at Printful. Open Printful to sort it out.",
-  partial: "Printful shipped part of it.",
-  fulfilled: "Printful shipped it.",
-  failed: "Printful didn't take it.",
-  canceled: "Canceled at Printful.",
-  test: "Test order: Printful priced it, and nothing was made there.",
-};
-const errorText = (code?: string) => ERRORS[code ?? ""] ?? "That didn't work.";
-const EVENT_STATUS: Record<string, "primary" | "success" | "warning" | "info" | "default"> = { placed: "primary", shipped: "success", refunded: "warning", canceled: "warning", restocked: "info", reshipped: "info" };
-function eventDetail(e: AdminOrderDetail["timeline"][number]): string {
-  const d = e.detail;
-  if (e.kind === "note" && typeof d.text === "string") return d.text;
-  if ((e.kind === "shipped" || e.kind === "updated") && typeof d.tracking === "string") return `Tracking ${d.tracking}`;
-  if (e.kind === "restocked" && typeof d.units === "number") return `${d.units} back in stock`;
-  if (e.kind === "refunded" && typeof d.reason === "string") return d.reason;
-  if (e.kind === "email" && d.what === "confirmation_resent") return "Confirmation sent again";
-  return "";
-}
-const when = (iso: string) => new Date(iso).toLocaleString("en-US", { timeZone: "America/Los_Angeles", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
-
-/** Shop ▸ Orders. */
+/** Shop ▸ Orders: the queue (order tracking picks 2026-11-08); each order opens its own page, /admin/shop/GS-1021. */
 export function PlatformShopOrdersTab() {
-  return <OrdersPanel />;
+  return <ShopOrdersQueue />;
 }
 
 /** Shop ▸ Products. */
@@ -84,224 +37,6 @@ export function PlatformShopProductsTab() {
 }
 
 // ─── orders ─────────────────────────────────────────────────────────────────
-
-function OrdersPanel() {
-  const [filter, setFilter] = useState<OrderFilter>("to_ship");
-  const [q, setQ] = useState("");
-  const [orders, setOrders] = useState<AdminOrderRow[] | null>(null);
-  const [summary, setSummary] = useState<OrdersSummary | null>(null);
-  const [busy, setBusy] = useState(false);
-  const [open, setOpen] = useState<string | null>(null);
-
-  const load = useCallback(async () => {
-    setBusy(true);
-    const d = await fetch(`/api/admin/shop/orders?filter=${filter}&q=${encodeURIComponent(q)}&summary=1`, { cache: "no-store" }).then((r) => r.json()).catch(() => null);
-    setBusy(false);
-    setOrders(d?.ok ? d.orders : []);
-    if (d?.summary) setSummary(d.summary);
-  }, [filter, q]);
-  useEffect(() => { const t = setTimeout(() => void load(), q ? 300 : 0); return () => clearTimeout(t); }, [load, q]);
-
-  return (
-    <div className="account-card admin-screen shop-admin">
-      <AdminHeader
-        title="Orders"
-        intro="Orders to ship come first, oldest at the top. Open one to mark it shipped, refund it or add a note."
-        actions={<Button variant="secondary" size="small" iconBefore={IconRefresh} loading={busy} disabled={busy} onClick={() => void load()}>Refresh</Button>}
-      />
-      {summary && (
-        <AdminStats label="Orders at a glance">
-          <StatCard label="To ship" value={String(summary.toShip)} source={summary.oldestShipBy ? `Oldest ships by ${summary.oldestShipBy}` : "Nothing waiting"} icon={<IconPackage size={20} />} variant={summary.toShip > 0 ? "accent" : "default"} />
-          <StatCard label="Orders, 30 days" value={String(summary.orders30d)} source={`${summary.orders7d} this week`} icon={<IconReceipt size={20} />} />
-          <StatCard label="Sales, 30 days" value={formatPrice(summary.sales30d)} source="After refunds, with shipping and tax" icon={<IconCash size={20} />} />
-          <StatCard label="Refunded, 30 days" value={formatPrice(summary.refunded30d)} icon={<IconReceiptRefund size={20} />} />
-        </AdminStats>
-      )}
-      <div className="admin-filters">
-        <Input fullWidth floatingLabel="Search all orders: number, email or name" value={q} onChange={(e) => setQ(e.target.value)} />
-        <Select floatingLabel="Show" value={filter} onChange={(v) => setFilter(String(v) as OrderFilter)}
-          options={[{ value: "to_ship", label: "To ship" }, { value: "shipped", label: "Shipped" }, { value: "closed", label: "Refunded and canceled" }, { value: "all", label: "All orders" }]} />
-      </div>
-      {orders === null ? <LoadingLines label="Loading" /> : (
-        <AdminTable label="Orders">
-          <Table variant="striped" hoverable dense>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Order</TableHead><TableHead>Placed</TableHead><TableHead>Ship to</TableHead>
-                <TableHead align="right">Items</TableHead><TableHead align="right">Total</TableHead><TableHead>Status</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {orders.length === 0 ? (
-                <TableRow><TableCell colSpan={6}><TableEmpty title={filter === "to_ship" && !q ? "Nothing to ship" : q ? "No orders match that search" : "No orders here"} description={filter === "to_ship" && !q ? "New orders show here, oldest first." : undefined} /></TableCell></TableRow>
-              ) : orders.map((o) => (
-                <TableRow key={o.id}>
-                  <TableCell>
-                    <button type="button" className="admin-table__link shop-admin__open" onClick={() => setOpen(o.id)}>{o.code}</button>
-                    {o.shortfall && <span className="admin-table__sub">Stock ran short</span>}
-                  </TableCell>
-                  <TableCell>{when(o.createdAt)}</TableCell>
-                  <TableCell>{o.name ?? "No name"}<span className="admin-table__sub">{o.state ?? ""}{o.email ? ` · ${o.email}` : ""}</span></TableCell>
-                  <TableCell align="right">{o.itemCount}</TableCell>
-                  <TableCell align="right">{formatPrice(o.total)}</TableCell>
-                  <TableCell>
-                    <Badge variant={STATUS[o.status].variant} size="small">{STATUS[o.status].label}</Badge>
-                    {o.amountRefunded > 0 && (o.status === "paid" || o.status === "shipped") && <span className="admin-table__sub">Partly refunded</span>}
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </AdminTable>
-      )}
-      {open && <OrderModal id={open} onClose={() => setOpen(null)} onChanged={() => void load()} />}
-    </div>
-  );
-}
-
-function OrderModal({ id, onClose, onChanged }: { id: string; onClose: () => void; onChanged: () => void }) {
-  const toast = useToast();
-  const confirm = useConfirm();
-  const [order, setOrder] = useState<AdminOrderDetail | null>(null);
-  const [tracking, setTracking] = useState("");
-  const [note, setNote] = useState("");
-  const [refunding, setRefunding] = useState(false);
-  const [busy, setBusy] = useState(false);
-
-  useEffect(() => {
-    let live = true;
-    fetch(`/api/admin/shop/orders/${id}`, { cache: "no-store" }).then((r) => r.json()).then((d) => { if (live && d?.ok) { setOrder(d.order); setTracking(d.order.tracking ?? ""); } }).catch(() => {});
-    return () => { live = false; };
-  }, [id]);
-
-  const act = async (body: Record<string, unknown>, done: string) => {
-    setBusy(true);
-    const d = await fetch(`/api/admin/shop/orders/${id}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) }).then((r) => r.json()).catch(() => null);
-    setBusy(false);
-    if (!d?.ok) { toast.error(d?.error === "printful" && d?.message ? `Printful: ${d.message}` : errorText(d?.error)); return false; }
-    setOrder(d.order);
-    toast.success(done);
-    if (d.printfulCanceled === false && d.printfulReason) toast.error(`Printful didn't cancel it: ${d.printfulReason}. Cancel it in Printful.`);
-    onChanged();
-    return true;
-  };
-  const sendToPrintful = async () => {
-    if (!order) return;
-    if (!(await confirm({ title: `Send ${order.code} to Printful?`, body: "Printful charges for it now and starts making it.", confirmLabel: "Send to Printful" }))) return;
-    await act({ action: "printful_send" }, "Sent to Printful");
-  };
-
-  return (
-    <Modal isOpen onClose={onClose} title={order ? `Order ${order.code}` : "Order"} size="large">
-      {!order ? <LoadingLines label="Loading" /> : (
-        <div className="shop-admin__order">
-          <div className="shop-admin__order-head">
-            <Badge variant={STATUS[order.status].variant}>{STATUS[order.status].label}</Badge>
-            {order.amountRefunded > 0 && (order.status === "paid" || order.status === "shipped") && <Badge variant="warning">{`Partly refunded: ${formatPrice(order.amountRefunded)}`}</Badge>}
-            <span className="admin-table__sub">Placed {when(order.createdAt)} · ships by {order.shipByLabel}{order.livemode ? "" : " · test mode"}</span>
-          </div>
-          {order.stockShortfall && <Alert variant="warning" title="Stock ran short">{order.stockShortfall.map((s) => `${s.sku}: ${s.missing} missing`).join(", ")}. Check the shelf before shipping.</Alert>}
-          <div className="shop-admin__cols">
-            <section>
-              <h3 className="shop-admin__h">Ship to</h3>
-              <address className="shop-admin__address">
-                {order.name}<br />{order.address.line1}{order.address.line2 ? <><br />{order.address.line2}</> : null}<br />{order.address.city}, {order.state} {order.address.postal}
-              </address>
-              <p className="admin-table__sub">{order.email}{order.phone ? ` · ${order.phone}` : ""}</p>
-              <p className="admin-table__sub">{order.merch ? `Printful ships it${order.carrier && order.status === "shipped" ? ` (${order.carrier})` : ""}` : `USPS Ground Advantage · ${order.shipWeightOz} oz with packaging`}</p>
-            </section>
-            <section>
-              <h3 className="shop-admin__h">Items</h3>
-              <ul className="shop-admin__items">
-                {order.items.map((i) => (
-                  <li key={i.sku}>
-                    <span>{i.quantity} x {i.name}{i.refundedQuantity > 0 && i.refundedQuantity < i.quantity ? <span className="admin-table__sub">{i.refundedQuantity} refunded</span> : null}</span>
-                    <span>{formatPrice(i.unitAmount * i.quantity)}</span>
-                  </li>
-                ))}
-              </ul>
-              <dl className="shop-admin__totals">
-                <div><dt>Subtotal</dt><dd>{formatPrice(order.amountSubtotal)}</dd></div>
-                <div><dt>Shipping</dt><dd>{order.amountShipping ? formatPrice(order.amountShipping) : "Free"}</dd></div>
-                {order.amountTax > 0 && <div><dt>Sales tax</dt><dd>{formatPrice(order.amountTax)}</dd></div>}
-                <div><dt>Total</dt><dd>{formatPrice(order.total)}</dd></div>
-                {order.amountRefunded > 0 && <div><dt>Refunded</dt><dd>−{formatPrice(order.amountRefunded)}</dd></div>}
-              </dl>
-            </section>
-          </div>
-
-          {order.merch && (
-            <section className="shop-admin__action">
-              <h3 className="shop-admin__h">Printful</h3>
-              <p>{PRINTFUL_LINE[order.printful.status ?? ""] ?? (order.printful.status ? `Printful: ${order.printful.status}` : "Not in Printful yet.")}</p>
-              {order.printful.error && order.printful.status !== "test" && <Alert variant="warning">{order.printful.error}</Alert>}
-              <div className="shop-admin__row shop-admin__row--wrap">
-                {order.livemode && order.status === "paid" && (!order.printful.status || order.printful.status === "draft" || order.printful.status === "failed") && (
-                  <Button variant="primary" disabled={busy} onClick={() => void sendToPrintful()}>Send to Printful</Button>
-                )}
-                {order.livemode && order.status === "paid" && !order.printful.orderId && order.printful.status === "failed" && (
-                  <Button variant="secondary" disabled={busy} onClick={() => void act({ action: "printful_draft" }, "Draft made")}>Make the draft again</Button>
-                )}
-                {order.printful.orderId && <a href="https://www.printful.com/dashboard/default/orders" target="_blank" rel="noopener noreferrer">Open Printful (order {order.printful.orderId})</a>}
-              </div>
-              <p className="admin-table__sub">When Printful ships it, the order is marked shipped and the buyer gets the tracking email.</p>
-            </section>
-          )}
-          {order.status === "paid" && !order.merch && (
-            <section className="shop-admin__action">
-              <h3 className="shop-admin__h">Mark shipped</h3>
-              <div className="shop-admin__row">
-                <Input fullWidth floatingLabel="Tracking number" value={tracking} onChange={(e) => setTracking(e.target.value)} autoComplete="off" />
-                <Button variant="primary" disabled={busy || !tracking.trim()} onClick={() => void act({ action: "ship", tracking }, "Marked shipped")}>Mark shipped</Button>
-              </div>
-              <p className="admin-table__sub">The buyer gets an email with the USPS tracking link.</p>
-            </section>
-          )}
-          {order.status === "shipped" && (
-            <section className="shop-admin__action">
-              <h3 className="shop-admin__h">Tracking</h3>
-              {order.trackingUrl && <p><a href={order.trackingUrl} target="_blank" rel="noopener noreferrer">{order.tracking}</a></p>}
-              <div className="shop-admin__row">
-                <Input fullWidth floatingLabel="Fix the tracking number" value={tracking} onChange={(e) => setTracking(e.target.value)} autoComplete="off" />
-                <Button variant="secondary" disabled={busy || !tracking.trim() || tracking === order.tracking} onClick={() => void act({ action: "tracking", tracking }, "Tracking saved")}>Save</Button>
-              </div>
-            </section>
-          )}
-
-          <section className="shop-admin__action">
-            <h3 className="shop-admin__h">More</h3>
-            <div className="shop-admin__row shop-admin__row--wrap">
-              {(order.status === "paid" || order.status === "shipped") && (
-                <Button variant="danger" size="small" disabled={busy} onClick={() => setRefunding(true)}>Refund</Button>
-              )}
-              {(order.status === "refunded" || order.status === "canceled") && !order.restocked && !order.merch && order.refundReason !== "cant_ship_address" && (
-                <Button variant="secondary" size="small" disabled={busy} onClick={() => void act({ action: "restock" }, "Back in stock")}>Put back in stock</Button>
-              )}
-              {order.email && <Button variant="ghost" size="small" disabled={busy} onClick={() => void act({ action: "resend" }, "Confirmation sent")}>Resend confirmation</Button>}
-            </div>
-            <div className="shop-admin__row">
-              <Textarea fullWidth floatingLabel="Add a note (staff only)" value={note} rows={2} maxLength={1000} onChange={(e) => setNote(e.target.value)} />
-              <Button variant="secondary" size="small" disabled={busy || !note.trim()} onClick={async () => { if (await act({ action: "note", text: note }, "Note added")) setNote(""); }}>Add note</Button>
-            </div>
-          </section>
-
-          <section>
-            <h3 className="shop-admin__h">Timeline</h3>
-            <Timeline variant="compact" items={[...order.timeline].reverse().map((e, i) => ({
-              id: i,
-              title: e.kind === "note" ? "Note" : e.kind[0].toUpperCase() + e.kind.slice(1),
-              timestamp: `${when(e.at)}${e.actor ? ` · ${e.actor}` : ""}${e.visible ? " · buyer sees this" : ""}`,
-              status: EVENT_STATUS[e.kind] ?? "default",
-              description: eventDetail(e) || undefined,
-            }))} />
-          </section>
-          {(order.utm.content || order.utm.source) && <p className="admin-table__sub">Came from {[order.utm.source, order.utm.medium, order.utm.campaign, order.utm.content].filter(Boolean).join(" / ")}</p>}
-          {refunding && <RefundModal order={order} onClose={() => setRefunding(false)} onDone={(o) => { setOrder(o); setRefunding(false); onChanged(); }} />}
-        </div>
-      )}
-    </Modal>
-  );
-}
 
 const REASONS: { value: RefundReason; label: string }[] = [
   { value: "damaged", label: "Damaged in transit" },
@@ -315,15 +50,19 @@ const REASONS: { value: RefundReason; label: string }[] = [
  * them, from Stripe's own totals), the shipping charge, or a set amount. Damaged
  * packs stay off the shelf unless "Put these back in stock" is ticked.
  */
-function RefundModal({ order, onClose, onDone }: { order: AdminOrderDetail; onClose: () => void; onDone: (o: AdminOrderDetail) => void }) {
+export function RefundModal({ order, onClose, onDone, preset, requestId }: {
+  order: AdminOrderDetail; onClose: () => void; onDone: (o: AdminOrderDetail) => void;
+  /** From a problem report: that item and reason already picked, and the report closed by the refund. */
+  preset?: { sku: string; quantity: number; reason: RefundReason } | null; requestId?: string | null;
+}) {
   const toast = useToast();
   const confirm = useConfirm();
   const [quote, setQuote] = useState<AdminRefundQuote | null>(null);
-  const [qty, setQty] = useState<Record<string, number>>({});
+  const [qty, setQty] = useState<Record<string, number>>(preset ? { [preset.sku]: preset.quantity } : {});
   const [shipping, setShipping] = useState(false);
   const [custom, setCustom] = useState(false);
   const [amount, setAmount] = useState("");
-  const [reason, setReason] = useState<RefundReason>("damaged");
+  const [reason, setReason] = useState<RefundReason>(preset?.reason ?? "damaged");
   const [note, setNote] = useState("");
   const [restock, setRestock] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -346,7 +85,7 @@ function RefundModal({ order, onClose, onDone }: { order: AdminOrderDetail; onCl
   const send = async (body: Record<string, unknown>, label: string) => {
     if (!(await confirm({ title: `${label}?`, body: "It goes back to the buyer's card through Stripe, and they get an email. This can't be undone.", confirmLabel: label }))) return;
     setBusy(true);
-    const d = await fetch(`/api/admin/shop/orders/${order.id}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "refund", ...body }) }).then((r) => r.json()).catch(() => null);
+    const d = await fetch(`/api/admin/shop/orders/${order.id}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "refund", ...body, ...(requestId ? { requestId } : {}) }) }).then((r) => r.json()).catch(() => null);
     setBusy(false);
     if (!d?.ok) { toast.error(errorText(d?.error)); return; }
     toast.success("Refunded");

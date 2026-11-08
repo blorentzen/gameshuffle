@@ -40,7 +40,7 @@ export default async function ShopPoliciesPage() {
     {
       id: "made-to-order",
       title: "Made to order",
-      content: <p>Everything in the shop is printed or stitched when you order it, by our print partner. Most orders ship within {days} business days; embroidered pieces take the longest.</p>,
+      content: <p>Everything in the shop is printed or stitched when you order it, by our print partner. Most orders ship within {days} business days.</p>,
     },
     {
       id: "shipping",
@@ -49,9 +49,10 @@ export default async function ShopPoliciesPage() {
         <>
           <p>Shipping is free on orders of {threshold} or more, and {standard} on orders under {threshold}. We ship to all 50 states and DC.</p>
           <ul>
-            <li>Every order ships with tracking. We email the tracking link when it&apos;s on the way.</li>
+            <li>Every order ships with tracking. We email the link when it ships. Some orders come in more than one box, each with its own link.</li>
             <li>Most orders arrive {est.min} to {est.max} business days after you order. Checkout shows the estimate for your order.</li>
-            <li>We can&apos;t ship outside the US, to US territories, or to APO, FPO or DPO addresses yet.</li>
+            <li>We can&apos;t ship outside the US, to US territories, or to APO, FPO or DPO addresses yet. Please use a street address: some items can&apos;t go to a PO box.</li>
+            <li>Check your address before you pay. We can fix it until your order ships. If a package comes back to us, we can send it again once it&apos;s back, which can take 4 to 6 weeks, and you pay that shipping.</li>
           </ul>
         </>
       ),
@@ -59,7 +60,7 @@ export default async function ShopPoliciesPage() {
     {
       id: "orders-that-dont-arrive",
       title: "Orders that don't arrive",
-      content: <p>If tracking shows delivered but you can&apos;t find the package, check with neighbors and your post office, then email us and we&apos;ll help. If tracking hasn&apos;t moved in a week, email us and we&apos;ll sort it out.</p>,
+      content: <p>If your order hasn&apos;t arrived 3 business days after its estimated delivery date, email us within 30 days of that date and we&apos;ll look into it with our print partner. If tracking says delivered but you can&apos;t find it, check with neighbors and your post office first, then email us and we&apos;ll help you trace it with the carrier. We can&apos;t replace or refund a package the carrier marked delivered.</p>,
     },
     {
       id: "returns",
@@ -67,7 +68,7 @@ export default async function ShopPoliciesPage() {
       content: (
         <>
           <p>Because each piece is made for you, we can&apos;t take returns or exchanges for size or a change of mind. Each product page has a size guide with measurements.</p>
-          <p>If something arrives misprinted, damaged or not what you ordered, email us within 30 days of delivery with a photo, and choose a replacement or a refund. The photo lets our print partner remake it.</p>
+          <p>If something arrives misprinted, damaged, wrong or missing, email us within 30 days of delivery with a photo showing the whole item, and choose a replacement or a refund. You don&apos;t need to send it back. The photo lets our print partner remake it.</p>
         </>
       ),
     },

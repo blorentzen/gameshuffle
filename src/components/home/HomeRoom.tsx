@@ -467,7 +467,8 @@ function RailSetup({ steps }: { steps: SetupStep[] }) {
  * "Get set up" for anything still empty).
  * Under 1200px it's one column with the people after Today. Then the plan line.
  */
-export function RoomBody({ room, userId }: { room: Room; userId: string }) {
+/** `wear`: the "Wear it" merch row (a server component from the page), after Your games. */
+export function RoomBody({ room, userId, wear = null }: { room: Room; userId: string; wear?: ReactNode }) {
   const t = room.today;
   const board = !!t.live && t.live.following > 0;
   // Your people's block only once you follow someone; until then it's a row of "Get set up".
@@ -479,6 +480,7 @@ export function RoomBody({ room, userId }: { room: Room; userId: string }) {
       <HomeVisit value={room.visit} />
       {room.since && <Since since={room.since} sweep={room.freshVisit} />}
       {room.games.length > 0 && <YourGames games={room.games} />}
+      {wear}
       <TodayLiveProvider initial={t.live} day={gsDay()}>
         <div className="room-zones">
           <div className={`room-zone room-zone--today${t.done ? " room-zone--done" : ""}`}>

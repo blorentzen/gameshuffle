@@ -1,10 +1,11 @@
 /**
  * /shop/[slug]: one merch product (pick 6), from Platform ▸ Shop ▸ Merch.
  * Hidden like /shop: page not found for visitors until the shop is open or in
- * Coming soon; staff can open products that aren't live yet. Not indexed
+ * Coming soon; staff open a product that isn't live yet only with ?preview=1. Not indexed
  * until the shop is open and the product is live; then Product JSON-LD.
  * A product in a series (Eat. Sleep.…) names it above the title and links
- * the rest of the series under the product.
+ * the rest of the series under the product. "Pair it with" (pairsFor) sits
+ * under the buy box: three live products of other kinds.
  */
 
 import type { Metadata } from "next";
@@ -16,6 +17,7 @@ import { devPreviewFromPrintful, getMerchListing, listMerchListings, type MerchL
 import { MerchNotReady } from "@/lib/store/merchSync";
 import { listShopProducts, type ShopProduct } from "@/lib/store/products";
 import { collectionOf } from "@/lib/store/merch";
+import { pairsFor } from "@/lib/store/merchFilters";
 import { merchCopy } from "@/lib/store/copy";
 import { getPlatformFlag } from "@/lib/platform/flags";
 import { isStaffRequest } from "@/lib/auth/raw";
@@ -37,21 +39,18 @@ async function load(slug: string, staff: boolean) {
   }
 }
 
-/** The rest of a listing's series, in shelf order. */
-async function seriesSiblings(listing: MerchListing, staff: boolean): Promise<MerchListing[]> {
-  if (!listing.series) return [];
-  let all: MerchListing[] = [];
-  try { all = await listMerchListings({ preview: staff }); } catch (err) {
+/** Every live listing: the rest of a series and "Pair it with" come from these. */
+async function liveListings(): Promise<MerchListing[]> {
+  try { return await listMerchListings(); } catch (err) {
     if (!(err instanceof MerchNotReady)) throw err;
-    all = staff ? (await devPreviewFromPrintful().catch(() => null))?.listings ?? [] : [];
+    return [];
   }
-  return all.filter((l) => l.series === listing.series && l.id !== listing.id);
 }
 
-export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
-  const { slug } = await params;
+export async function generateMetadata({ params, searchParams }: { params: Promise<{ slug: string }>; searchParams: Promise<{ preview?: string }> }): Promise<Metadata> {
+  const [{ slug }, { preview }] = await Promise.all([params, searchParams]);
   const [open, staff] = await Promise.all([getPlatformFlag("shop_open", false), isStaffRequest()]);
-  const listing = await load(slug, staff);
+  const listing = await load(slug, staff && preview === "1");
   if (!listing) return { title: "Merch", robots: { index: false, follow: true } };
   const image = listing.colors[0]?.image ?? listing.variants[0]?.image ?? null;
   const description = [listing.description, listing.facts[0]].filter(Boolean).join(" ") || `${listing.name} from GameShuffle, made when you order.`;
@@ -65,12 +64,15 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   };
 }
 
-export default async function MerchProductPage({ params, searchParams }: { params: Promise<{ slug: string }>; searchParams: Promise<{ view?: string }> }) {
-  const [{ slug }, { view }] = await Promise.all([params, searchParams]);
+export default async function MerchProductPage({ params, searchParams }: { params: Promise<{ slug: string }>; searchParams: Promise<{ view?: string; preview?: string }> }) {
+  const [{ slug }, { view, preview }] = await Promise.all([params, searchParams]);
   const [open, comingSoon, staff] = await Promise.all([getPlatformFlag("shop_open", false), getPlatformFlag("shop_coming_soon", false), isStaffRequest()]);
   if (!open && !comingSoon && !staff) notFound();
   const soon = !open && (!staff || view === "soon");
-  const listing = await load(slug, staff && !soon);
+  // A product that isn't live opens only as a staff preview from Admin ▸ Shop ▸ Merch (?preview=1); without it, page
+  // not found for everyone, staff too (2026-11-08: a product sitting in the shop marked "Not live" read as broken).
+  const previewing = staff && preview === "1";
+  const listing = await load(slug, previewing);
   if (!listing) notFound();
   let products: ShopProduct[] = [];
   try { products = await listShopProducts({ onlyOnSale: true }); } catch { /* the cart just won't know other lines */ }
@@ -80,7 +82,10 @@ export default async function MerchProductPage({ params, searchParams }: { param
   }
   const copy = merchCopy();
   const collection = collectionOf(listing.collection);
-  const siblings = await seriesSiblings(listing, staff && !soon);
+  const live = await liveListings();
+  const siblings = listing.series ? live.filter((l) => l.series === listing.series && l.id !== listing.id) : [];
+  // Pair it with: other kinds of product, leaving out the series already shown below.
+  const pairs = pairsFor(listing, live.filter((l) => !siblings.includes(l)));
 
   const jsonLd = open && listing.live ? {
     "@context": "https://schema.org",
@@ -105,11 +110,11 @@ export default async function MerchProductPage({ params, searchParams }: { param
           <p className="merch-page__eyebrow">{listing.series ?? collection.name}</p>
           <h1 className="merch-page__title">{listing.name}</h1>
         </div>
-        <MerchProduct listing={listing} products={products} preview={staff && !soon} soon={soon} />
+        <MerchProduct listing={listing} products={products} pairs={pairs} preview={previewing} soon={soon} />
         {siblings.length > 0 && (
           <section className="shop-section merch-related" aria-labelledby="merch-related">
             <h2 id="merch-related" className="shop-h2">{copy.moreFrom(listing.series!)}</h2>
-            <div className="merch-grid">{siblings.map((l) => <MerchCard key={l.id} listing={l} soon={soon} preview={staff && !soon} />)}</div>
+            <div className="merch-grid">{siblings.map((l) => <MerchCard key={l.id} listing={l} soon={soon} />)}</div>
           </section>
         )}
       </Container>

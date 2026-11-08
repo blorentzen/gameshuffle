@@ -7,6 +7,7 @@ import { usePathname } from "next/navigation";
 import { UserMenu } from "@/components/auth/UserMenu";
 import { CommsIcons } from "@/components/social/CommsIcons";
 import { NavSupport } from "@/components/layout/NavSupport";
+import { NavCart } from "@/components/store/NavCart";
 import { NavMenu, type NavItem, type NavSection } from "@/components/layout/NavMenu";
 import { COMMUNITY_LINKS, PILLARS, isVisible, pillarsFor, primaryItems, type Pillar } from "@/lib/nav/pillars";
 import { PhoneMenu } from "@/components/layout/PhoneMenu";
@@ -26,7 +27,7 @@ import { createClient } from "@/lib/supabase/client";
  * the component.
  *
  * IA (menus and account picks 2026-11-05): five worlds from src/lib/nav/pillars.ts (Play, Pokémon, Compete, Host,
- * Stream), the same order for everyone on desktop, plus Merch once visitors can see the shop. On phones (1024px and
+ * Stream), the same order for everyone on desktop, plus Shop (and the cart's bag) once visitors can see the shop. On phones (1024px and
  * narrower) the menu button opens PhoneMenu: your stuff, then the worlds with your interests first and open.
  * Stream's account tools appear once you stream.
  */
@@ -336,8 +337,8 @@ export function SiteNavbar({ shop = false, previewInterests = null }: { shop?: b
                 {PILLARS.map((p) => (
                   <NavMenu key={p.id} label={p.label} sections={pillarSections(p)} pathname={pathname} />
                 ))}
-                {/* Merch (pick 13: the address stays /shop), once visitors can see the shop. */}
-                {shop && <Link href="/shop" className={pathname.startsWith("/shop") ? "is-active" : undefined}>Merch</Link>}
+                {/* Shop, once visitors can see the shop (shop picks 2026-11-08; was "Merch"). */}
+                {shop && <Link href="/shop" className={pathname.startsWith("/shop") ? "is-active" : undefined}>Shop</Link>}
               </span>
             </span>
           }
@@ -347,6 +348,8 @@ export function SiteNavbar({ shop = false, previewInterests = null }: { shop?: b
               {/* Comms (bell + chat) are signed-in only — rendering the wrapper
                   when signed out left an empty span whose flex gap pushed a
                   hollow space to the left of the auth buttons. */}
+              {/* The bag (shop picks 2026-11-08): your cart from anywhere, once visitors can see the shop. */}
+              {shop && <NavCart />}
               {user && (
                 <span className="navbar-comms">
                   <CommsIcons />

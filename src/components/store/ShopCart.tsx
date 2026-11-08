@@ -18,8 +18,9 @@ import { PACKS_ON_HOLD, isFinalSale } from "@/lib/store/config";
 import { MERCH_CATEGORY } from "@/lib/store/merch";
 import type { ShopProduct } from "@/lib/store/products";
 import { lineKey, pickLabel } from "@/lib/store/personal";
+import { CART_EVENT, CART_KEY, CART_OPEN_EVENT } from "./cartCount";
 
-const STORAGE_KEY = "gs-shop-cart";
+const STORAGE_KEY = CART_KEY;
 const UTM_KEY = "gs-shop-utm";
 const UTM_FIELDS = ["source", "medium", "campaign", "content"] as const;
 
@@ -98,7 +99,14 @@ export function ShopCartProvider({ products, children }: { products: ShopProduct
   useEffect(() => {
     if (!loaded) return;
     try { window.localStorage.setItem(STORAGE_KEY, JSON.stringify(lines)); } catch { /* storage off: the cart still works for this visit */ }
+    window.dispatchEvent(new Event(CART_EVENT));
   }, [lines, loaded]);
+  // The header's bag opens this page's cart.
+  useEffect(() => {
+    const onOpen = (e: Event) => { e.preventDefault(); setOpen(true); };
+    window.addEventListener(CART_OPEN_EVENT, onOpen);
+    return () => window.removeEventListener(CART_OPEN_EVENT, onOpen);
+  }, []);
 
   const api = useMemo<CartApi>(() => {
     const limit = (sku: string) => lineLimit(bySku.get(sku));

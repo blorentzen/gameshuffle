@@ -17,6 +17,8 @@ import { createServiceClient } from "@/lib/supabase/admin";
 import { getPlatformFlag } from "@/lib/platform/flags";
 import { getBaseUrl } from "@/lib/env";
 import { sendShopPrintfulProblem, sendShopShipped } from "@/lib/email/shop";
+import { orderEmailFacts } from "./orderEmail";
+import { syncShipments, tellBuyer } from "./tracking";
 import { SHOP } from "./config";
 import { orderCode } from "./rules";
 import { orderLinkToken } from "./access";
@@ -38,12 +40,15 @@ async function event(orderId: string, detail: Record<string, unknown>, actor: st
 }
 
 /** What Printful needs for an order: the address, each size and color's Printful id, and the totals for the packing slip. */
-async function orderInput(orderId: string): Promise<{ input: PfOrderInput; livemode: boolean; code: string; existing: number | null } | { error: string }> {
+async function orderInput(orderId: string, opts: { only?: { sku: string; quantity: number }; reprint?: number } = {}): Promise<{ input: PfOrderInput; livemode: boolean; code: string; existing: number | null } | { error: string }> {
   const svc = createServiceClient();
   const { data: o } = await svc.from("shop_orders").select("*").eq("id", orderId).maybeSingle();
   if (!o) return { error: "not_found" };
   const { data: items } = await svc.from("shop_order_items").select("sku, quantity, unit_amount, refunded_quantity").eq("order_id", orderId);
-  const merch = (items ?? []).filter((i) => isMerchSku(i.sku as string) && (i.quantity as number) - ((i.refunded_quantity as number) ?? 0) > 0);
+  // A reprint (a problem report): only that item, as many as were reported, whatever was refunded.
+  const merch = opts.only
+    ? (items ?? []).filter((i) => i.sku === opts.only!.sku).map((i) => ({ ...i, quantity: Math.min(opts.only!.quantity, i.quantity as number), refunded_quantity: 0, unit_amount: 0 }))
+    : (items ?? []).filter((i) => isMerchSku(i.sku as string) && (i.quantity as number) - ((i.refunded_quantity as number) ?? 0) > 0);
   if (!merch.length) return { error: "no_merch" };
   const { data: rows } = await svc.from("shop_products").select("sku, printful_sync_variant_id, printful_variant_id, printful_sync_product_id").in("sku", merch.map((i) => i.sku as string));
   const pfId = new Map((rows ?? []).map((r) => [r.sku as string, Number(r.printful_sync_variant_id)]));
@@ -85,19 +90,23 @@ async function orderInput(orderId: string): Promise<{ input: PfOrderInput; livem
   const discount = Math.max(0, (o.amount_subtotal as number) + shipping + (o.amount_tax as number) - (o.amount_total as number));
   const code = orderCode(o.order_number as number);
   const livemode = !!o.livemode;
+  const free = opts.reprint != null;
+  const base = livemode ? `gs-${o.order_number}` : `test-gs-${o.order_number}-${orderId.slice(0, 6)}`;
   return {
-    code, livemode, existing: (o.printful_order_id as number | null) ?? null,
+    code, livemode, existing: free ? null : (o.printful_order_id as number | null) ?? null,
     input: {
-      // One Printful store serves dev and production, so test orders get their own ids.
-      external_id: (livemode ? `gs-${o.order_number}` : `test-gs-${o.order_number}-${orderId.slice(0, 6)}`).slice(0, 32),
+      // One Printful store serves dev and production, so test orders get their own ids. A reprint is "-r1", "-r2"…
+      external_id: (free ? `${base}-r${opts.reprint}` : base).slice(0, 32),
       recipient: {
         name: (o.ship_name as string) || "Customer", address1: o.ship_line1 as string, address2: (o.ship_line2 as string) || null,
         city: o.ship_city as string, state_code: o.ship_state as string, country_code: "US", zip: o.ship_postal as string,
         phone: (o.phone as string) || null, email: (o.email as string) || null,
       },
       items: pfItems,
-      retail_costs: { currency: "USD", subtotal: money(subtotal), discount: money(discount), shipping: money(shipping), tax: money(o.amount_tax as number), total: money(o.amount_total as number) },
-      packing_slip: { email: SHOP.contact.support_email, store_name: "GameShuffle", custom_order_id: code, message: "Thanks for playing with GameShuffle." },
+      retail_costs: free
+        ? { currency: "USD", subtotal: "0.00", discount: "0.00", shipping: "0.00", tax: "0.00", total: "0.00" }
+        : { currency: "USD", subtotal: money(subtotal), discount: money(discount), shipping: money(shipping), tax: money(o.amount_tax as number), total: money(o.amount_total as number) },
+      packing_slip: { email: SHOP.contact.support_email, store_name: "GameShuffle", custom_order_id: code, message: free ? "Sorry about the first one. This one's on us." : "Thanks for playing with GameShuffle." },
     },
   };
 }
@@ -151,6 +160,30 @@ export async function createPrintfulDraft(orderId: string): Promise<PrintfulStep
     await svc.from("shop_orders").update({ printful_status: "failed", printful_error: msg.slice(0, 300) }).eq("id", orderId);
     await event(orderId, { action: "failed", error: msg.slice(0, 300) });
     await sendShopPrintfulProblem({ orderCode: built.code, what: "didn't take", reason: msg }).catch(() => {});
+    return { ok: false, error: msg };
+  }
+}
+
+/**
+ * Staff: make a new Printful order for one item a buyer reported (order tracking picks 2026-11-08), at no charge to
+ * them, sent to production straight away. Test orders are only priced. Returns the new Printful order's id.
+ */
+export async function reprintAtPrintful(orderId: string, only: { sku: string; quantity: number }, n: number, actor: string | null): Promise<PrintfulStep> {
+  const built = await orderInput(orderId, { only, reprint: n });
+  if ("error" in built) return { ok: false, error: built.error };
+  if (!printfulConfigured()) return { ok: false, error: "not_configured" };
+  try {
+    if (!built.livemode) {
+      const est = await estimateOrder(built.input);
+      await event(orderId, { action: "reprint_estimated", sku: only.sku, costs: est.costs }, actor);
+      return { ok: true, status: "test", printfulOrderId: null };
+    }
+    const pf = await createOrder(built.input, { confirm: true });
+    await event(orderId, { action: "reprint_sent", sku: only.sku, printful_order_id: pf.id, status: pf.status, costs: pf.costs ?? null }, actor);
+    return { ok: true, status: pf.status, printfulOrderId: pf.id };
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    await event(orderId, { action: "reprint_failed", sku: only.sku, error: msg.slice(0, 300) }, actor);
     return { ok: false, error: msg };
   }
 }
@@ -215,6 +248,12 @@ async function shippedFromPrintful(orderId: string, shipment: PfShipment): Promi
     // Already shipped (a reshipment, or a second package): keep the newest tracking on the timeline.
     await svc.from("shop_orders").update({ tracking_number: tracking || null, tracking_url: shipment.tracking_url || null, carrier: shipment.carrier || "USPS", updated_at: now }).eq("id", orderId).eq("status", "shipped");
     await svc.from("shop_order_events").insert({ order_id: orderId, kind: shipment.reshipment ? "reshipped" : "updated", visible: true, detail: { tracking, carrier: shipment.carrier, url: shipment.tracking_url } });
+    // Another box (part of the order, or a reprint): the buyer hears about it too.
+    await tellBuyer(orderId, {
+      subject: "Another box is on the way: order {code}", title: "Another box is on the way.", sub: shipment.carrier ? `By ${shipment.carrier}` : "Your order",
+      paragraphs: ["Track it from your order page, where every box shows with its own tracking."],
+      notice: "Another box for order {code} is on the way",
+    });
     return;
   }
   await svc.from("shop_order_events").insert({ order_id: orderId, kind: "shipped", visible: true, detail: { tracking, carrier: shipment.carrier, url: shipment.tracking_url, by: "printful" } });
@@ -224,6 +263,7 @@ async function shippedFromPrintful(orderId: string, shipment: PfShipment): Promi
       to: o.email as string, orderCode: orderCode(o.order_number as number), tracking, name: (o.ship_name as string) ?? null,
       carrier: shipment.carrier, trackingUrl: shipment.tracking_url,
       viewUrl: `${getBaseUrl()}/shop/orders/view?t=${encodeURIComponent(orderLinkToken(orderId))}`,
+      facts: await orderEmailFacts(orderId, getBaseUrl()).catch(() => null),
     }).catch((e) => console.error("[printful] shipped email failed:", e));
   }
 }
@@ -258,7 +298,14 @@ export async function handlePrintfulEvent(ev: PrintfulEvent): Promise<string> {
     const shipment = (pf.shipments ?? []).find((s) => s.id === wanted) ?? (pf.shipments ?? []).at(-1);
     if (!shipment) return "no_shipment";
     await shippedFromPrintful(o.id as string, shipment);
+    // The boxes with their items, tracking steps and arrival window (Printful API v2); best effort, the cron catches up.
+    await syncShipments(o.id as string).catch((e) => console.warn("[printful] boxes:", e instanceof Error ? e.message : e));
     return "shipped";
+  }
+  if (type === "package_returned") {
+    await syncShipments(o.id as string).catch((e) => console.warn("[printful] boxes:", e instanceof Error ? e.message : e));
+    await event(o.id as string, { action: type, reason, status: pf.status });
+    return type;
   }
   if (type === "order_failed" || type === "order_canceled" || type === "order_put_hold") {
     const what = type === "order_failed" ? "failed" : type === "order_canceled" ? "canceled" : "put a hold on";

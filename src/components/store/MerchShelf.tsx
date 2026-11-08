@@ -1,63 +1,29 @@
 "use client";
 
 /**
- * /shop's merch shelf (picks 4 and 5): item chips on top (All, Tees,
- * Hoodies…) and the collections as sections, with each series of two or more
- * (Eat. Sleep.…) as its own section after its collection (shelfSections); a
- * chip turns the shelf into one grid of that item. Each card opens its product page; its color dots swap the
- * card's picture. Coming soon: no prices or cart.
+ * A merch product card (the shop's grid, a product page's "more from"): the picture, up to four color dots that
+ * swap it, the name and the price. It opens the product page. Coming soon: no price. The shop's shelf is MerchShop.
  */
 
 import { useState } from "react";
 import Link from "next/link";
-import { Badge, Chip } from "@empac/cascadeds";
-import { ITEM_TYPES, shelfSections } from "@/lib/store/merch";
+import { Chip } from "@empac/cascadeds";
 import { formatPrice, merchCopy } from "@/lib/store/copy";
 import type { MerchListing } from "@/lib/store/merchCatalog";
-import type { ShopProduct } from "@/lib/store/products";
-import { CartButton, ShopCartProvider } from "./ShopCart";
 
 const DOTS = 4;
 
-export function MerchShelf({ listings, products, soon = false, preview = false }: { listings: MerchListing[]; products: ShopProduct[]; soon?: boolean; preview?: boolean }) {
-  const copy = merchCopy();
-  const [item, setItem] = useState<string>("All");
-  const types = ITEM_TYPES.filter((t) => listings.some((l) => l.itemType === t));
-  const shown = item === "All" ? listings : listings.filter((l) => l.itemType === item);
-
-  return (
-    <ShopCartProvider products={products}>
-      {!soon && <CartButton />}
-      {types.length > 1 && (
-        <div className="merch-chips" role="group" aria-label={copy.chipsLabel}>
-          {["All", ...types].map((t) => (
-            <Chip key={t} label={t} clickable selected={item === t} onClick={() => setItem(t)} variant={item === t ? "primary" : "default"} />
-          ))}
-        </div>
-      )}
-      {item === "All" ? (
-        shelfSections(shown).map((sec) => (
-          <section key={sec.id} className="shop-section merch-collection" aria-labelledby={`merch-${sec.id}`}>
-            <div className="merch-collection__head">
-              <h2 id={`merch-${sec.id}`} className="shop-h2">{sec.name}</h2>
-              {sec.line && <p className="shop-section__line">{sec.line}</p>}
-            </div>
-            <div className="merch-grid">{sec.listings.map((l) => <MerchCard key={l.id} listing={l} soon={soon} preview={preview} />)}</div>
-          </section>
-        ))
-      ) : (
-        <section className="shop-section merch-collection" aria-labelledby="merch-item">
-          <h2 id="merch-item" className="shop-h2">{item}</h2>
-          <div className="merch-grid">{shown.map((l) => <MerchCard key={l.id} listing={l} soon={soon} preview={preview} />)}</div>
-        </section>
-      )}
-    </ShopCartProvider>
-  );
+/** The color dots on a card: the first four, with the picked color swapped in for the fourth when it's further down. */
+function dotColors<T>(colors: T[], picked: number): { c: T; i: number }[] {
+  const out = colors.slice(0, DOTS).map((c, i) => ({ c, i }));
+  if (picked >= DOTS && out.length === DOTS) out[DOTS - 1] = { c: colors[picked], i: picked };
+  return out;
 }
 
-export function MerchCard({ listing, soon, preview }: { listing: MerchListing; soon: boolean; preview: boolean }) {
+/** One product. `color` starts it on that color (the shop's Color filter). */
+export function MerchCard({ listing, soon, color: startColor = null }: { listing: MerchListing; soon: boolean; color?: string | null }) {
   const copy = merchCopy();
-  const [ci, setCi] = useState(0);
+  const [ci, setCi] = useState(() => Math.max(0, startColor ? listing.colors.findIndex((c) => c.name === startColor) : 0));
   const color = listing.colors[ci] ?? listing.colors[0];
   const phone = listing.optionLabel === "Phone";
   const image = (phone ? listing.variants[0]?.image : color?.image) ?? listing.photos[0]?.url ?? null;
@@ -72,7 +38,7 @@ export function MerchCard({ listing, soon, preview }: { listing: MerchListing; s
       {/* The row stays (empty) without dots, so names line up across a row of cards. */}
       {phone || listing.colors.length < 2 ? <div className="merch-card__dots" aria-hidden="true" /> : (
         <div className="merch-card__dots" role="group" aria-label={`Colors for ${listing.name}`}>
-          {listing.colors.slice(0, DOTS).map((c, i) => (
+          {dotColors(listing.colors, ci).map(({ c, i }) => (
             <Chip
               key={c.name}
               size="small"
@@ -92,7 +58,6 @@ export function MerchCard({ listing, soon, preview }: { listing: MerchListing; s
         {!soon && <span>{listing.priceVaries ? copy.from(listing.fromCents) : formatPrice(listing.fromCents)}</span>}
         {sub && <span className="merch-card__sub">{sub}</span>}
       </p>
-      {preview && !listing.live && <Badge variant="warning" size="small">Not live</Badge>}
     </article>
   );
 }

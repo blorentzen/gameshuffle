@@ -21,6 +21,7 @@ import { IconPlugConnected, IconRefresh, IconShirt, IconUpload } from "@tabler/i
 import { useToast } from "@/components/toast/ToastProvider";
 import { useConfirm } from "@/components/confirm/ConfirmProvider";
 import { LoadingLines } from "@/components/loading/LoadingLines";
+import { ArrowLink } from "@/components/ui/ArrowLink";
 import { AdminField, AdminHeader, AdminSection, AdminStats, AdminTable } from "@/components/account/admin/AdminKit";
 import { MerchProducts } from "@/components/account/merch/MerchProducts";
 import { COLLECTIONS, ITEM_TYPES } from "@/lib/store/merch";
@@ -237,7 +238,11 @@ function ListingEditor({ listing, all, onClose, post }: { listing: AdminListing;
       </div>}
     >
       <div className="merch-editor">
-        <Switch label="Live on /shop" checked={live} onChange={(e) => setLive(e.target.checked)} />
+        <div className="merch-editor__live">
+          <Switch label="Live on /shop" checked={live} onChange={(e) => setLive(e.target.checked)} />
+          {/* The shop only lists live products; this is the one way to see one that isn't (2026-11-08). */}
+          <ArrowLink href={`/shop/${listing.slug}${listing.live ? "" : "?preview=1"}`} external>{listing.live ? "Open on the site" : "Preview on the site"}</ArrowLink>
+        </div>
         <div className="merch-editor__grid">
           <AdminField label="Name">{(id) => <Input id={id} value={name} maxLength={60} onChange={(e) => setName(e.target.value)} />}</AdminField>
           <AdminField label="Link" helper={`gameshuffle.co/shop/${slug}`}>{(id, d) => <Input id={id} aria-describedby={d} value={slug} maxLength={60} onChange={(e) => setSlug(e.target.value)} />}</AdminField>

@@ -22,6 +22,9 @@ interface NotificationTypeDef {
 
 export const NOTIFICATION_TYPES = {
   follow: { cds: "info", invite: false },
+  // A shop order moved (shipped, delivered, running late, came back) or we answered a request (order tracking picks
+  // 2026-11-08). No group: every update also goes by email from the shop, so this is the on-site copy only.
+  shop_order: { cds: "info", invite: false },
   // Someone made an account from one of your links (bring-along picks 2026-11-05): links to them, with Follow back there.
   joined_from_link: { cds: "success", invite: false },
   // A friend wants you on today's daily, or sent their result to beat (dailies picks 2026-11-05, 3A); and a friend

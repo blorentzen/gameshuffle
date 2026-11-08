@@ -19,12 +19,14 @@ import { createServiceClient } from "@/lib/supabase/admin";
 import { nameWithPicks, picksFor } from "./orderPicks";
 import { getBaseUrl } from "@/lib/env";
 import { sendShopOrderReceived, sendShopShipped, uspsTrackingUrl } from "@/lib/email/shop";
+import { orderEmailFacts } from "./orderEmail";
 import { orderLinkToken } from "./access";
 import { REFUNDED_COLUMNS, notifyRefunded, type RefundedRow } from "./orders";
 import { orderCode, refundCents, shipByDay, stateTotals, type RefundQuote, type StateOrder, type StateTotals } from "./rules";
 import { shopDate } from "./copy";
 import { SHOP, SHOP_METADATA_KIND, digitalListsFor, type ShipMethod } from "./config";
 import { gsAddDays, gsDay, gsDayStart } from "@/lib/time/gsClock";
+import { needsOf, stageOf, type Need, type RequestKind, type RequestStatus, type ShipmentStatus, type Stage } from "./orderStage";
 
 export class ManageError extends Error {
   constructor(public code: string) { super(code); this.name = "ManageError"; }
@@ -66,6 +68,108 @@ export async function listOrders(filter: OrderFilter, q: string): Promise<AdminO
     shipMethod: o.ship_method as ShipMethod, tracking: (o.tracking_number as string) ?? null, shortfall: !!o.stock_shortfall,
     restocked: !!o.restocked_at, refundReason: (o.refund_reason as string) ?? null, amountRefunded: (o.amount_refunded as number) ?? 0,
   }));
+}
+
+// ─── the queue (order tracking picks 2026-11-08) ─────────────────────────────
+
+export type QueueFilter = "needs" | "making" | "moving" | "delivered" | "closed" | "all";
+export interface QueueRow extends AdminOrderRow {
+  images: string[]; merch: boolean; stage: Stage; stageLine: string; needs: Need[]; dots: number;
+}
+export interface QueueSummary { needs: number; requests: number; making: number; oldestShipBy: string | null; moving: number; delivered30: number; sales30: number }
+
+const QUEUE_COLS = "id, order_number, status, created_at, ship_name, email, ship_state, amount_total, amount_refunded, ship_method, tracking_number, stock_shortfall, restocked_at, refund_reason, livemode, printful_status, printful_error, delivered_at, late_emailed_at, shipped_at, shop_order_items(sku, quantity)";
+
+/** Orders with what each needs from staff, their pictures and where they are. */
+async function queueRows(raw: Record<string, unknown>[]): Promise<QueueRow[]> {
+  if (!raw.length) return [];
+  const svc = createServiceClient();
+  const ids = raw.map((o) => o.id as string);
+  const skus = [...new Set(raw.flatMap((o) => ((o.shop_order_items as { sku: string }[]) ?? []).map((i) => i.sku)))];
+  const [{ data: reqs }, { data: boxes }, { data: products }] = await Promise.all([
+    svc.from("shop_order_requests").select("order_id, kind, status, problem, wants").in("order_id", ids),
+    svc.from("shop_shipments").select("order_id, status, estimate_to, items").in("order_id", ids),
+    skus.length ? svc.from("shop_products").select("sku, image_url, category").in("sku", skus) : Promise.resolve({ data: [] }),
+  ]);
+  const img = new Map(((products ?? []) as { sku: string; image_url: string | null; category: string }[]).map((p) => [p.sku, p]));
+  const today = gsDay();
+  return raw.map((o) => {
+    const items = (o.shop_order_items as { sku: string; quantity: number }[]) ?? [];
+    const mine = ((reqs ?? []) as { order_id: string; kind: RequestKind; status: RequestStatus; problem: string | null; wants: string | null }[]).filter((r) => r.order_id === o.id);
+    const box = ((boxes ?? []) as { order_id: string; status: ShipmentStatus; estimate_to: string | null; items: { sku: string; quantity: number }[] }[]).filter((b) => b.order_id === o.id);
+    const units = items.reduce((n, i) => n + i.quantity, 0);
+    const status = o.status as AdminOrderRow["status"];
+    const stage = stageOf({ status, units }, box.map((b) => ({ status: b.status, items: Array.isArray(b.items) ? b.items : [] })));
+    const merch = items.some((i) => img.get(i.sku)?.category === "merch");
+    const shipBy = shipByDay(new Date(o.created_at as string));
+    const shipByLabel = shopDate(`${shipBy}T12:00:00-08:00`);
+    const needs = needsOf({
+      status, livemode: !!o.livemode, merch, printfulStatus: (o.printful_status as string) ?? null, printfulError: (o.printful_error as string) ?? null,
+      shipBy, today, shipByLabel, lateEmailed: !!o.late_emailed_at,
+    }, mine, box.filter((b) => b.status !== "canceled").map((b) => ({ status: b.status, estimateTo: b.estimate_to, estimateLabel: b.estimate_to ? shopDate(`${b.estimate_to}T12:00:00-08:00`) : null })));
+    const pf = (o.printful_status as string) ?? null;
+    const stageLine = stage === "closed" ? (status === "refunded" ? "Refunded" : "Canceled")
+      : stage === "delivered" ? `Delivered ${o.delivered_at ? shopDate(o.delivered_at as string) : ""}`.trim()
+      : stage === "shipped" ? (box.some((b) => b.status === "returned") ? "Came back" : `Shipped ${o.shipped_at ? shopDate(o.shipped_at as string) : ""}`.trim())
+      : merch && (pf === "draft" || pf === "failed" || pf === "creating" || !pf) ? "At Printful, not sent" : merch ? `Being made · ships by ${shipByLabel}` : `To ship by ${shipByLabel}`;
+    return {
+      id: o.id as string, code: orderCode(o.order_number as number), orderNumber: o.order_number as number, status,
+      createdAt: o.created_at as string, name: (o.ship_name as string) ?? null, email: (o.email as string) ?? null, state: (o.ship_state as string) ?? null,
+      itemCount: units, total: o.amount_total as number, shipMethod: o.ship_method as ShipMethod, tracking: (o.tracking_number as string) ?? null,
+      shortfall: !!o.stock_shortfall, restocked: !!o.restocked_at, refundReason: (o.refund_reason as string) ?? null, amountRefunded: (o.amount_refunded as number) ?? 0,
+      images: [...new Set(items.map((i) => img.get(i.sku)?.image_url).filter((x): x is string => !!x))].slice(0, 3),
+      merch, stage, stageLine, needs, dots: stage === "making" ? 1 : stage === "shipped" ? 3 : stage === "delivered" ? 4 : 0,
+    };
+  });
+}
+
+/** Staff's order list: what needs you first, then by where orders are. A search looks at every order. */
+export async function orderQueue(filter: QueueFilter, q: string): Promise<QueueRow[]> {
+  const svc = createServiceClient();
+  const term = q.trim();
+  let query = svc.from("shop_orders").select(QUEUE_COLS).order("created_at", { ascending: filter === "needs" || filter === "making" }).limit(300);
+  if (term) {
+    const n = term.match(/(\d{3,9})/)?.[1];
+    const safe = term.replace(/[,()"%_\\]/g, " ").trim().toLowerCase();
+    const ors = [`email.eq.${safe}`, `ship_name.ilike.%${safe}%`];
+    if (n) ors.push(`order_number.eq.${n}`);
+    query = query.or(ors.join(","));
+  } else if (filter === "needs") {
+    // Anything open, plus anything with an open request (a problem after delivery).
+    const { data: open } = await svc.from("shop_order_requests").select("order_id").eq("status", "open").limit(300);
+    const withReq = [...new Set((open ?? []).map((r) => r.order_id as string))];
+    query = withReq.length ? query.or(`status.in.(paid,shipped),id.in.(${withReq.join(",")})`) : query.in("status", ["paid", "shipped"]);
+  } else if (filter === "making") query = query.eq("status", "paid");
+  else if (filter === "moving") query = query.eq("status", "shipped").is("delivered_at", null);
+  else if (filter === "delivered") query = query.not("delivered_at", "is", null);
+  else if (filter === "closed") query = query.in("status", ["refunded", "canceled"]);
+  const { data, error } = await query;
+  if (error) throw new Error(`shop orders: ${error.message}`);
+  const rows = await queueRows((data ?? []) as Record<string, unknown>[]);
+  if (term || filter !== "needs") return rows;
+  // Problems first, then the rest by how long they've waited.
+  const weight = (r: QueueRow) => (r.needs.some((n) => n.tone === "red") ? 0 : r.needs.some((n) => n.kind === "request") ? 1 : 2);
+  return rows.filter((r) => r.needs.length > 0).sort((a, b) => weight(a) - weight(b) || a.createdAt.localeCompare(b.createdAt));
+}
+
+export async function queueSummary(): Promise<QueueSummary> {
+  const svc = createServiceClient();
+  const since30 = new Date(Date.now() - 30 * 86_400_000).toISOString();
+  const [needs, { count: making }, { data: oldest }, { count: moving }, { count: delivered30 }, { data: recent }] = await Promise.all([
+    orderQueue("needs", ""),
+    svc.from("shop_orders").select("id", { count: "exact", head: true }).eq("status", "paid"),
+    svc.from("shop_orders").select("created_at").eq("status", "paid").order("created_at", { ascending: true }).limit(1),
+    svc.from("shop_orders").select("id", { count: "exact", head: true }).eq("status", "shipped").is("delivered_at", null),
+    svc.from("shop_orders").select("id", { count: "exact", head: true }).gte("delivered_at", since30),
+    svc.from("shop_orders").select("amount_total, amount_refunded").gte("created_at", since30).neq("status", "canceled").limit(5000),
+  ]);
+  const first = (oldest ?? [])[0] as { created_at: string } | undefined;
+  return {
+    needs: needs.length, requests: needs.filter((r) => r.needs.some((n) => n.kind === "request")).length,
+    making: making ?? 0, oldestShipBy: first ? shopDate(`${shipByDay(new Date(first.created_at))}T12:00:00-08:00`) : null,
+    moving: moving ?? 0, delivered30: delivered30 ?? 0,
+    sales30: ((recent ?? []) as { amount_total: number; amount_refunded: number | null }[]).reduce((n, r) => n + r.amount_total - (r.amount_refunded ?? 0), 0),
+  };
 }
 
 /** The numbers across the top of Shop ▸ Orders. Canceled orders (never
@@ -152,6 +256,22 @@ export async function orderDetail(id: string): Promise<AdminOrderDetail | null> 
   };
 }
 
+/** The staff order page's own parts (order tracking picks 2026-11-08): what it needs, and the buyer's other orders. */
+export async function staffOrderExtras(id: string): Promise<{ needs: Need[]; customer: { orders: number; total: number } | null }> {
+  const svc = createServiceClient();
+  const { data: o } = await svc.from("shop_orders").select(QUEUE_COLS).eq("id", id).maybeSingle();
+  if (!o) return { needs: [], customer: null };
+  const [row] = await queueRows([o as Record<string, unknown>]);
+  let customer: { orders: number; total: number } | null = null;
+  const email = (o as { email?: string | null }).email;
+  if (email) {
+    const { data: theirs } = await svc.from("shop_orders").select("amount_total, amount_refunded, status").eq("email", email).limit(500);
+    const kept = ((theirs ?? []) as { amount_total: number; amount_refunded: number | null; status: string }[]).filter((x) => x.status !== "canceled");
+    customer = { orders: kept.length, total: kept.reduce((n, x) => n + x.amount_total - (x.amount_refunded ?? 0), 0) };
+  }
+  return { needs: row?.needs ?? [], customer };
+}
+
 async function event(orderId: string, kind: string, visible: boolean, detail: Record<string, unknown>, actor: string | null) {
   await createServiceClient().from("shop_order_events").insert({ order_id: orderId, kind, visible, detail, actor_user_id: actor });
 }
@@ -171,7 +291,8 @@ export async function markShipped(id: string, trackingRaw: string, actor: string
   await event(id, "shipped", true, { tracking, carrier: "USPS" }, actor);
   const { data: claimed } = await svc.from("shop_orders").update({ shipped_email_sent_at: now }).eq("id", id).is("shipped_email_sent_at", null).select("id");
   if (claimed?.length && o.email) {
-    await sendShopShipped({ to: o.email as string, orderCode: orderCode(o.order_number as number), tracking, name: (o.ship_name as string) ?? null, viewUrl: viewUrl(id) })
+    const facts = await orderEmailFacts(id, getBaseUrl()).catch(() => null);
+    await sendShopShipped({ to: o.email as string, orderCode: orderCode(o.order_number as number), tracking, name: (o.ship_name as string) ?? null, viewUrl: viewUrl(id), carrier: "USPS", facts })
       .catch((e) => console.error("[shop] shipped email failed:", e));
   }
 }
@@ -329,6 +450,7 @@ export async function resendConfirmation(id: string, actor: string | null): Prom
     to: d.email, orderCode: d.code, shipBy: d.shipByLabel, afterCutoff: !!owner?.after_cutoff, name: d.name, city: d.address.city, state: d.state,
     items: d.items.map((i) => ({ name: i.name, quantity: i.quantity, contents: contents.get(i.sku) ?? [], unitAmount: i.unitAmount })), viewUrl: viewUrl(id),
     digitalLists: digitalListsFor(d.items.map((i) => i.sku)), account: { member: !!owner?.user_id },
+    facts: await orderEmailFacts(id, getBaseUrl()).catch(() => null),
   });
   await event(id, "email", false, { what: "confirmation_resent" }, actor);
 }

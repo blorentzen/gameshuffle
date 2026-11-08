@@ -305,8 +305,8 @@ export const COMMUNITY_LINKS: NavDestination[] = [
   { label: "Communities", href: "/communities", blurb: "Every community on GameShuffle." },
   { label: "Find players", href: "/players", blurb: "People who play what you play." },
   { label: "Your feed", href: "/comms", blurb: "Alerts and messages.", audience: "member" },
-  // Pick 13: menus say Merch (the address stays /shop); hidden until visitors can see the shop.
-  { label: "Merch", href: "/shop", blurb: "Tees, hoodies, hats and phone cases, made when you order.", audience: "shop" },
+  // Menus say Shop (shop picks 2026-11-08; pick 13 had said Merch); hidden until visitors can see the shop.
+  { label: "Shop", href: "/shop", blurb: "Tees, hoodies, hats and phone cases, made when you order.", audience: "shop" },
 ];
 
 export const pillar = (id: PillarId): Pillar => PILLARS.find((p) => p.id === id)!;

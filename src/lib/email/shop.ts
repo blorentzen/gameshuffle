@@ -4,14 +4,17 @@
  * whichever carrier Printful picks, so the tracking link comes from Printful;
  * USPS's link is the fallback for an order marked shipped by hand). Sent as
  * "GameShuffle Shop" from noreply@, replies to the shop's support address.
- * Plain text, like the other transactional emails. Outside production they
- * only log (sendTransactionalEmail's guard).
+ * The order and shipped emails also go as HTML when the order's facts can be
+ * read (orderEmailFacts; shopHtml.ts, shop picks 2026-11-08); the rest are
+ * plain text. Outside production they only log (sendTransactionalEmail's guard).
  */
 
 import { sendTransactionalEmail } from "./mailersend";
 import { SHOP } from "@/lib/store/config";
 import { formatPrice, shopCopy } from "@/lib/store/copy";
 import { getBaseUrl } from "@/lib/env";
+import type { OrderEmailFacts } from "@/lib/store/orderEmail";
+import { orderReceivedHtml, orderShippedHtml, orderUpdateHtml } from "./shopHtml";
 
 const FROM_NAME = "GameShuffle Shop";
 
@@ -54,6 +57,8 @@ export async function sendShopOrderReceived(args: {
   to: string; orderCode: string; items: ShopEmailItem[]; shipBy: string; afterCutoff: boolean;
   name: string | null; city: string | null; state: string | null; viewUrl?: string | null;
   digitalLists?: { title: string; url: string }[] | null; account?: { member: boolean } | null;
+  /** The order read back for the HTML version; without it the email goes as text only. */
+  facts?: OrderEmailFacts | null;
 }) {
   const text = [
     "Thanks for your order. Here's what's coming:",
@@ -70,11 +75,15 @@ export async function sendShopOrderReceived(args: {
     ...accountLines(args.account),
     footer(),
   ].join("\n");
-  return sendTransactionalEmail({ to: args.to, toName: args.name ?? undefined, subject: `Order ${args.orderCode} is in`, text, fromName: FROM_NAME, replyTo: SHOP.contact.support_email });
+  const html = args.facts ? orderReceivedHtml(args.facts, {
+    base: getBaseUrl(), viewUrl: args.viewUrl, shipTo: [args.name, args.city, args.state].filter(Boolean).join(", "), afterCutoff: args.afterCutoff,
+    lists: args.digitalLists?.map((l) => ({ title: l.title, url: absolute(l.url) })) ?? null,
+  }) : undefined;
+  return sendTransactionalEmail({ to: args.to, toName: args.name ?? undefined, subject: `Order ${args.orderCode} is in`, text, html, fromName: FROM_NAME, replyTo: SHOP.contact.support_email });
 }
 
 /** 3. Shipped (tracked). */
-export async function sendShopShipped(args: { to: string; orderCode: string; tracking: string; name: string | null; viewUrl?: string | null; carrier?: string | null; trackingUrl?: string | null }) {
+export async function sendShopShipped(args: { to: string; orderCode: string; tracking: string; name: string | null; viewUrl?: string | null; carrier?: string | null; trackingUrl?: string | null; facts?: OrderEmailFacts | null }) {
   const text = [
     args.carrier ? `Your order is on the way by ${args.carrier}.` : "Your order is on the way.",
     `Track it: ${args.trackingUrl || uspsTrackingUrl(args.tracking)}`,
@@ -82,7 +91,8 @@ export async function sendShopShipped(args: { to: string; orderCode: string; tra
     ...viewLine(args.viewUrl),
     footer(),
   ].join("\n");
-  return sendTransactionalEmail({ to: args.to, toName: args.name ?? undefined, subject: `Order ${args.orderCode} shipped`, text, fromName: FROM_NAME, replyTo: SHOP.contact.support_email });
+  const html = args.facts ? orderShippedHtml(args.facts, { base: getBaseUrl(), trackUrl: args.trackingUrl || uspsTrackingUrl(args.tracking), carrier: args.carrier ?? null, viewUrl: args.viewUrl }) : undefined;
+  return sendTransactionalEmail({ to: args.to, toName: args.name ?? undefined, subject: `Order ${args.orderCode} shipped`, text, html, fromName: FROM_NAME, replyTo: SHOP.contact.support_email });
 }
 
 /**
@@ -171,4 +181,27 @@ export async function sendShopPrintfulProblem(args: { orderCode: string; what: s
     "Printful's dashboard: https://www.printful.com/dashboard/default/orders",
   ].join("\n");
   return sendTransactionalEmail({ to: SHOP.contact.alert_email, subject: `Printful ${args.what} ${args.orderCode}`, text, fromName: FROM_NAME });
+}
+
+/**
+ * An order update to the buyer (order tracking picks 2026-11-08): running late, delivered, a box that came back,
+ * a request received, a reply from us. HTML with the plain text beside it.
+ */
+export async function sendShopOrderUpdate(args: {
+  to: string; name: string | null; subject: string; title: string; sub: string; paragraphs: string[];
+  quote?: string | null; viewUrl: string; buttonLabel?: string;
+  steps?: { label: string; date: string; state: "done" | "now" | "later" }[] | null;
+}) {
+  const text = [args.title, "", ...(args.quote ? [args.quote, ""] : []), ...args.paragraphs.flatMap((p) => [p, ""]), `${args.buttonLabel ?? "View your order"}: ${args.viewUrl}`, "", footer()].join("\n");
+  const html = orderUpdateHtml({
+    base: getBaseUrl(), preheader: args.paragraphs[0] ?? args.sub, title: args.title, sub: args.sub, paragraphs: args.paragraphs,
+    quote: args.quote ?? null, steps: args.steps ?? null, button: { href: args.viewUrl, label: args.buttonLabel ?? "View your order" },
+  });
+  return sendTransactionalEmail({ to: args.to, toName: args.name ?? undefined, subject: args.subject, text, html, fromName: FROM_NAME, replyTo: SHOP.contact.support_email });
+}
+
+/** A buyer asked for something from their order page (to the shop's alert address). */
+export async function sendShopRequestAlert(args: { orderCode: string; line: string; body: string | null; adminUrl: string }) {
+  const text = [`${args.orderCode}: ${args.line}`, ...(args.body ? ["", args.body] : []), "", `Open the order: ${args.adminUrl}`].join("\n");
+  return sendTransactionalEmail({ to: SHOP.contact.alert_email, subject: `${args.orderCode}: ${args.line}`, text, fromName: FROM_NAME });
 }

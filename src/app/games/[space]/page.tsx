@@ -341,7 +341,7 @@ export default async function GameSpacePage({ params, searchParams }: { params: 
     </div>
       {/* The merch shelf: its own full-width row under both columns of Now, outside their grid so the sticky rail
           never slides over it (merch pass, 2026-11-06). */}
-      {s.id === "pokemon" ? <CardShelf className="space-shelf" /> : merchHere && <MerchShelf prefer={s.merch} line="GameShuffle merch, made when you order." className="space-shelf" preview={isStaffRole(role)} />}
+      {s.id === "pokemon" ? <CardShelf className="space-shelf" /> : merchHere && <MerchShelf prefer={s.merch} line="GameShuffle merch, made when you order." className="space-shelf" />}
     </div>
   );
 

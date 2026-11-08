@@ -20,6 +20,7 @@ import { SHOP, SHOP_METADATA_KIND, digitalListsFor, type ShipMethod } from "./co
 import { missesChristmas, orderCode, shipByDay, shipMethodFor, shipWeightOz, type CartLine } from "./rules";
 import { shopDate } from "./copy";
 import { sendShopCantShip, sendShopNewOrderAlert, sendShopOrderReceived, sendShopRefunded, type ShopEmailItem } from "@/lib/email/shop";
+import { orderEmailFacts } from "./orderEmail";
 import { getBaseUrl } from "@/lib/env";
 import { orderLinkToken } from "./access";
 import { trackServerEvent } from "@/lib/analytics/server";
@@ -228,6 +229,7 @@ async function sendOrderEmails(orderId: string, orderNumber: number, order: { em
     await sendShopOrderReceived({
       to: order.email, orderCode: code, items: emailItems, shipBy, afterCutoff: order.after_cutoff, name: order.ship_name, city: order.ship_city, state: order.ship_state, viewUrl,
       digitalLists: digitalListsFor(items.map((i) => i.sku)), account: { member: !!order.user_id },
+      facts: await orderEmailFacts(orderId, getBaseUrl()).catch((e) => { console.warn("[shop] order email facts:", e); return null; }),
     })
       .catch((e) => console.error("[shop] order email failed:", e));
   }

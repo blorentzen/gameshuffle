@@ -17,12 +17,7 @@ import { LoadingLines } from "@/components/loading/LoadingLines";
 import { formatPrice } from "@/lib/store/copy";
 import type { AccountOrderSummary } from "@/lib/store/lookup";
 
-const STATUS = {
-  paid: { label: "Getting it ready", variant: "info" },
-  shipped: { label: "On the way", variant: "success" },
-  refunded: { label: "Refunded", variant: "default" },
-  canceled: { label: "Canceled", variant: "default" },
-} as const;
+const VARIANT = { paid: "info", shipped: "success", refunded: "default", canceled: "default" } as const;
 
 export function ShopOrdersTab() {
   const router = useRouter();
@@ -38,7 +33,7 @@ export function ShopOrdersTab() {
   if (orders === null) return <AdminScreen title="Shop orders"><LoadingLines label="Loading your orders" /></AdminScreen>;
 
   return (
-    <AdminScreen title="Shop orders" intro={orders.length ? <>Open an order for tracking and its history. {find}</> : undefined}>
+    <AdminScreen title="Shop orders" intro={orders.length ? <>Open an order to track it, see each box, or ask us about it. {find}</> : undefined}>
       {orders.length === 0 ? (
         <EmptyState
           variant="bordered"
@@ -67,11 +62,17 @@ export function ShopOrdersTab() {
             <TableBody>
               {orders.map((o) => (
                 <TableRow key={o.id}>
-                  <TableCell><Link href={`/shop/orders/${o.code}`} className="stuff-cell__title">{o.code}</Link></TableCell>
+                  <TableCell>
+                    <span className="stuff-order">
+                      {/* eslint-disable-next-line @next/next/no-img-element -- Printful's mockups are plain files */}
+                      {o.image && <img src={o.image} alt="" width={40} height={40} />}
+                      <Link href={`/shop/orders/${o.code}`} className="stuff-cell__title">{o.code}</Link>
+                    </span>
+                  </TableCell>
                   <TableCell>{o.placedLabel}</TableCell>
                   <TableCell align="right" className="admin-num">{o.itemCount}</TableCell>
                   <TableCell align="right" className="admin-num">{formatPrice(o.total)}</TableCell>
-                  <TableCell><Badge variant={STATUS[o.status].variant} size="small">{STATUS[o.status].label}</Badge></TableCell>
+                  <TableCell><Badge variant={VARIANT[o.status]} size="small">{o.stageLabel}</Badge></TableCell>
                 </TableRow>
               ))}
             </TableBody>

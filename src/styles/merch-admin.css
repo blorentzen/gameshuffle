@@ -86,3 +86,4 @@
   .merch-products__row { grid-template-columns: auto 4rem minmax(0, 1fr); }
   .merch-products__price, .merch-products__row > .empac-switch, .merch-products__row > label, .merch-products__row > .empac-button { grid-column: 3; justify-self: start; }
 }
+.merch-editor__live { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--spacing-12); }

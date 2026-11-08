@@ -153,8 +153,29 @@ export async function estimateOrder(input: PfOrderInput): Promise<{ costs: { sub
 
 export const confirmOrder = (id: number) => call<PfOrder>(`/orders/${id}/confirm`, { method: "POST" });
 export const getOrder = (id: number) => call<PfOrder>(`/orders/${id}`);
+/** A new address on an order Printful still lets us change (draft or failed; anything later is refused). */
+export const updateOrderRecipient = (id: number, recipient: PfRecipient) => call<PfOrder>(`/orders/${id}`, { method: "PUT", body: JSON.stringify({ recipient }) });
 /** A draft is deleted; a pending order is canceled. Printful refuses once production starts. */
 export const cancelOrder = (id: number) => call<PfOrder>(`/orders/${id}`, { method: "DELETE" });
+
+/**
+ * An order's boxes from Printful's API v2 (order tracking picks 2026-11-08): the carrier's tracking steps, the arrival
+ * window, delivered and came back, and what's in each box. Same token as v1; v1 orders keep their ids in v2.
+ * shipment_status: pending, onhold, canceled, packaged, shipped, returned, outstock. delivery_status: unknown,
+ * delivered, pre_transit, in_transit, out_for_delivery, available_for_pickup, return_to_sender, failure, canceled.
+ */
+export interface PfV2Shipment {
+  id: number; order_id: number; order_external_id: string | null; carrier: string | null; service: string | null;
+  shipment_status: string; shipped_at: string | null; delivery_status: string | null; delivered_at: string | null; is_reshipment?: boolean;
+  tracking_number: string | null; tracking_url: string | null;
+  tracking_events?: { triggered_at: string; description: string }[] | null;
+  estimated_delivery?: { from_date: string; to_date: string; calculated_at?: string } | null;
+  shipment_items?: { order_item_external_id: string | null; order_item_name?: string | null; quantity: number }[] | null;
+}
+export async function getShipmentsV2(orderId: number): Promise<PfV2Shipment[]> {
+  const res = await call<{ data?: PfV2Shipment[] }>(`/v2/orders/${orderId}/shipments?limit=100`);
+  return Array.isArray(res?.data) ? res.data : [];
+}
 
 // ─── webhooks ───────────────────────────────────────────────────────────────
 
