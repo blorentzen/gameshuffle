@@ -1,9 +1,9 @@
 "use client";
 
 /**
- * AccountSidebar — sticky left-rail nav shared across the /account section
- * pages. Lives in `src/app/account/layout.tsx` so it persists across section
- * navigations.
+ * AccountSidebar — sticky left-rail nav. Only Platform Admin uses it now (`src/app/account/platform/layout.tsx`): there
+ * it lists a Settings link and the admin's own groups, nothing else (2026-11-07). The rest of /account wears Settings'
+ * navigation. The grouping below is what it showed for the other sections before:
  *
  * Grouped You, your interests, More (menus and account picks 2026-11-05,
  * https://claude.ai/artifact/FVgHcSgixdcLaGZisgsd97, 3A):
@@ -111,23 +111,29 @@ export function AccountSidebar({ role, isPro = false, interests = [] }: { role: 
   const mine = interestSections.filter((s) => s.interests?.some((i) => interests.includes(i)));
   const others = interestSections.filter((s) => !mine.includes(s));
 
-  const menuSections: { label: string; items: ReturnType<typeof linkTo>[] }[] = [];
+  const menuSections: { label?: string; items: ReturnType<typeof linkTo>[] }[] = [];
+  // Platform Admin is the only section still on this sidebar (the rest wear Settings' navigation), so it shows just
+  // its own groups with one way back to Settings on top; the old You and interest groups repeated Settings (2026-11-07).
+  if (current.kind === "staff") {
+    menuSections.push({ items: [{ label: "Settings", icon: <TabIcon name="settings" />, active: false, onClick: () => go("/settings") }] });
+    // One labelled group per `group`, in the order they first appear.
+    const groups = [...new Set(current.items.map((i) => i.group).filter((g): g is string => !!g))];
+    const views = viewsOf(current);
+    for (const g of groups) menuSections.push({ label: g, items: views.filter((_, i) => current.items[i].group === g) });
+    return render(menuSections);
+  }
   if (you) menuSections.push({ label: you.label, items: viewsOf(you) });
   // The section you're on lists its views, when it has more than one (a one-view section just lights up below).
   const expanded = current.kind === "interest" && current.items.length > 1;
   if (expanded) menuSections.push({ label: current.label, items: viewsOf(current) });
-  if (current.kind === "staff") {
-    // Platform Admin: one labelled group per `group`, in the order they first appear.
-    const groups = [...new Set(current.items.map((i) => i.group).filter((g): g is string => !!g))];
-    const views = viewsOf(current);
-    for (const g of groups) menuSections.push({ label: g, items: views.filter((_, i) => current.items[i].group === g) });
-  }
   const mineRest = mine.filter((s) => !(expanded && s === current));
   if (mineRest.length) menuSections.push({ label: "Your interests", items: mineRest.map(linkTo) });
   const othersRest = others.filter((s) => !(expanded && s === current));
   if (othersRest.length) menuSections.push({ label: "More", items: othersRest.map(linkTo) });
   if (staff && current !== staff) menuSections.push({ label: "Staff", items: [linkTo(staff)] });
+  return render(menuSections);
 
+  function render(menu: typeof menuSections) {
   return (
     <>
       {/* Mobile-only trigger — shows the current tab, opens the drawer. */}
@@ -153,8 +159,9 @@ export function AccountSidebar({ role, isPro = false, interests = [] }: { role: 
         className={`account-sidebar${open ? " is-open" : ""}`}
         aria-label="Account settings"
       >
-        <Menu sections={menuSections} />
+        <Menu sections={menu} />
       </aside>
     </>
   );
+  }
 }

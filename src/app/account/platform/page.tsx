@@ -2,6 +2,17 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { isStaffRole } from "@/lib/subscription";
 import { PlatformTabs } from "@/components/account/PlatformTabs";
+import type { Metadata } from "next";
+import { ACCOUNT_SECTIONS, ACCOUNT_TAB_ALIAS, itemTabIds } from "@/lib/account/nav";
+
+/** The browser tab names the open screen, the way Settings does ("Pricing · Admin | GameShuffle"). */
+export async function generateMetadata({ searchParams }: { searchParams: Promise<{ tab?: string }> }): Promise<Metadata> {
+  const raw = (await searchParams).tab ?? "";
+  const tab = ACCOUNT_TAB_ALIAS[raw] ?? raw;
+  const item = ACCOUNT_SECTIONS.find((s) => s.kind === "staff")?.items.find((i) => itemTabIds(i).includes(tab));
+  const name = item?.tabs?.find((t) => t.id === tab)?.label ?? item?.label ?? "Platform admin";
+  return { title: { absolute: `${name} · Admin | GameShuffle` }, robots: { index: false, follow: false } };
+}
 
 /**
  * Platform Admin section page — the third of the three /account section PAGES

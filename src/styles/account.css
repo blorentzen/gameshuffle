@@ -3605,14 +3605,20 @@ html.dark .gs-platform-icon {
   text-wrap: balance;
 }
 
-.platform-view__body > .account-card { background: none; box-shadow: none; border-radius: 0; }
+/* Every Settings and admin screen sits flat on the page, whether it has tabs or stands alone: a lone screen (General,
+   Privacy, Pricing, Switches…) used to keep the raised card while its tabbed neighbours were flat (2026-11-07). Same
+   padding either way, so titles line up. */
+.platform-view__body > .account-card,
+.settings-pane > .account-card,
+.account-content > .account-card { background: none; box-shadow: none; border-radius: 0; }
 .platform-view__body > .account-card + .account-card { margin-top: 0; padding-top: 0; }
 
 /* ── Platform admin kit (src/components/account/admin/AdminKit.tsx) ───────
    One header, one stat grid, one section style for every admin screen. */
 .admin-screen { display: flex; flex-direction: column; gap: var(--spacing-28); min-width: 0; }
 .admin-head { display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: var(--spacing-12) var(--spacing-16); }
-.admin-head__text { flex: 1 1 28rem; min-width: 0; }
+/* 36rem before the actions wrap under it: three buttons (Trivia) squeezed the title into a narrow column at 28rem. */
+.admin-head__text { flex: 1 1 36rem; min-width: 0; }
 .admin-head .admin-head__title { margin: 0; font-size: var(--font-size-24); font-weight: var(--font-weight-semibold); line-height: var(--line-height-tight); color: var(--text-primary); }
 .admin-head__intro { margin: var(--spacing-6) 0 0; max-width: 68ch; font-size: var(--font-size-16); line-height: var(--line-height-relaxed); color: var(--text-secondary); }
 .admin-head__actions { display: flex; flex-wrap: wrap; align-items: center; gap: var(--spacing-8); }
@@ -3663,6 +3669,9 @@ html.dark .gs-platform-icon {
 .admin-table:focus-visible { outline: 2px solid var(--border-focus, var(--primary-500)); outline-offset: 2px; }
 .admin-table .empac-table { min-width: 100%; }
 .admin-num { font-variant-numeric: tabular-nums; }
+/* Short cells (a date, a price, a count) stay on one line, so a phone scrolls the table instead of squeezing them
+   into a word per line (Settings ▸ Tickets, 2026-11-07). */
+.admin-nowrap { white-space: nowrap; }
 .admin-cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 32rem), 1fr)); gap: var(--spacing-28) var(--spacing-16); align-items: start; min-width: 0; }
 .admin-chart__empty { margin: 0; min-height: 12rem; display: grid; place-items: center; text-align: center; padding: var(--spacing-16); font-size: var(--font-size-14); color: var(--text-tertiary); }
 /* Phones: a wide admin table keeps its first column in place while the rest

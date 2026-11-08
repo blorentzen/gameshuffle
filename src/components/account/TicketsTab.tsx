@@ -95,9 +95,9 @@ export function TicketsTab({ timeZone }: { timeZone?: string | null } = {}) {
                 <Link href={t.href} className="stuff-cell__title">{t.title}</Link>
                 {!past && <span className="stuff-cell__sub">{t.refundTerms}</span>}
               </TableCell>
-              <TableCell>{t.startsAt ? formatEventShort(t.startsAt, tz) : "Date to be announced"}</TableCell>
-              <TableCell>{t.quantity} × {t.tierName}</TableCell>
-              <TableCell align="right" className="admin-num">{usd(t.paidCents)}</TableCell>
+              <TableCell className="admin-nowrap">{t.startsAt ? formatEventShort(t.startsAt, tz) : "Date to be announced"}</TableCell>
+              <TableCell className="admin-nowrap">{t.quantity} × {t.tierName}</TableCell>
+              <TableCell align="right" className="admin-num admin-nowrap">{usd(t.paidCents)}</TableCell>
               <TableCell align="right">
                 {past ? (
                   <span className="stuff-cell__actions">

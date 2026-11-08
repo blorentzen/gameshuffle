@@ -238,7 +238,7 @@ export function PlatformComplianceTab() {
           {(Object.keys(BEHAVIOR_LABEL) as Behavior[]).map((b) => (
             <li key={b} className="admin-money-row admin-money-row--plain">
               <div className="admin-money-row__text">
-                <p className="admin-money-row__name"><Badge variant={BEHAVIOR_BADGE[b]} size="small">{BEHAVIOR_LABEL[b]}</Badge></p>
+                <div className="admin-money-row__name"><Badge variant={BEHAVIOR_BADGE[b]} size="small">{BEHAVIOR_LABEL[b]}</Badge></div>
                 <p className="admin-money-row__help">{BEHAVIOR_HELP[b]}</p>
               </div>
             </li>

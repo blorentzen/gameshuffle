@@ -126,8 +126,12 @@ export function MerchProducts({ listings, post, onEdit, onReordered }: {
         const row = (l: AdminListing, handle?: ReactNode) => (
           <div className={`merch-products__row${picked.has(l.id) ? " is-picked" : ""}${handle ? " merch-products__row--drag" : ""}`}>
             {handle ?? <Checkbox checked={picked.has(l.id)} onChange={(e) => toggle([l.id], e.target.checked)} aria-label={`Select ${l.name}`} />}
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img className="merch-products__pic" src={l.colors.find((c) => !c.hidden)?.image ?? l.colors[0]?.image ?? ""} alt="" width={40} height={40} />
+            {(() => {
+              // The first shown color with a picture, else any; none yet (a new product) gets the empty square, never src="".
+              const pic = l.colors.find((c) => !c.hidden && c.image)?.image || l.colors.find((c) => c.image)?.image;
+              // eslint-disable-next-line @next/next/no-img-element
+              return pic ? <img className="merch-products__pic" src={pic} alt="" width={40} height={40} /> : <span className="merch-products__pic" aria-hidden="true" />;
+            })()}
             <span className="merch-products__name">
               <strong>{l.name}</strong>
               <span>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { Badge, Button, Checkbox, Drawer, EmptyState, IconButton, Input, Radio, RadioGroup } from "@empac/cascadeds";
 import { IconArrowDown, IconArrowUp, IconCards, IconPlus } from "@tabler/icons-react";
 import { useToast } from "@/components/toast/ToastProvider";
@@ -75,7 +75,10 @@ function PickerGrid({
   );
 }
 
+const noopSubscribe = () => () => {};
+
 export function PlatformShopTab() {
+  const hydrated = useSyncExternalStore(noopSubscribe, () => true, () => false);
   const [cards, setCards] = useState<FeaturedShopCard[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -416,7 +419,8 @@ export function PlatformShopTab() {
         )}
       </AdminSection>
 
-      <Drawer
+      {/* A CDS Drawer renders differently on the server, so it mounts after hydration (the site's rule). */}
+      {hydrated && <Drawer
         open={adding}
         onClose={() => { setAdding(false); resetAddForm(); }}
         title="Add a card"
@@ -465,7 +469,7 @@ export function PlatformShopTab() {
             </>
           )}
         </div>
-      </Drawer>
+      </Drawer>}
     </div>
   );
 }

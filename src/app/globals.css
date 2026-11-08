@@ -3049,10 +3049,14 @@ html.dark .empac-badge--warning {
 html.dark .empac-tabs__tab--active .empac-tabs__tab-label {
   color: var(--brand-ink);
 }
-/* Pill tabs keep their light --primary-100 fill in dark mode, so the light
-   --brand-ink above would vanish on it; use CDS's own dark text there. */
+/* Selected pills: the home band's pill is white in dark mode, so its label stays CDS's dark text; every other pill
+   has the translucent blue fill set further down, so its label takes the light ink with it (it was dark blue on that
+   dark fill and nearly invisible, 2026-11-07: Support's Monthly, Theme's Pick a theme, Card decks). */
 html.dark .empac-tabs--pills .empac-tabs__tab--active .empac-tabs__tab-label {
   color: var(--primary-700);
+}
+html.dark .empac-tabs--pills:not(.band__tabs) .empac-tabs__tab--active .empac-tabs__tab-label {
+  color: var(--brand-ink, #a9c1ff);
 }
 /* Owner surfaces remap --primary-600 to the owner's accent shaded 16% toward
    black, which isn't enough for a bright accent (#ff2d95 measured 4.2:1 on the

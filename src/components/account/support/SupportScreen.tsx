@@ -49,7 +49,7 @@ export function SupportScreen() {
       {gave && info && <Gifts info={info} />}
       {gave && info && <Wall info={info} />}
       <AdminSection
-        title={info?.monthly ? "Change your level or give once" : info?.supporter ? "Give again" : "Support GameShuffle"}
+        title={info?.monthly ? "Change your level or give once" : info?.supporter ? "Give again" : "Monthly or once"}
         intro={info?.supporter ? undefined : "Monthly as a Supporter, a Backer (GS Pro included) or a Champion, or once for any amount. You get the Supporter badge on your profile for a year (or while you give monthly), and a spot on the supporters wall if you like."}
       >
         <div className="support-account__give" id="give"><SupportForm back={BACK} thanks={false} wall={gave && info ? info.wall : undefined} startLevel={info?.monthly?.level ?? null} /></div>
