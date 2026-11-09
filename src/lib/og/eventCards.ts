@@ -95,6 +95,7 @@ export async function tournamentCard(id: string): Promise<EventCardInput> {
 }
 
 export async function nightCard(id: string): Promise<EventCardInput> {
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)) return fallbackCard("game-night");
   const db = createServiceClient();
   const { data: n } = await db.from("board_game_nights").select("*").eq("id", id).maybeSingle();
   if (!n || n.status === "draft") return fallbackCard("game-night");

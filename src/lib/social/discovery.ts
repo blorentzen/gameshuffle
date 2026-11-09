@@ -45,6 +45,7 @@ export interface PlayerSummary {
 
 /** Accounts the viewer has blocked OR who have blocked the viewer. */
 async function blockedIds(viewerId: string): Promise<Set<string>> {
+  if (!viewerId) return new Set();
   const admin = createServiceClient();
   const { data } = await admin
     .from("user_blocks")

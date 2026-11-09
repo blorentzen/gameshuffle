@@ -118,7 +118,11 @@ export async function updateNight(
   return error ? { ok: false, error: error.message } : { ok: true };
 }
 
+const NIGHT_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 export async function getNight(id: string): Promise<GameNight | null> {
+  // Anything that isn't an id (bots asking for /game-nights/Next.Metadata) is simply not found.
+  if (!NIGHT_ID.test(id)) return null;
   const supabase = await createClient();
   const { data } = await supabase
     .from("board_game_nights")

@@ -81,7 +81,7 @@ export async function setJoined(s: GameSpace, userId: string, join: boolean): Pr
   return error ? { ok: false, error: "failed" } : { ok: true, joined: join };
 }
 
-type TourRow = { id: string; title: string; date_time: string | null; game_slug: string | null; status: string; going_count: number | null; max_participants: number | null; cover_image_url?: string | null; organizer_name?: string | null; archived_at: string | null; stale_nudged_at?: string | null };
+type TourRow = { id: string; title: string; date_time: string | null; game_slug: string | null; status: string; going_count: number | null; max_participants: number | null; cover_image_url?: string | null; organizer_name?: string | null; archived_at: string | null };
 type NightRow = { id: string; title: string; starts_at: string | null; place: string | null; cover_image_url: string | null; going_count: number | null; games: { name?: string }[] | null };
 
 const tourItem = (t: TourRow): Happening => {
@@ -107,7 +107,7 @@ export async function spaceEvents(s: GameSpace, days = 30, limit = 24): Promise<
   const db = createServiceClient();
   const until = new Date(Date.now() + days * DAY_MS).toISOString();
   const [tours, nights] = await Promise.all([
-    db.from("gs_browse_tournaments").select("id, title, date_time, game_slug, status, going_count, max_participants, organizer_name, archived_at, stale_nudged_at")
+    db.from("gs_browse_tournaments").select("id, title, date_time, game_slug, status, going_count, max_participants, organizer_name, archived_at")
       .in("game_slug", s.games).in("status", ["open", "in_progress"]).is("archived_at", null).is("championship_id", null)
       .or(notStaleOpenFilter()).or(`date_time.is.null,date_time.lte.${until}`)
       .order("date_time", { ascending: true, nullsFirst: false }).limit(40)

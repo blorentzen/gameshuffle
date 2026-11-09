@@ -288,11 +288,12 @@ async function streamFor(userId: string): Promise<{ live: boolean; since: string
   const admin = createServiceClient();
   const [conn, session] = await Promise.all([
     admin.from("twitch_connections").select("is_live, live_started_at").eq("user_id", userId).maybeSingle(),
-    admin.from("twitch_sessions").select("randomizer_slug").eq("user_id", userId).in("status", ["active", "ending"]).order("started_at", { ascending: false }).limit(1).maybeSingle(),
+    // The stream's session follows the Twitch category (twitch_sessions is the old table, gone on production).
+    admin.from("gs_sessions").select("active_game, configured_games").eq("owner_user_id", userId).in("status", ["active", "ending"]).order("updated_at", { ascending: false }).limit(1).maybeSingle(),
   ]);
   const c = conn.data as { is_live?: boolean; live_started_at?: string | null } | null;
-  const s = session.data as { randomizer_slug?: string | null } | null;
-  return { live: !!c?.is_live, since: c?.live_started_at ?? null, gameSlug: s?.randomizer_slug ?? null };
+  const s = session.data as { active_game?: string | null; configured_games?: string[] | null } | null;
+  return { live: !!c?.is_live, since: c?.live_started_at ?? null, gameSlug: s?.active_game ?? s?.configured_games?.[0] ?? null };
 }
 
 /** Records a rank milestone the first time the player gets inside it this season. `source`: a lounge game, or a

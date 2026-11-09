@@ -141,7 +141,7 @@ export async function GET() {
     admin
       .from("lounge_sessions")
       .select("*", { count: "exact", head: true })
-      .neq("phase", "complete"),
+      .neq("status", "complete"),
     admin
       .from("gs_streams")
       .select("*", { count: "exact", head: true })

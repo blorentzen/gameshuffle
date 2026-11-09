@@ -119,14 +119,14 @@ export async function ensureOwnerMembership(communityId: string, ownerUserId: st
   try {
     const { data: existing } = await admin
       .from("community_members")
-      .select("id, role")
+      .select("role")
       .eq("community_id", communityId)
       .eq("user_id", ownerUserId)
       .maybeSingle();
     if (!existing) {
       await admin.from("community_members").insert({ community_id: communityId, user_id: ownerUserId, role: "owner" });
     } else if ((existing as { role?: string }).role !== "owner") {
-      await admin.from("community_members").update({ role: "owner" }).eq("id", (existing as { id: string }).id);
+      await admin.from("community_members").update({ role: "owner" }).eq("community_id", communityId).eq("user_id", ownerUserId);
     }
   } catch { /* table not applied yet */ }
 }
