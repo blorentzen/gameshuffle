@@ -160,6 +160,9 @@ export function shopCopy(config: ShopConfig = SHOP) {
 }
 
 /** Merch-only words: product pages and the shelf. */
+/** "See all 26 kids and baby items": the shelf sections whose name isn't a plural noun on its own. */
+const SEE_ALL_NOUN: Record<string, string> = { "Kids and baby": "kids and baby items", Drinkware: "drinkware items", Home: "home items", Other: "other items" };
+
 export function merchCopy(config: ShopConfig = SHOP) {
   const threshold = formatPrice(config.shipping.rate.free_threshold_cents).replace(/\.00$/, "");
   return {
@@ -178,7 +181,6 @@ export function merchCopy(config: ShopConfig = SHOP) {
       addLabel: (name: string) => `Add ${name} to your cart`,
       choose: (what: "phone" | "size" | "color" | "none") => ({ phone: "Pick your phone", size: "Pick a size", color: "Pick a color", none: "See it" })[what],
     },
-    collections: "Collections",
     filters: {
       label: "Filter and sort the shop",
       category: "Category",
@@ -196,6 +198,9 @@ export function merchCopy(config: ShopConfig = SHOP) {
       clear: "Clear all",
       remove: (what: string) => `Remove filter: ${what}`,
       none: "Nothing matches these filters.",
+      colorCount: (name: string, n: number) => `${name}, ${n === 1 ? "1 product" : `${n} products`}`,
+      colorButton: (value: string) => `Color: ${value}`,
+      seeAll: (n: number, type: string) => `See all ${n} ${SEE_ALL_NOUN[type] ?? type.toLowerCase()}`,
     },
     color: "Color",
     size: "Size",

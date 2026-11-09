@@ -25,6 +25,8 @@ export interface MerchVariant {
 export interface MerchColor { name: string; hex: string | null; image: string | null }
 export interface MerchListing {
   id: string; slug: string; name: string; itemType: string; collection: string; series: string | null; description: string | null; facts: string[];
+  /** The item's slug from the listing's key ("run-it-back:crop-top" → "crop-top"): the shelf names the design without it. */
+  noun: string | null;
   photos: { url: string; alt?: string }[]; optionLabel: OptionLabel; sizeGuide: SizeGuide | null;
   deliveryMin: number | null; deliveryMax: number | null; sortOrder: number; live: boolean;
   colors: MerchColor[]; options: string[]; variants: MerchVariant[]; fromCents: number; priceVaries: boolean;
@@ -52,6 +54,7 @@ function shape(l: ListingRow, rows: VariantRow[], opts: { preview: boolean }): M
   const prices = selling.map((r) => r.price_cents);
   return {
     id: l.id, slug: l.slug, name: l.name, itemType: l.item_type, collection: l.collection, series: l.series ?? null, description: l.description, facts: l.facts ?? [],
+    noun: l.group_key?.includes(":") ? l.group_key.slice(l.group_key.lastIndexOf(":") + 1) || null : null,
     photos: Array.isArray(l.photos) ? l.photos : [], optionLabel: l.option_label, sizeGuide: l.size_guide,
     deliveryMin: l.delivery_min, deliveryMax: l.delivery_max, sortOrder: l.sort_order, live: l.live,
     colors, options,

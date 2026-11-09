@@ -3,12 +3,16 @@
 /**
  * A merch product card (the shop's grid, a product page's "more from"): the picture, up to four color dots that
  * swap it, the name and the price. It opens the product page. Coming soon: no price. The shop's shelf is MerchShop.
+ * Under a section heading (`inSection`) the card names only the design ("Run it back.") and says the item when it
+ * isn't the section's plain one ("Crop top"); screen readers still hear the whole name.
  */
 
 import { useState } from "react";
 import Link from "next/link";
 import { Chip } from "@empac/cascadeds";
 import { formatPrice, merchCopy } from "@/lib/store/copy";
+import { familyOf } from "@/lib/store/merchColors";
+import { cardName } from "@/lib/store/merchFilters";
 import type { MerchListing } from "@/lib/store/merchCatalog";
 
 const DOTS = 4;
@@ -20,10 +24,11 @@ function dotColors<T>(colors: T[], picked: number): { c: T; i: number }[] {
   return out;
 }
 
-/** One product. `color` starts it on that color (the shop's Color filter). */
-export function MerchCard({ listing, soon, color: startColor = null }: { listing: MerchListing; soon: boolean; color?: string | null }) {
+/** One product. `family` starts it on its first shade of that color family (the shop's Color filter). */
+export function MerchCard({ listing, soon, family = null, inSection = false }: { listing: MerchListing; soon: boolean; family?: string | null; inSection?: boolean }) {
   const copy = merchCopy();
-  const [ci, setCi] = useState(() => Math.max(0, startColor ? listing.colors.findIndex((c) => c.name === startColor) : 0));
+  const [ci, setCi] = useState(() => Math.max(0, family ? listing.colors.findIndex((c) => familyOf(c.name, c.hex) === family) : 0));
+  const named = inSection ? cardName(listing) : null;
   const color = listing.colors[ci] ?? listing.colors[0];
   const phone = listing.optionLabel === "Phone";
   const image = (phone ? listing.variants[0]?.image : color?.image) ?? listing.photos[0]?.url ?? null;
@@ -53,7 +58,10 @@ export function MerchCard({ listing, soon, color: startColor = null }: { listing
           {listing.colors.length > DOTS && <span className="merch-card__more">+{listing.colors.length - DOTS}</span>}
         </div>
       )}
-      <h3 className="merch-card__name"><Link href={href}>{listing.name}</Link></h3>
+      <h3 className="merch-card__name">
+        {named?.item ? <Link href={href}>{named.design}<span className="sr-only"> {named.item}</span></Link> : <Link href={href}>{listing.name}</Link>}
+      </h3>
+      {named?.style && <p className="merch-card__style" aria-hidden="true">{named.style}</p>}
       <p className="merch-card__price">
         {!soon && <span>{listing.priceVaries ? copy.from(listing.fromCents) : formatPrice(listing.fromCents)}</span>}
         {sub && <span className="merch-card__sub">{sub}</span>}

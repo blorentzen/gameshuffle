@@ -1,10 +1,12 @@
 /**
  * The shop's filters (shop picks 2026-11-08, all as recommended): category, color, collection, size and sort,
  * read from and written to the address (?type=&color=&collection=&size=&sort=) so a filtered shelf can be linked.
- * Pure and client-safe; MerchShop draws the bar.
+ * Color is a family (merchColors.ts), not a shade. The shelf is in sections by item, so cards there name only the
+ * design (`cardName`). Pure and client-safe; MerchShop draws the bar.
  */
 
-import { COLLECTIONS, ITEM_TYPES } from "./merch";
+import { COLLECTIONS, ITEM_TYPES, itemRank } from "./merch";
+import { COLOR_FAMILIES, familyOf, isFamily } from "./merchColors";
 import type { MerchListing } from "./merchCatalog";
 
 export type MerchSort = "featured" | "price-low" | "price-high";
@@ -23,21 +25,29 @@ const SIZE_ORDER = ["XS", "S", "M", "L", "XL", "2XL", "3XL", "4XL", "5XL"];
 export interface FilterChoices {
   types: string[];
   collections: { id: string; name: string }[];
-  /** Colors on at least two products, most common first (a color on one product is a filter of one). */
-  colors: { name: string; hex: string | null; count: number }[];
+  /** Color families with at least one product, in family order; `swatch` = its most used shades (up to three). */
+  colors: { id: string; name: string; count: number; swatch: string[] }[];
   sizes: string[];
 }
 
 export function filterChoices(listings: MerchListing[]): FilterChoices {
   const types = ITEM_TYPES.filter((t) => listings.some((l) => l.itemType === t));
   const collections = COLLECTIONS.filter((c) => listings.some((l) => l.collection === c.id)).map((c) => ({ id: c.id, name: c.name }));
-  const colorCount = new Map<string, { hex: string | null; count: number }>();
+  // Each family: how many products come in any of its shades, and its shades by how many products use them.
+  const fam = new Map<string, { products: Set<string>; shades: Map<string, { hex: string | null; n: number }> }>();
   for (const l of listings) for (const c of l.colors) {
-    const had = colorCount.get(c.name);
-    colorCount.set(c.name, { hex: had?.hex ?? c.hex, count: (had?.count ?? 0) + 1 });
+    const id = familyOf(c.name, c.hex);
+    const f = fam.get(id) ?? { products: new Set<string>(), shades: new Map() };
+    f.products.add(l.id);
+    const sh = f.shades.get(c.name);
+    f.shades.set(c.name, { hex: sh?.hex ?? c.hex, n: (sh?.n ?? 0) + 1 });
+    fam.set(id, f);
   }
-  const colors = [...colorCount.entries()].filter(([, v]) => v.count >= 2).map(([name, v]) => ({ name, hex: v.hex, count: v.count }))
-    .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name));
+  const colors = COLOR_FAMILIES.filter((f) => fam.has(f.id)).map((f) => {
+    const v = fam.get(f.id)!;
+    const swatch = [...v.shades.values()].filter((x) => x.hex).sort((a, b) => b.n - a.n).slice(0, 3).map((x) => x.hex!);
+    return { id: f.id as string, name: f.name as string, count: v.products.size, swatch };
+  });
   const seen = new Set<string>();
   for (const l of listings) if (l.optionLabel === "Size") for (const o of l.options) seen.add(o);
   const sizes = [...SIZE_ORDER.filter((s) => seen.has(s)), ...[...seen].filter((s) => !SIZE_ORDER.includes(s))];
@@ -50,11 +60,18 @@ export function readFilter(params: URLSearchParams, choices: FilterChoices): Mer
   const sort = params.get("sort");
   return {
     type: pick("type", (v) => choices.types.includes(v)),
-    color: pick("color", (v) => choices.colors.some((c) => c.name === v)),
+    color: colorParam(params.get("color"), choices),
     collection: pick("collection", (v) => choices.collections.some((c) => c.id === v)),
     size: pick("size", (v) => choices.sizes.includes(v)),
     sort: SORTS.some((s) => s.id === sort) ? (sort as MerchSort) : "featured",
   };
+}
+
+/** A color in an address: a family id, or a shade name from an older link (?color=Navy reads as blue). */
+function colorParam(v: string | null, choices: FilterChoices): string | null {
+  if (!v) return null;
+  const id = isFamily(v) ? v : familyOf(v);
+  return choices.colors.some((c) => c.id === id) ? id : null;
 }
 
 /** The address's query for a filter (empty values and the default sort left out). */
@@ -72,7 +89,7 @@ export function applyFilter(listings: MerchListing[], f: MerchFilter): MerchList
   const out = listings.filter((l) =>
     (!f.type || l.itemType === f.type)
     && (!f.collection || l.collection === f.collection)
-    && (!f.color || l.colors.some((c) => c.name === f.color))
+    && (!f.color || l.colors.some((c) => familyOf(c.name, c.hex) === f.color))
     && (!f.size || (l.optionLabel === "Size" && l.options.includes(f.size))));
   if (f.sort === "price-low") return [...out].sort((a, b) => a.fromCents - b.fromCents || a.sortOrder - b.sortOrder);
   if (f.sort === "price-high") return [...out].sort((a, b) => b.fromCents - a.fromCents || a.sortOrder - b.sortOrder);
@@ -88,10 +105,10 @@ export const COLLECTION_TONES: Record<string, string> = {
 };
 export const toneOf = (collection: string) => COLLECTION_TONES[collection] ?? "blue";
 
-/** A listing's picture: the color asked for (a color filter), else its first color, else its first photo. */
-export function coverImage(l: MerchListing, color?: string | null): string | null {
+/** A listing's picture: its first color in the family asked for (a color filter), else its first color, else its first photo. */
+export function coverImage(l: MerchListing, family?: string | null): string | null {
   if (l.optionLabel === "Phone") return l.variants[0]?.image ?? l.photos[0]?.url ?? null;
-  const c = (color && l.colors.find((x) => x.name === color)) || l.colors[0];
+  const c = (family && l.colors.find((x) => familyOf(x.name, x.hex) === family)) || l.colors[0];
   return c?.image ?? l.photos[0]?.url ?? null;
 }
 
@@ -110,18 +127,6 @@ export function heroPicks(listings: MerchListing[], n = 3): MerchListing[] {
       const l = listings.find((x) => x.itemType === t && coverImage(x) && (!strict || !out.some((o) => o.collection === x.collection)));
       if (l) out.push(l);
     }
-  }
-  return out;
-}
-
-/** Each collection's tile picture: its first product with a picture, trying for a different item on each tile. */
-export function tileCovers(listings: MerchListing[], collections: readonly string[]): Map<string, MerchListing> {
-  const out = new Map<string, MerchListing>();
-  const used = new Set<string>();
-  for (const id of collections) {
-    const mine = listings.filter((l) => l.collection === id && coverImage(l));
-    const pick = mine.find((l) => !used.has(l.itemType)) ?? mine[0];
-    if (pick) { out.set(id, pick); used.add(pick.itemType); }
   }
   return out;
 }
@@ -164,4 +169,34 @@ export function pairsFor(listing: MerchListing, all: MerchListing[], n = 3): Mer
     if (out.length >= n) break;
   }
   return out;
+}
+
+/** The shelf in sections by item (Tees, Hoodies, Hats…), in the shop's item order; empty sections left out. */
+export function shelfSections(listings: MerchListing[]): { type: string; items: MerchListing[] }[] {
+  const by = new Map<string, MerchListing[]>();
+  for (const l of listings) by.set(l.itemType, [...(by.get(l.itemType) ?? []), l]);
+  return [...by.entries()].sort((a, b) => itemRank(a[0]) - itemRank(b[0])).map(([type, items]) => ({ type, items }));
+}
+
+/** The item a section is mostly made of: cards there don't name it ("Run it back." under Tees, but "Crop top" said). */
+const PLAIN_ITEM: Record<string, string> = {
+  Tees: "tee", Hoodies: "hoodie", Stickers: "sticker", "Desk mats": "desk-mat", "Phone cases": "phone-case", Drinkware: "mug", Posters: "poster",
+};
+
+/**
+ * A card's name under its section's heading: the design ("Run it back.") and the item it's on ("Crop top"), with the
+ * item left as `style` null when it's the section's plain one. `item` is the item as the full name spells it, for
+ * screen readers. `noun` is the item's slug from the listing's key ("crop-top"); a name that doesn't end with it (a
+ * listing renamed in Platform) stays whole.
+ */
+export function cardName(l: { name: string; noun: string | null; itemType: string }): { design: string; item: string | null; style: string | null } {
+  const name = l.name.trim();
+  if (!l.noun) return { design: name, item: null, style: null };
+  const words = l.noun.replace(/-/g, " ");
+  if (!name.toLowerCase().replace(/-/g, " ").endsWith(` ${words}`)) return { design: name, item: null, style: null };
+  const item = name.slice(name.length - words.length);
+  const design = name.slice(0, name.length - words.length).trim();
+  if (!design) return { design: name, item: null, style: null };
+  const plain = PLAIN_ITEM[l.itemType] === l.noun;
+  return { design, item, style: plain ? null : item.charAt(0).toUpperCase() + item.slice(1).toLowerCase() };
 }
