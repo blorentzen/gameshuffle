@@ -17,7 +17,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Button, Chip, EmptyState, FormField, Input, Tabs } from "@empac/cascadeds";
-import { IconCamera, IconCircleCheck, IconExternalLink, IconMessage, IconRefresh, IconSend, IconThumbUp, IconTrophy, IconVideo } from "@tabler/icons-react";
+import { IconCamera, IconCircleCheck, IconExternalLink, IconMessage, IconPencil, IconRefresh, IconSend, IconThumbUp, IconTrophy, IconVideo } from "@tabler/icons-react";
 import { useConfirm } from "@/components/confirm/ConfirmProvider";
 import { useToast } from "@/components/toast/ToastProvider";
 import type { QueueLegacy, QueueTicket, QueueVideo } from "@/lib/timeTrials/review";
@@ -29,6 +29,7 @@ import { TT_GAMES } from "@/lib/timeTrials/tracks";
 import { itemsLabel } from "@/lib/timeTrials/categories";
 import { ordinal } from "@/lib/timeTrials/rules";
 import { TtTeamTab, type TeamData } from "./TtTeamTab";
+import { TtFixTime } from "./TtFixTime";
 
 type Queue = { videos: QueueVideo[]; tickets: QueueTicket[]; team: TeamData | null; aliases: CommunityAlias[] | null; staff: boolean; modes: Mode[] | null;
   /** Top 10 sheet claims (round 4), for staff, reviewers and the MK8DX mushrooms updaters; when each sheet was read (staff). */
@@ -54,6 +55,8 @@ export function TtReviewQueue() {
   const [q, setQ] = useState<Queue | null>(null);
   const [failed, setFailed] = useState(false);
   const [rejecting, setRejecting] = useState<string | null>(null);
+  // The clip a reviewer is fixing the numbers of (picks 2026-11-09).
+  const [fixing, setFixing] = useState<string | null>(null);
   const [reason, setReason] = useState("");
   const [busy, setBusy] = useState<string | null>(null);
   const [reloadKey, setReloadKey] = useState(0);
@@ -95,7 +98,7 @@ export function TtReviewQueue() {
         <li key={v.time.id} className="tt-queue__item">
           <p className="tt-queue__head">{v.ask?.state === "waiting_review" && <><span className="tt-chip tt-chip--updated"><IconRefresh size={14} aria-hidden="true" /> Updated</span>{" "}</>}<b>{v.name}</b> · {v.label}</p>
           {v.ask?.state === "waiting_review" && (
-            <p className="tt-queue__asked">You asked: &ldquo;{v.ask.note}&rdquo;{v.ask.reply && <> {v.name}: &ldquo;{v.ask.reply}&rdquo;{v.ask.replyLink && <>{" "}<a href={v.ask.replyLink} target="_blank" rel="noopener noreferrer nofollow">Their link</a></>}</>}</p>
+            <p className="tt-queue__asked">{v.ask.fixed ? "A reviewer fixed it" : "You asked"}: &ldquo;{v.ask.note}&rdquo;{v.ask.reply && <> {v.name}: &ldquo;{v.ask.reply}&rdquo;{v.ask.replyLink && <>{" "}<a href={v.ask.replyLink} target="_blank" rel="noopener noreferrer nofollow">Their link</a></>}</>}</p>
           )}
           {v.ask?.state === "waiting_owner" && <p className="tt-note">Asked for an update: &ldquo;{v.ask.note}&rdquo; Waiting on {who}.</p>}
           {v.vouches > 0 && <p className="tt-queue__links"><span className="tt-chip tt-chip--trust"><IconThumbUp size={14} aria-hidden="true" /> {v.vouches} {v.vouches === 1 ? "vouch" : "vouches"}</span><span className="tt-muted">from other players</span></p>}
@@ -104,7 +107,14 @@ export function TtReviewQueue() {
             {v.time.videoUrl && <a href={v.time.videoUrl} target="_blank" rel="noopener noreferrer nofollow"><IconVideo size={16} aria-hidden="true" /> Clip</a>}
             <span className="tt-muted">Added {when.format(new Date(v.time.createdAt))}</span>
           </p>
-          {rejecting === v.time.id ? (
+          {fixing === v.time.id ? (
+            <TtFixTime
+              time={{ id: v.time.id, game: v.time.game, timeMs: v.time.timeMs, cc: v.time.cc, items: v.time.items, vehicle: v.time.vehicle, laps: v.laps, classes: v.classes }}
+              reviewer={{ name: v.name, canVerify: !!(v.time.videoUrl || v.time.proofUrl) }}
+              onCancel={() => setFixing(null)}
+              onDone={() => { setFixing(null); reload(); }}
+            />
+          ) : rejecting === v.time.id ? (
             <form className="tt-queue__ask" onSubmit={(e) => { e.preventDefault(); setBusy(v.time.id); void post({ action: "video", timeId: v.time.id, ok: false, note: reason }, `Asked ${who} for an update`).then((ok) => { setBusy(null); if (ok) { setRejecting(null); setReason(""); } }); }}>
               <p className="tt-queue__ask-label" id={`tt-ask-quick-${v.time.id}`}>What should {who} update?</p>
               <div className="tt-queue__chips" role="group" aria-labelledby={`tt-ask-quick-${v.time.id}`}>
@@ -122,7 +132,8 @@ export function TtReviewQueue() {
           ) : (
             <div className="tt-add__actions">
               <Button variant="primary" iconBefore={IconCircleCheck} loading={busy === v.time.id} onClick={() => { setBusy(v.time.id); void post({ action: "video", timeId: v.time.id, ok: true }, "Verified").then(() => setBusy(null)); }}>{v.time.video === "waiting" ? "Clip checks out" : "It checks out"}</Button>
-              <Button variant="secondary" iconBefore={IconMessage} onClick={() => { setRejecting(v.time.id); setReason(""); }}>Ask for an update</Button>
+              <Button variant="secondary" iconBefore={IconPencil} onClick={() => { setFixing(v.time.id); setRejecting(null); }}>Fix the time</Button>
+              <Button variant="secondary" iconBefore={IconMessage} onClick={() => { setRejecting(v.time.id); setReason(""); setFixing(null); }}>Ask for an update</Button>
             </div>
           )}
         </li>

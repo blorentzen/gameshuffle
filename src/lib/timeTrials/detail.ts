@@ -115,9 +115,11 @@ async function bestLapOn(t: TtTimeRow): Promise<number | null> {
 
 const day = (iso: string | null) => (iso ? new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "America/Los_Angeles" }) : null);
 
-type Change = { at: string; from: { timeMs: number }; to: { timeMs: number } };
+type Change = { at: string; by?: "owner" | "reviewer"; from: { timeMs: number }; to: { timeMs: number } };
 function changeText(c: Change): string {
-  return c.from.timeMs !== c.to.timeMs ? `Changed from ${formatTime(c.from.timeMs)} to ${formatTime(c.to.timeMs)}` : "Category or laps changed";
+  const what = c.from.timeMs !== c.to.timeMs ? `from ${formatTime(c.from.timeMs)} to ${formatTime(c.to.timeMs)}` : null;
+  if (c.by === "reviewer") return what ? `Fixed by a reviewer ${what}` : "Category or laps fixed by a reviewer";
+  return what ? `Changed ${what}` : "Category or laps changed";
 }
 
 export async function timeDetail(id: string, viewer: string | null, viewerReviews = false): Promise<TtTimeDetail | null> {
@@ -163,7 +165,7 @@ export async function timeDetail(id: string, viewer: string | null, viewerReview
   if (n) history.push({ at: null, text: `Vouched for by ${n} ${n === 1 ? "player" : "players"}${n >= COMMUNITY_VOUCHES ? ": Community verified" : ""}` });
   // An ask and the player's fixes, for the player and reviewers only (an ask never shows on the board).
   const ask = you || viewerReviews ? await askView(t) : null;
-  if (ask) history.push({ at: ask.askedAt, text: "A reviewer asked for an update" });
+  if (ask && ask.state !== "fixed") history.push({ at: ask.askedAt, text: "A reviewer asked for an update" });
   else if (t.video === "rejected" && you && (await asksReady())) history.push({ at: extra.video_checked_at, text: "A reviewer asked for a new clip" });
   if (you || viewerReviews) for (const c of extra.changes) history.push({ at: c.at, text: changeText(c) });
   const youVouched = !!(mine as { data: unknown }).data;

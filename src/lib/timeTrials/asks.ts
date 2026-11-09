@@ -9,6 +9,10 @@ import "server-only";
  * decision). The player hears about it where they are: a notification for an account, a message from the competitive
  * bot for a Discord-only player. Their reply, a new clip, a picture or a fixed time puts it back in the clips queue
  * marked Updated; checking the time closes the thread. One reminder after ASK_REMIND_DAYS.
+ *
+ * A reviewer can also fix the time themselves (picks 2026-11-09): the fix goes in the same thread, which closes with
+ * FIXED_NOTE but stays open to the player's reply for FIX_REPLY_DAYS; a reply reopens it and puts the time back in
+ * the clips queue.
  */
 
 import { createServiceClient } from "@/lib/supabase/admin";
@@ -23,6 +27,9 @@ import { trackPath, ttTrack } from "./tracks";
 const OPEN = ["open", "waiting_owner", "waiting_review"] as const;
 export type AskState = (typeof OPEN)[number];
 export const ASK_REMIND_DAYS = 7;
+/** A thread closed by a reviewer's fix carries this decision note; its player can still answer it for FIX_REPLY_DAYS. */
+export const FIXED_NOTE = "Fixed by a reviewer";
+export const FIX_REPLY_DAYS = 30;
 
 let ready: { at: number; ok: boolean } | null = null;
 /** Whether time-trials-m7.sql has run (kept for a minute either way). Before it, asks fall back to the old send-back. */
@@ -76,6 +83,48 @@ async function openAskId(timeId: string): Promise<{ id: string; state: AskState 
   return (data as { id: string; state: AskState } | null) ?? null;
 }
 
+/** The thread a reviewer's fix closed, while its player can still answer it. */
+async function fixedAskId(timeId: string): Promise<{ id: string } | null> {
+  const since = new Date(Date.now() - FIX_REPLY_DAYS * 86_400_000).toISOString();
+  const { data } = await createServiceClient().from("tt_reports").select("id").eq("time_id", timeId).eq("kind", "ask").eq("state", "kept")
+    .eq("decision_note", FIXED_NOTE).gte("resolved_at", since).maybeSingle();
+  return (data as { id: string } | null) ?? null;
+}
+
+/** Whether a closed thread is a reviewer's fix its player can still answer (the ticket route's reply reopens it). */
+export function fixStillAnswerable(r: { kind?: string | null; state: string; decision_note: string | null; resolved_at: string | null }): boolean {
+  return r.kind === "ask" && r.state === "kept" && r.decision_note === FIXED_NOTE && !!r.resolved_at && Date.parse(r.resolved_at) > Date.now() - FIX_REPLY_DAYS * 86_400_000;
+}
+
+/**
+ * A reviewer fixed the time (picks 2026-11-09): the change goes in the time's thread and the player hears about it
+ * where they are. Verifying closes the thread as a fix (still answerable); a fix without verifying leaves an open ask
+ * as it was, or starts a closed fix thread the player can answer.
+ */
+export async function noteReviewerFix(t: TtTimeRow, reviewerUserId: string, changed: string, note: string | null, verified: boolean): Promise<void> {
+  const what = `Changed ${changed}${verified ? " and verified it" : ""}.`;
+  const body = note ? `${what} ${note}` : what;
+  const told = `${ttTrack(t.game, t.track)?.name ?? "A track"}: a reviewer changed ${changed}${verified ? " and verified it" : ""}.${note ? ` "${note}"` : ""} If that's wrong, reply from the time.`;
+  const title = "A reviewer fixed your time";
+  if (!(await asksReady())) { await tellPlayer(t, title, told); return; }
+  const db = createServiceClient();
+  const now = new Date().toISOString();
+  const open = await openAskId(t.id);
+  let id = open?.id ?? null;
+  if (open && verified) {
+    await db.from("tt_reports").update({ state: "kept", outcome: "kept", resolved_at: now, resolved_by: reviewerUserId, decision_note: FIXED_NOTE, reason: body.slice(0, 500) }).eq("id", open.id);
+  } else if (!open) {
+    const { data, error } = await db.from("tt_reports").upsert(
+      { time_id: t.id, reporter: "ask", kind: "ask", reason: body.slice(0, 500), evidence_url: null, state: "kept", outcome: "kept", resolved_at: now, resolved_by: reviewerUserId, decision_note: FIXED_NOTE, reminded_at: null },
+      { onConflict: "time_id,reporter" },
+    ).select("id").single();
+    if (error || !data) console.error("[tt] fix thread failed:", error?.message);
+    id = (data as { id: string } | null)?.id ?? null;
+  }
+  if (id) await db.from("tt_report_messages").insert({ report_id: id, author: `staff:${reviewerUserId}`, author_user: reviewerUserId, role: "reviewer", body: body.slice(0, 1000) });
+  await tellPlayer(t, title, told);
+}
+
 /**
  * A reviewer asks the player to update a time. The clip stays on file as not checked (video_status 'rejected' in the
  * database, "Update asked" on screen), the note is the ask, and the thread opens (or reopens) waiting on the player.
@@ -119,12 +168,14 @@ export async function settleAsk(timeId: string, reviewerUserId: string): Promise
 }
 
 export interface AskMessage { role: "owner" | "reviewer"; name: string; body: string; link: string | null; at: string }
-export interface AskView { id: string; state: AskState; askedAt: string; messages: AskMessage[] }
+export interface AskView { id: string; state: AskState | "fixed"; askedAt: string; messages: AskMessage[] }
 
 /** The open ask on a time, for its player and reviewers (reviewers sign as "Reviewer", as in report threads). */
 export async function askView(t: Pick<TtTimeRow, "id" | "player">): Promise<AskView | null> {
   if (!(await asksReady())) return null;
-  const ask = await openAskId(t.id);
+  const open = await openAskId(t.id);
+  const fixed = open ? null : await fixedAskId(t.id);
+  const ask: { id: string; state: AskState | "fixed" } | null = open ?? (fixed ? { id: fixed.id, state: "fixed" } : null);
   if (!ask) return null;
   const { data } = await createServiceClient().from("tt_report_messages").select("author, role, body, link, created_at").eq("report_id", ask.id).order("created_at").limit(100);
   const rows = (data ?? []) as { author: string; role: "owner" | "reviewer" | "reporter"; body: string; link: string | null; created_at: string }[];
@@ -139,18 +190,18 @@ export async function askView(t: Pick<TtTimeRow, "id" | "player">): Promise<AskV
 }
 
 /** The open asks on a set of times (the clips queue's Updated rows): the ask and the player's latest answer. */
-export type QueueAsk = { state: AskState; note: string | null; reply: string | null; replyLink: string | null };
+export type QueueAsk = { state: AskState; note: string | null; reply: string | null; replyLink: string | null; fixed: boolean };
 export async function asksFor(timeIds: string[]): Promise<Map<string, QueueAsk>> {
   const out = new Map<string, QueueAsk>();
   if (!timeIds.length || !(await asksReady())) return out;
   const db = createServiceClient();
-  const { data } = await db.from("tt_reports").select("id, time_id, state, reason").eq("kind", "ask").in("state", [...OPEN]).in("time_id", timeIds);
-  const asks = (data ?? []) as { id: string; time_id: string; state: AskState; reason: string | null }[];
+  const { data } = await db.from("tt_reports").select("id, time_id, state, reason, decision_note").eq("kind", "ask").in("state", [...OPEN]).in("time_id", timeIds);
+  const asks = (data ?? []) as { id: string; time_id: string; state: AskState; reason: string | null; decision_note: string | null }[];
   if (!asks.length) return out;
   const { data: msgs } = await db.from("tt_report_messages").select("report_id, body, link, created_at").in("report_id", asks.map((a) => a.id)).eq("role", "owner").order("created_at");
   const last = new Map<string, { body: string; link: string | null }>();
   for (const m of (msgs ?? []) as { report_id: string; body: string; link: string | null }[]) last.set(m.report_id, m);
-  for (const a of asks) out.set(a.time_id, { state: a.state, note: a.reason, reply: last.get(a.id)?.body ?? null, replyLink: last.get(a.id)?.link ?? null });
+  for (const a of asks) out.set(a.time_id, { state: a.state, note: a.reason, reply: last.get(a.id)?.body ?? null, replyLink: last.get(a.id)?.link ?? null, fixed: a.decision_note === FIXED_NOTE });
   return out;
 }
 

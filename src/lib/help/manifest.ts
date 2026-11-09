@@ -384,10 +384,10 @@ export const HELP_ARTICLES: HelpArticleMeta[] = [
   {
     id: "reviewing-times",
     title: "Reviewing time trials",
-    description: "What reviewers and updaters check, how to verify clips and settle reports, and how review access is given.",
+    description: "What reviewers and updaters check, how to verify clips, fix a typed time and settle reports, and how review access is given.",
     href: "/help/competitive/reviewing-times",
     category: "competitive",
-    keywords: ["reviewer", "updater", "review queue", "verify", "clip checks out", "legacy proof", "legacy claims", "reports", "team tab", "review access"],
+    keywords: ["reviewer", "updater", "review queue", "verify", "clip checks out", "fix the time", "legacy proof", "legacy claims", "reports", "team tab", "review access"],
   },
   {
     id: "competitive-discord-app",

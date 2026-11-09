@@ -55,6 +55,7 @@ export default function Page() {
       </p>
       <ul>
         <li><strong>Clip checks out:</strong> the time shows as Verified, and the player gets a notification.</li>
+        <li><strong>Fix the time:</strong> when the clip or screenshot shows the run but the time, laps or category were typed wrong, correct them yourself. Add a note if it helps (like Your screenshot shows 1:38.040), then press <strong>Save and verify</strong>, or <strong>Save only</strong> to leave it unverified. The player gets a message with the old and new numbers and your note, and the change shows in the time&apos;s history.</li>
         <li><strong>Ask for an update:</strong> tap a quick ask (like Show the timer at the finish) or write your own, then press Send the ask. The player gets a notification (a message from the competitive bot if they play from Discord without an account) and your message on the time. The time stays on the board, unverified, and only the player and reviewers see the ask.</li>
       </ul>
       <p>
@@ -62,6 +63,10 @@ export default function Page() {
         of this list marked <strong>Updated</strong>, with what you asked and what they said. If they haven&apos;t
         answered after a week, they get one reminder. An ask never removes a time: a time that shouldn&apos;t be
         on the board goes through a report.
+      </p>
+      <p>
+        After you fix a time, the player can reply for 30 days if the fix is wrong. Their reply brings the time
+        back here, marked <strong>Updated</strong>, with your fix and what they said.
       </p>
 
       <h2>Reports</h2>
@@ -113,6 +118,11 @@ export default function Page() {
         a clip link that shows the run (YouTube, Twitch, Streamable, Medal, X, Bluesky, TikTok or
         Instagram), then press <strong>Verify</strong>. A clip you paste is saved with the time. A time with
         no clip or imported proof can&apos;t be verified until you paste one. The owner gets a notification.
+      </p>
+      <p>
+        The same section has <strong>Fix the time</strong>, for any time in your game and items, verified times
+        and imported records included. It works as it does in the queue. You can&apos;t fix your own times as a
+        reviewer: fix them as their player, before they&apos;re verified.
       </p>
 
       <h2>Team</h2>

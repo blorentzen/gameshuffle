@@ -1,7 +1,8 @@
 /**
  * One time.
  *   GET                                         → everything for its window on the board (round 3 pick 1A); for a reviewer of its
- *                                                 game and items, `reviewer` = whether it can be verified and the clip waiting
+ *                                                 game and items, `reviewer` = whether it can be verified, the clip waiting,
+ *                                                 and whether they can fix it (not their own) with proof to verify from
  *   POST { action: "proof", proofUrl, readToken? }   → a screenshot for your own time that has none (picks 2026-11-04, 21A)
  *   POST { action: "vouch" | "unvouch" }        → vouch for it (anyone signed in, never their own time; picks 2026-11-04)
  *   DELETE                                      → removes your own time
@@ -35,7 +36,11 @@ export async function GET(_req: Request, ctx: { params: Promise<{ id: string }> 
   const reviews = !!(scope && t && inScope(scope, t));
   const detail = await timeDetail(id, actor?.player ?? null, reviews);
   if (!detail) return NextResponse.json({ ok: false, error: "gone" }, { status: 404 });
-  const reviewer: { canVerify: boolean; clip: string | null } | null = reviews && t ? { canVerify: t.video !== "checked", clip: t.video === "waiting" ? t.videoUrl : null } : null;
+  // Reviewers also fix the numbers themselves (picks 2026-11-09): any time in their scope, verified too, never their own.
+  const reviewer: { canVerify: boolean; clip: string | null; canFix: boolean; hasProof: boolean } | null = reviews && t ? {
+    canVerify: t.video !== "checked", clip: t.video === "waiting" ? t.videoUrl : null,
+    canFix: t.userId !== actor?.userId, hasProof: !!(t.videoUrl || t.proofUrl || detail.legacyProof),
+  } : null;
   return NextResponse.json({ ok: true, time: detail, reviewer }, { headers: { "Cache-Control": "private, no-store" } });
 }
 

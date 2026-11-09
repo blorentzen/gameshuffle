@@ -5,6 +5,8 @@
  *   GET ?access=<userId>                               → one person's access, for the Review access window (team givers)
  *   GET ?people=<text>                                 → accounts by name, @username or Discord name (team givers)
  *   POST { action: "video", timeId, ok, note? }        → Verified, or an ask for an update (note = the ask; picks 2026-11-08)
+ *   POST { action: "fix", timeId, time, cc, items, vehicle, laps?, note?, verify } → fix the numbers yourself, verifying
+ *                                                        them too or not; the player is told (picks 2026-11-09)
  *   POST { action: "decide", ticketId, outcome, note } → keep or remove a reported time
  *   POST { action: "access", userId, reviewer, modes } → give or take away access (picks 2026-11-05): staff and admins any,
  *                                                        reviewers updater modes only; the person is told
@@ -20,7 +22,11 @@ import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/admin";
 import { blockAlias, communityAliasList } from "@/lib/timeTrials/aliases";
 import { isTtGame } from "@/lib/timeTrials/tracks";
-import { decideTicket, decideVideo, legacyProofQueue, rejectLegacyProof, reviewCounts, reviewQueue, verifyByReviewer } from "@/lib/timeTrials/review";
+import { decideTicket, decideVideo, fixByReviewer, legacyProofQueue, rejectLegacyProof, reviewCounts, reviewQueue, verifyByReviewer } from "@/lib/timeTrials/review";
+import { isItems, isVehicle } from "@/lib/timeTrials/categories";
+import { isClassFor } from "@/lib/timeTrials/tracks";
+import { cleanLaps, parseTime } from "@/lib/timeTrials/rules";
+import { timeById } from "@/lib/timeTrials/store";
 import { reviewScope, type Mode } from "@/lib/timeTrials/updaters";
 import { accessOf, granterOf, searchPeople, setAccess, teamView } from "@/lib/timeTrials/team";
 import { canSettleClaims, claimQueue, decideClaim, undoClaim } from "@/lib/timeTrials/claims";
@@ -68,8 +74,20 @@ export async function GET(req: Request) {
 export async function POST(req: Request) {
   const me = await who();
   if (!me?.reviewer) return NextResponse.json({ ok: false, error: "not_reviewer" }, { status: 403 });
-  const b = (await req.json().catch(() => ({}))) as { action?: unknown; timeId?: unknown; ok?: unknown; note?: unknown; ticketId?: unknown; outcome?: unknown; userId?: unknown; reviewer?: unknown; modes?: unknown; game?: unknown; alias?: unknown; track?: unknown; claimId?: unknown; approve?: unknown; reason?: unknown; link?: unknown; picture?: unknown };
+  const b = (await req.json().catch(() => ({}))) as { time?: unknown; cc?: unknown; items?: unknown; vehicle?: unknown; laps?: unknown; verify?: unknown; action?: unknown; timeId?: unknown; ok?: unknown; note?: unknown; ticketId?: unknown; outcome?: unknown; userId?: unknown; reviewer?: unknown; modes?: unknown; game?: unknown; alias?: unknown; track?: unknown; claimId?: unknown; approve?: unknown; reason?: unknown; link?: unknown; picture?: unknown };
   const note = typeof b.note === "string" ? b.note : "";
+  if (b.action === "fix" && typeof b.timeId === "string") {
+    // A reviewer fixes the numbers themselves, and may verify in the same step (picks 2026-11-09).
+    const timeMs = typeof b.time === "string" ? parseTime(b.time) : null;
+    if (timeMs == null) return NextResponse.json({ ok: false, error: "bad_time" }, { status: 400 });
+    const t = await timeById(b.timeId);
+    if (!t) return NextResponse.json({ ok: false, error: "gone" }, { status: 404 });
+    const cc = Number(b.cc);
+    if (!isClassFor(t.game, cc) || !isItems(b.items) || !isVehicle(b.vehicle)) return NextResponse.json({ ok: false, error: "bad_class" }, { status: 400 });
+    const laps = b.laps == null || (Array.isArray(b.laps) && b.laps.length === 0) ? null : cleanLaps(b.laps);
+    if (Array.isArray(b.laps) && b.laps.length && !laps) return NextResponse.json({ ok: false, error: "bad_laps" }, { status: 400 });
+    return NextResponse.json(await fixByReviewer(b.timeId, me.userId, { timeMs, cc: cc as typeof t.cc, items: b.items, vehicle: b.vehicle, laps }, note, b.verify === true));
+  }
   if (b.action === "verify" && typeof b.timeId === "string") return NextResponse.json(await verifyByReviewer(b.timeId, me.userId, typeof b.link === "string" ? b.link : null, typeof b.picture === "string" ? b.picture : null));
   if (b.action === "legacy_reject" && typeof b.timeId === "string") return NextResponse.json(await rejectLegacyProof(b.timeId, me.userId, note));
   if (b.action === "video" && typeof b.timeId === "string") return NextResponse.json(await decideVideo(b.timeId, me.userId, b.ok === true, note));

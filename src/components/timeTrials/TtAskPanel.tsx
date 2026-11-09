@@ -4,6 +4,9 @@
  * A reviewer's ask on a time, in its window (picks 2026-11-08): what was asked, the conversation, and for the player
  * the ways to answer it: a new clip, a picture, fixing the time, or a reply. Any of them puts the time back in front
  * of a reviewer, marked Updated. Reviewers see the thread here too; they answer it from the queue.
+ *
+ * After a reviewer fixed the time themselves (state "fixed", picks 2026-11-09) it's the fix and a reply box: a reply
+ * reopens the thread for the reviewers. The window's own buttons (Add a clip, Fix the time) stay where they are.
  */
 
 import { useState } from "react";
@@ -57,6 +60,7 @@ export function TtAskPanel({ time, onChanged }: { time: TtTimeDetail; onChanged:
   const [busy, setBusy] = useState(false);
   const toast = useToast();
   const waiting = ask.state === "waiting_review";
+  const fixed = ask.state === "fixed";
 
   async function sendReply(e: React.FormEvent) {
     e.preventDefault();
@@ -75,7 +79,7 @@ export function TtAskPanel({ time, onChanged }: { time: TtTimeDetail; onChanged:
 
   return (
     <section className="tt-askp" aria-labelledby="tt-askp-h">
-      <h3 id="tt-askp-h">{!time.you ? "Update asked" : waiting ? "Sent. A reviewer will look again." : "A reviewer asked you to update this time"}</h3>
+      <h3 id="tt-askp-h">{fixed ? (time.you ? "A reviewer fixed this time" : "Fixed by a reviewer") : !time.you ? "Update asked" : waiting ? "Sent. A reviewer will look again." : "A reviewer asked you to update this time"}</h3>
       <ul className="tt-askp__thread">
         {ask.messages.map((m, i) => (
           <li key={i}>
@@ -86,7 +90,7 @@ export function TtAskPanel({ time, onChanged }: { time: TtTimeDetail; onChanged:
       </ul>
       {time.you && (
         <>
-          {open === "fix" ? (
+          {fixed ? null : open === "fix" ? (
             <TtFixTime time={time} onCancel={() => setOpen(null)} onDone={() => { setOpen(null); onChanged(); }} />
           ) : open === "clip" ? (
             <TtClipForm timeId={time.id} onCancel={() => setOpen(null)} onDone={() => { setOpen(null); onChanged(); }} />
@@ -99,7 +103,7 @@ export function TtAskPanel({ time, onChanged }: { time: TtTimeDetail; onChanged:
           )}
           {!open && (
             <form className="tt-askp__reply" onSubmit={sendReply}>
-              <FormField label="Reply to the reviewer" htmlFor="tt-askp-reply">
+              <FormField label={fixed ? "Something wrong with the fix? Reply to the reviewer" : "Reply to the reviewer"} htmlFor="tt-askp-reply">
                 <Input id="tt-askp-reply" value={reply} onChange={(e) => setReply(e.target.value)} maxLength={1000} placeholder="Your reply" fullWidth />
               </FormField>
               <Button type="submit" variant="secondary" size="small" iconBefore={IconSend} loading={busy} disabled={!reply.trim()}>Send</Button>

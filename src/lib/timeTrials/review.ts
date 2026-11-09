@@ -19,11 +19,11 @@ import { readAllPages } from "@/lib/supabase/pages";
 import { formatTime, videoProof } from "./rules";
 import { trackPath, ttTrack, TT_GAMES, type TtClass, type TtGame } from "./tracks";
 import { categoryText, type TtItems, type TtVehicle } from "./categories";
-import { legacyProofFor, nudgeMovedUp, timeById, toTimeRow, TIME_COLS, topTensAround, ttReady, type TtTimeRow } from "./store";
+import { fixTime, legacyProofFor, nudgeMovedUp, timeById, toTimeRow, TIME_COLS, topTensAround, ttReady, type FixInput, type FixTimeError, type TtTimeRow } from "./store";
 import { inScope, modeCounts, reviewScope, type Mode } from "./updaters";
 import { round3Ready, round4Ready, vouchCounts } from "./status";
 import { isProofLink } from "./sheets";
-import { answeredAskTimes, askForUpdate, asksFor, settleAsk, timePath, type QueueAsk } from "./asks";
+import { answeredAskTimes, askForUpdate, asksFor, fixStillAnswerable, noteReviewerFix, settleAsk, timePath, type QueueAsk } from "./asks";
 
 export type TicketState = "open" | "waiting_owner" | "waiting_review" | "kept" | "removed";
 export type TicketRole = "reporter" | "owner" | "reviewer";
@@ -111,13 +111,20 @@ export async function ticketView(id: string, viewer: { player: string | null; us
 export async function replyTicket(id: string, viewer: { player: string | null; userId: string | null }, body: string, link: string | null): Promise<{ ok: boolean; error?: string }> {
   const view = await ticketView(id, viewer);
   if (!view) return { ok: false, error: "not_yours" };
-  if (!OPEN.includes(view.state)) return { ok: false, error: "closed" };
+  const db = createServiceClient();
+  // A reviewer's fix closes its thread, but its player can still answer it for a while (picks 2026-11-09): that
+  // reopens it and puts the time back in the clips queue.
+  let reopen = false;
+  if (!OPEN.includes(view.state)) {
+    const { data: row } = view.role === "owner" ? await db.from("tt_reports").select("kind, state, decision_note, resolved_at").eq("id", id).maybeSingle() : { data: null };
+    if (!row || !fixStillAnswerable(row as Parameters<typeof fixStillAnswerable>[0])) return { ok: false, error: "closed" };
+    reopen = true;
+  }
   const text = body.trim().slice(0, 1000);
   if (!text) return { ok: false, error: "empty" };
-  const db = createServiceClient();
   await db.from("tt_report_messages").insert({ report_id: id, author: view.role === "reviewer" ? `staff:${viewer.userId}` : viewer.player, author_user: viewer.userId, role: view.role, body: text, link });
   const state: TicketState = view.role === "reviewer" ? "waiting_owner" : "waiting_review";
-  await db.from("tt_reports").update({ state }).eq("id", id);
+  await db.from("tt_reports").update(reopen ? { state, outcome: null, resolved_at: null, resolved_by: null } : { state }).eq("id", id);
   if (view.role === "reviewer") await tell(view.time.userId, "A reviewer asked about your time", `${view.label}: "${text}"`, `/time-trials/tickets/${id}`);
   return { ok: true };
 }
@@ -154,6 +161,8 @@ export async function decideTicket(id: string, reviewerUserId: string, outcome: 
 
 export interface QueueVideo {
   time: TtTimeRow; label: string; name: string; vouches: number;
+  /** For the reviewer's Fix the time (picks 2026-11-09): the time's laps and its game's speeds. */
+  laps: number[] | null; classes: TtClass[];
   /** An open ask on it (picks 2026-11-08): what was asked and the player's latest answer; "waiting_review" = Updated. */
   ask: QueueAsk | null;
 }
@@ -171,7 +180,8 @@ export async function reviewQueue(scope: "all" | Mode[] = "all"): Promise<{ vide
     db.from("tt_times").select(TIME_COLS).eq("status", "ok").eq("video_status", "waiting").not("video_url", "is", null).order("created_at").limit(300),
     reports.order("created_at").limit(300),
     // A player who answered an ask without a new clip (a reply, a picture, a fixed time) is back in line too.
-    answered.length ? db.from("tt_times").select(TIME_COLS).eq("status", "ok").neq("video_status", "checked").in("id", answered) : Promise.resolve({ data: [] }),
+    // Verified ones too: checking a time closes its ask, so a verified time here is a player answering a reviewer's fix.
+    answered.length ? db.from("tt_times").select(TIME_COLS).eq("status", "ok").in("id", answered) : Promise.resolve({ data: [] }),
   ]);
   const seen = new Set<string>();
   const times = [...((vids ?? []) as Parameters<typeof toTimeRow>[0][]), ...((answeredRows ?? []) as Parameters<typeof toTimeRow>[0][])]
@@ -181,8 +191,13 @@ export async function reviewQueue(scope: "all" | Mode[] = "all"): Promise<{ vide
   const reportTimesAll = await Promise.all(reportsAll.map((r) => timeById(r.time_id)));
   const keep = reportsAll.map((r, i) => ({ r, t: reportTimesAll[i] })).filter((x) => x.t && inScope(scope, x.t));
   const vouches = await vouchCounts(times.map((t) => t.id));
+  const lapsOf = new Map<string, number[] | null>();
+  if (times.length && (await round3Ready())) {
+    const { data: lapRows } = await db.from("tt_times").select("id, laps").in("id", times.map((t) => t.id));
+    for (const r of (lapRows ?? []) as { id: string; laps: number[] | null }[]) lapsOf.set(r.id, r.laps);
+  }
   const names = await describePlayers([...new Set([...times.map((t) => t.player), ...keep.map((x) => x.t!.player), ...keep.map((x) => x.r.reporter).filter((k) => !k.startsWith("d:") && !k.startsWith("flag:"))])]);
-  const videos = times.map((t) => ({ time: t, label: timeLabel(t), name: names.get(t.player)?.name ?? "A player", vouches: vouches.get(t.id) ?? 0, ask: asks.get(t.id) ?? null }))
+  const videos = times.map((t) => ({ time: t, label: timeLabel(t), name: names.get(t.player)?.name ?? "A player", vouches: vouches.get(t.id) ?? 0, ask: asks.get(t.id) ?? null, laps: lapsOf.get(t.id) ?? null, classes: TT_GAMES[t.game].classes }))
     // Updated after an ask first (the player is waiting on us), then the most vouched-for, then the oldest.
     .sort((a, b) => Number(b.ask?.state === "waiting_review") - Number(a.ask?.state === "waiting_review") || b.vouches - a.vouches || a.time.createdAt.localeCompare(b.time.createdAt))
     .slice(0, 100);
@@ -213,6 +228,31 @@ export async function decideVideo(timeId: string, reviewerUserId: string, ok: bo
   await settleAsk(timeId, reviewerUserId);
   await tell(t.userId, "Your time is verified", `${timeLabel(t)} is now Verified.`, timePath(t));
   return { ok: true };
+}
+
+// ── Fixing a time yourself (picks 2026-11-09, all as recommended) ──────────────────────────────────────────────
+
+export type ReviewerFixError = FixTimeError | "not_reviewer" | "own";
+
+/**
+ * A reviewer corrects a time's numbers (time, laps, category) instead of asking the player to: any time in their
+ * game and items, verified and imported ones included, never their own. `verify` marks the new numbers Verified in
+ * the same step (the proof on file shows the run). The player hears about it with the old and new numbers and the
+ * reviewer's note, and can answer in the time's thread.
+ */
+export async function fixByReviewer(timeId: string, reviewerUserId: string, input: FixInput, note: string, verify: boolean): Promise<{ ok: true; changed: string } | { ok: false; error: ReviewerFixError }> {
+  const scope = await reviewScope(reviewerUserId);
+  if (!scope) return { ok: false, error: "not_reviewer" };
+  const t = await timeById(timeId);
+  if (!t || t.status !== "ok") return { ok: false, error: "gone" };
+  if (!inScope(scope, t) || !inScope(scope, { game: t.game, items: input.items })) return { ok: false, error: "not_reviewer" };
+  if (t.userId === reviewerUserId) return { ok: false, error: "own" };
+  const before = await topTensAround(t);
+  const res = await fixTime(null, timeId, input, { reviewer: reviewerUserId, verify });
+  if (!res.ok) return res;
+  await nudgeMovedUp(t, before);
+  await noteReviewerFix(res.time, reviewerUserId, res.changed, note.trim().slice(0, 300) || null, verify);
+  return { ok: true, changed: res.changed };
 }
 
 // ── Verifying a time yourself (picks 2026-11-04: people started claiming legacy places) ─────────────────────

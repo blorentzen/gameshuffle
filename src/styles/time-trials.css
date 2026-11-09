@@ -334,6 +334,7 @@
 .tt-win__check { padding-top: var(--spacing-16); border-top: 1px solid var(--border-default); }
 .tt-win__verify { display: flex; flex-wrap: wrap; align-items: flex-end; gap: var(--spacing-8); }
 .tt-win__verify > :first-child { flex: 1 1 24rem; min-width: 0; }
+.tt-win__fixbtn { display: flex; padding-top: var(--spacing-4); }
 /* A clip link or a picture (2026-11-07): the picture button (or the added picture) on its own line under the link. */
 .tt-win__picture { flex: 1 0 100%; display: flex; flex-wrap: wrap; align-items: center; gap: var(--spacing-8) var(--spacing-12); font-size: var(--font-size-14); }
 .tt-win__picture a { display: inline-flex; align-items: center; gap: var(--spacing-6, 0.6rem); font-weight: 600; }
@@ -439,6 +440,6 @@
 .tt-attn__text span { font-size: var(--font-size-14); color: var(--text-secondary); line-height: 1.45; overflow-wrap: anywhere; }
 .tt-attn__act { grid-column: 2; margin-top: var(--spacing-6, 0.6rem); }
 /* Inside the ask panel, the panel's own line closes the form. */
-.tt-askp .tt-fix { padding-bottom: 0; border-bottom: 0; }
+.tt-askp .tt-fix, .tt-queue .tt-fix, .tt-win__check .tt-fix { padding-bottom: 0; border-bottom: 0; }
 /* CDS sets form helpers at 12px; this one is a sentence people read (14px floor). */
 .tt-country .empac-form-field__helper { font-size: var(--font-size-14); }
