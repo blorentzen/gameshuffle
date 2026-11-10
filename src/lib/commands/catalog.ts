@@ -65,7 +65,7 @@ const WHO_FROM_AUTHORITY: Record<string, CommandWho> = { viewer: "everyone", vip
 export async function streamSetup(ownerUserId: string): Promise<StreamSetup> {
   const admin = createServiceClient();
   const since = new Date(Date.now() - 60 * 86_400_000).toISOString();
-  const [sessions, wheels, nights, tourney] = await Promise.all([
+  const [sessions, wheels, nights, tourney, speedrun] = await Promise.all([
     admin.from("gs_sessions").select("configured_games, active_game, status, ended_at")
       .eq("owner_user_id", ownerUserId)
       .or(`status.in.(draft,scheduled,ready,active,ending),ended_at.gte.${since}`)
@@ -73,6 +73,8 @@ export async function streamSetup(ownerUserId: string): Promise<StreamSetup> {
     admin.from("gs_wheels").select("id", { count: "exact", head: true }).eq("owner_user_id", ownerUserId),
     admin.from("party_nights").select("id", { count: "exact", head: true }).eq("host_user_id", ownerUserId),
     admin.from("tournaments").select("id", { count: "exact", head: true }).eq("organizer_id", ownerUserId).in("status", ["open", "in_progress"]),
+    // A missing table (before supabase/speedrun-m1.sql) reads as no speedrun setup.
+    admin.from("speedrun_setups").select("user_id", { count: "exact", head: true }).eq("user_id", ownerUserId),
   ]);
   const slugs = new Set<string>();
   for (const s of sessions.data ?? []) {
@@ -90,6 +92,7 @@ export async function streamSetup(ownerUserId: string): Promise<StreamSetup> {
       "party-night": partyGame || (nights.count ?? 0) > 0,
       tournament: (tourney.count ?? 0) > 0,
       wheel: (wheels.count ?? 0) > 0,
+      speedrun: (speedrun.count ?? 0) > 0,
     },
   };
 }
@@ -125,13 +128,17 @@ export async function commandCatalog(ownerUserId: string, communityId: string | 
 
   const commands: CatalogCommand[] = [];
   const builtinTriggers = new Set<string>();
+  const yields = new Set(listCommandReference().filter((r) => r.yieldToCustom).map((r) => r.name));
 
   for (const r of listCommandReference()) {
     const guide = guideFor(r.name, r.family);
     const missing = (guide.needs ?? []).filter((n) => !setup.has[n]).map((n) => NEED_LABELS[n]);
     const moduleOff = r.moduleKey && moduleOn.get(r.moduleKey) === false;
-    builtinTriggers.add(r.trigger.replace(/^!/, "").split(" ")[0]);
-    for (const a of r.aliases) builtinTriggers.add(a.replace(/^!/, "").split(" ")[0]);
+    // A built-in that steps aside for the channel's own command doesn't shadow it (it's shadowed instead, below).
+    if (!r.yieldToCustom) {
+      builtinTriggers.add(r.trigger.replace(/^!/, "").split(" ")[0]);
+      for (const a of r.aliases) builtinTriggers.add(a.replace(/^!/, "").split(" ")[0]);
+    }
     commands.push({
       key: `builtin:${r.name}`,
       kind: "builtin",
@@ -173,6 +180,10 @@ export async function commandCatalog(ownerUserId: string, communityId: string | 
     const customRows = custom.data ?? [];
     const customWinner = new Map<string, string>();
     for (const c of customRows) customWinner.set(String(c.trigger).replace(/^!/, "").toLowerCase(), c.id as string);
+    for (const row of commands) {
+      const t = row.typed.replace(/^!/, "").split(" ")[0].toLowerCase();
+      if (row.kind === "builtin" && yields.has(row.id) && customWinner.has(t)) row.shadowedBy = `Your own !${t} answers instead`;
+    }
 
     const ov = new Map((overrides.data ?? []).map((o) => [o.command_id as string, o]));
     for (const d of defaults.data ?? []) {

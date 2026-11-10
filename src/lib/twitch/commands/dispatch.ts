@@ -326,7 +326,8 @@ export async function dispatchCommand(
   // streamer's `!commands add …` still manages commands.
   if (def && !callerMayUse(def, ctx)) def = null;
 
-  // Then this channel's own custom commands (built-ins win a clash).
+  // Then this channel's own custom commands (built-ins win a clash, except the few that step aside for one).
+  if (def?.yieldToCustom && communityId) def = resolveCustomCommand(communityId, command.path) ?? def;
   if (!def && communityId) def = resolveCustomCommand(communityId, command.path);
 
   if (!def) {

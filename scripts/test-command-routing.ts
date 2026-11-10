@@ -14,6 +14,8 @@
  *   5b/5c. Every usage line routes to its command; every built-in has a guide entry.
  *   6. Custom commands are per channel: two channels with `!socials` each
  *      get their own, and one channel never sees another's.
+ *   7. The speedrun commands (`!pb`, `!pace`, `!splits`) route, and a channel's
+ *      own custom `!pb` answers instead of ours (yieldToCustom).
  */
 
 import "@/lib/twitch/commands/registrations";
@@ -97,6 +99,25 @@ check("channel A doesn't see B's !rules", resolveCustomCommand("chan-a", ["rules
 check("custom commands stay out of the built-in lookup", route("!socials").name === null);
 setCustomCommandTable("chan-b", [row("chan-b", "!rules", "B's rules")]);
 check("a removed command drops out of its channel", resolveCustomCommand("chan-b", ["socials"]) === null);
+
+// 7 Speedrun commands, and stepping aside for a channel's own !pb.
+expect("!pb", "pb", "");
+expect("!pace", "pace", "");
+expect("!splits", "splits", "");
+const speedrunDefs = ["pb", "pace", "splits"].map((n) => listCommands().find((d) => d.name === n));
+check("the speedrun commands step aside for a channel's own", speedrunDefs.every((d) => d?.yieldToCustom === true));
+check("other built-ins still win a clash", listCommands().filter((d) => d.yieldToCustom).map((d) => d.name).sort().join(",") === "pace,pb,splits");
+setCustomCommandTable("chan-c", [row("chan-c", "!pb", "My PB is on speedrun.com")]);
+// The dispatcher's order: a yielding built-in gives way to the channel's own command of the same name.
+const pick = (community: string, text: string) => {
+  const parsed = parseCommand(text)!;
+  let def = resolveTypedCommand(parsed.path, parsed.args).def;
+  if (def?.yieldToCustom) def = resolveCustomCommand(community, parsed.path) ?? def;
+  return def?.name ?? null;
+};
+check("a channel's own !pb answers instead of ours", pick("chan-c", "!pb")?.startsWith("cc:chan-c:") === true, String(pick("chan-c", "!pb")));
+check("a channel without its own !pb gets ours", pick("chan-a", "!pb") === "pb");
+check("!pace still ours where only !pb is custom", pick("chan-c", "!pace") === "pace");
 
 console.log(`\n${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);

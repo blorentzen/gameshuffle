@@ -26,8 +26,9 @@ export default function robots(): MetadataRoute.Robots {
     "/social/",
     // The MMR card's private OBS links.
     "/mmr/",
-    // Speedrun overlays, private by link.
+    // Speedrun overlays, private by link, and the phone remote (signed in).
     "/run/",
+    "/speedrun/remote",
     // War overlays (GameShuffle Competitive), private by link.
     "/war/",
     "/war-overlay/",

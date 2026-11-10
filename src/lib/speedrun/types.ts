@@ -72,6 +72,40 @@ export interface SpeedrunLook {
   line: string | null;
 }
 
+/** Step 2's settings (`speedrun_setups.settings`): the "PB this run" prediction (GS Pro), the chat commands and how long
+ *  replies wait so chat never gets a split before the stream shows it. */
+export interface SpeedrunSettings {
+  prediction: {
+    on: boolean;
+    /** Bets lock once this many splits are done (1-based); null = a quarter of the way in. */
+    lockSplit: number | null;
+  };
+  commands: { pb: boolean; pace: boolean; splits: boolean };
+  /** Seconds chat replies, prediction lines and the live page wait (the stream delay). */
+  replyDelay: number;
+}
+
+/** The "PB this run" prediction as the overlay, the phone remote and the live page show it. */
+export interface SpeedrunPredictionView {
+  marketId: string;
+  attempt: number;
+  status: "open" | "locked" | "settled" | "cancelled";
+  /** Bets lock once this many splits are done, and that split's name. */
+  lockAfter: number;
+  lockName: string | null;
+  /** Share of the tokens on PB, 0-100 (rounded); null when nobody has put any in. */
+  pbPct: number | null;
+  /** Tokens in, and how many people put them in. */
+  total: number;
+  people: number;
+  pb: { total: number; people: number };
+  no: { total: number; people: number };
+  /** Once settled: which side won, how many people were on it, and what they split. */
+  result: { winner: "pb" | "no"; winners: number; pot: number; refunded: boolean } | null;
+  /** When it was settled or refunded (epoch ms), for showing the result a while. */
+  endedAt: number | null;
+}
+
 /** The setup screen's data (GET /api/speedrun/setup). */
 export interface SpeedrunSetupView {
   /** The private address pasted into LiveSplit One (wss://…/lso/<timer token>). */
@@ -84,6 +118,15 @@ export interface SpeedrunSetupView {
   category: string;
   /** The latest attempt number. */
   attempts: number;
+  settings: SpeedrunSettings;
+  /** The run's split names (from LiveSplit One, or typed in setup for the phone remote). */
+  splits: string[];
+  /** The splits came from LiveSplit One with times (typing new names starts them fresh). */
+  splitsTimed: boolean;
+  /** GS Pro (the prediction is GS Pro). */
+  isPro: boolean;
+  /** Twitch is connected (chat commands and bets need the bot in chat). */
+  twitch: boolean;
 }
 
 /** The relay as the setup screen sees it (GET /api/speedrun/status). */

@@ -27,7 +27,7 @@ export const COMMAND_GROUPS: { id: CommandGroup; label: string; blurb: string }[
 ];
 
 /** What a command needs before it can do anything on a stream. */
-export type CommandNeed = "mario-kart" | "mario-kart-world" | "rollable-game" | "party-night" | "tournament" | "wheel";
+export type CommandNeed = "mario-kart" | "mario-kart-world" | "rollable-game" | "party-night" | "tournament" | "wheel" | "speedrun";
 
 export const NEED_LABELS: Record<CommandNeed, string> = {
   "mario-kart": "Mario Kart 8 Deluxe or World",
@@ -36,6 +36,7 @@ export const NEED_LABELS: Record<CommandNeed, string> = {
   "party-night": "a Mario Party night",
   tournament: "a live tournament",
   wheel: "a wheel",
+  speedrun: "a speedrun overlay (gameshuffle.co/speedrun)",
 };
 
 export interface CommandGuide {
@@ -51,6 +52,9 @@ const FAMILY_GROUP: Record<string, CommandGroup> = {
 
 export const COMMAND_GUIDE: Record<string, CommandGuide> = {
   "8ball": { group: "fun", example: ["!8ball will I win?", "Signs point to yes."] },
+  "pb": { group: "fun", needs: ["speedrun"], example: ["!pb", "🏆 Nova's PB in Mario Kart 8 Deluxe, 48 Tracks: 1:40:24.1, set Nov 2. Sum of best: 1:39:17.8."] },
+  "pace": { group: "fun", needs: ["speedrun"], example: ["!pace", "⏱️ Leaf done, 8.1 ahead of PB. On pace for 1:40:16.0 if the rest matches the PB."] },
+  "splits": { group: "fun", needs: ["speedrun"], example: ["!splits", "📋 Mushroom ▼2.3 · Flower ▲1.0 · Star ▼7.3 ⭐ · now Lightning"] },
   "a": { group: "live", example: ["!a pizza", "(counted quietly)"] },
   "bet": { group: "tokens", needs: ["mario-kart"], example: ["!bet 1 200", "kartkev bet 200 on 1st place."] },
   "bingocard": { group: "live" },

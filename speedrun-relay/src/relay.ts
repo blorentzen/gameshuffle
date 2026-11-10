@@ -5,6 +5,7 @@
 import { DurableObject } from "cloudflare:workers";
 import { LsoClient, LsoError, type LsoReply } from "./lso";
 import { observe, readReached, readRun, readSnap, readTimes, timeOf } from "./reads";
+import { REMOTE_COMMANDS, cleanSegments, remoteStep, sameNames, type RemoteClock, type RemoteCommand, type RemoteResult } from "./remote";
 import {
   emptyCore,
   finished,
@@ -27,6 +28,7 @@ import {
   type Core,
   type HookEvent,
   type RelayState,
+  type Segment,
   type Snap,
 } from "./state";
 import { signBody } from "./tokens";
@@ -44,10 +46,15 @@ interface Persist {
   minTimer: number;
   minOverlay: number;
   lsoConn: string | null;
+  /** Remote mode's own timer (no LiveSplit One connected); null when no remote run is going. */
+  clock?: RemoteClock | null;
+  /** Splits the site sent while a remote run was going: they take over at its reset. */
+  pendingSegments?: Segment[] | null;
 }
 
 interface Attachment {
-  kind: "lso" | "overlay";
+  /** "remote" = the phone remote watching its own run (gets every state, isn't counted as an overlay). */
+  kind: "lso" | "overlay" | "remote";
   version: number;
   conn?: string;
 }
@@ -101,6 +108,16 @@ function attachmentOf(ws: WebSocket): Attachment | null {
   }
 }
 
+const hasTimes = (segs: readonly Segment[]) => segs.some((s) => s.pbMs != null || s.bestMs != null);
+
+/** A new set of splits with nothing run on them yet. */
+function withSegments(core: Core, segments: Segment[]): Core {
+  return {
+    ...core,
+    state: { ...core.state, segments, splits: segments.map(() => null), golds: segments.map(() => false) },
+  };
+}
+
 function closeQuietly(ws: WebSocket, code: number, reason: string): void {
   try {
     ws.close(code, reason);
@@ -148,13 +165,13 @@ export class Relay extends DurableObject<RelayEnv> {
       case "lso":
         return this.acceptLso(version);
       case "watch":
-        return this.acceptWatch(version);
+        return this.acceptWatch(version, new URL(req.url).searchParams.get("as") === "remote");
       case "cmd":
         return this.cmd(req);
       case "admin":
         return this.admin(req);
       case "state":
-        return json(this.p.core.state);
+        return json({ state: this.p.core.state, overlays: this.overlayCount() });
       default:
         return new Response("Not found", { status: 404 });
     }
@@ -172,13 +189,15 @@ export class Relay extends DurableObject<RelayEnv> {
       if (ws !== server) closeQuietly(ws, CLOSE.replaced.code, CLOSE.replaced.reason);
     }
     this.p.lsoConn = conn;
+    // LiveSplit One takes over: a remote run (if any) is closed by the reconcile that follows.
+    this.p.clock = null;
     const lso = this.bind(server);
     await this.commit({ ...this.p.core, state: { ...this.p.core.state, connected: true } }, null);
     this.enqueue(() => this.syncAll(lso, true));
     return new Response(null, { status: 101, webSocket: client });
   }
 
-  private async acceptWatch(version: number): Promise<Response> {
+  private async acceptWatch(version: number, remote = false): Promise<Response> {
     if (!(version >= this.p.minOverlay)) return refuse(CLOSE.retired.code, CLOSE.retired.reason);
     if (version > this.p.minOverlay) {
       this.p.minOverlay = version;
@@ -188,7 +207,7 @@ export class Relay extends DurableObject<RelayEnv> {
     if (this.ctx.getWebSockets("watch").length >= MAX_WATCHERS) return refuse(CLOSE.full.code, CLOSE.full.reason);
     const [client, server] = Object.values(new WebSocketPair());
     this.ctx.acceptWebSocket(server, ["watch"]);
-    server.serializeAttachment({ kind: "overlay", version } satisfies Attachment);
+    server.serializeAttachment({ kind: remote ? "remote" : "overlay", version } satisfies Attachment);
     server.send(JSON.stringify({ type: "state", state: this.p.core.state }));
     return new Response(null, { status: 101, webSocket: client });
   }
@@ -199,7 +218,8 @@ export class Relay extends DurableObject<RelayEnv> {
     const command = COMMANDS[name];
     if (!command) return json({ ok: false, error: "bad_command" }, 400);
     const lso = this.client;
-    if (!lso) return json({ ok: false, error: "not_connected" });
+    // No LiveSplit One: the relay keeps the time itself (remote mode).
+    if (!lso) return this.remoteCmd(name as RemoteCommand);
     let reply: LsoReply;
     try {
       reply = await lso.request(command);
@@ -209,7 +229,35 @@ export class Relay extends DurableObject<RelayEnv> {
     if (!reply.ok) return json({ ok: false, error: errorName(reply.code) });
     // LiveSplit One sends the event before the reply, so its handling is already queued: wait for it.
     await this.settle();
-    return json({ ok: true, state: this.p.core.state });
+    return json({ ok: true, state: this.p.core.state, overlays: this.overlayCount() });
+  }
+
+  /** A command against the relay's own timer, in order with everything else the object does. */
+  private async remoteCmd(name: RemoteCommand): Promise<Response> {
+    if (!REMOTE_COMMANDS.includes(name)) return json({ ok: false, error: "bad_command" }, 400);
+    let out: RemoteResult = { ok: false, error: "busy" };
+    await this.enqueue(async () => {
+      if (this.client) return; // LiveSplit One connected meanwhile: try again
+      const r = remoteStep(this.p.core, this.p.clock ?? null, name, Date.now());
+      out = r;
+      if (!r.ok) return;
+      this.p.clock = r.clock;
+      await this.commit(r.core, r.event);
+      // New splits from the site waited for this run to end.
+      const pending = this.p.pendingSegments;
+      if (r.event === "reset" && pending?.length) {
+        this.p.pendingSegments = null;
+        await this.commit(withSegments(this.p.core, pending), null);
+      }
+    });
+    const res = out as RemoteResult;
+    if (!res.ok) return json({ ok: false, error: res.error });
+    return json({ ok: true, state: this.p.core.state, overlays: this.overlayCount() });
+  }
+
+  /** Overlays open now (the phone remote's own socket isn't one). */
+  private overlayCount(): number {
+    return this.ctx.getWebSockets("watch").filter((ws) => attachmentOf(ws)?.kind !== "remote").length;
   }
 
   private async admin(req: Request): Promise<Response> {
@@ -224,7 +272,8 @@ export class Relay extends DurableObject<RelayEnv> {
       (b.attemptBase !== undefined && !int(b.attemptBase, 0)) ||
       (b.game !== undefined && !text(b.game)) ||
       (b.category !== undefined && !text(b.category));
-    if (bad) return json({ ok: false, error: "bad_body" }, 400);
+    const segments = b.segments === undefined ? undefined : cleanSegments(b.segments);
+    if (bad || segments === null) return json({ ok: false, error: "bad_body" }, 400);
 
     let core = this.p.core;
     if (b.attemptBase !== undefined && b.attemptBase !== this.p.attemptBase) {
@@ -234,6 +283,17 @@ export class Relay extends DurableObject<RelayEnv> {
     const tidy = (v: unknown) => (typeof v === "string" && v.trim() ? v.trim() : null);
     if (b.game !== undefined) core = { ...core, state: { ...core.state, game: tidy(b.game) } };
     if (b.category !== undefined) core = { ...core, state: { ...core.state, category: tidy(b.category) } };
+    // The run's splits for remote mode. LiveSplit One's own splits win while it's connected; during a remote run the
+    // new ones wait for its reset. The relay's times win when the names match (it saw the latest PB first).
+    if (segments && !this.client) {
+      const cur = core.state.segments;
+      const replace = !cur.length || !sameNames(segments, cur) || (!hasTimes(cur) && hasTimes(segments));
+      if (core.state.phase !== "idle") this.p.pendingSegments = replace ? segments : null;
+      else if (replace) {
+        core = withSegments(core, segments);
+        this.p.pendingSegments = null;
+      }
+    }
     if (b.overlayVersion !== undefined) {
       this.p.minOverlay = b.overlayVersion as number;
       this.closeOld("watch", this.p.minOverlay);

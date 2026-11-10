@@ -53,6 +53,7 @@ import { ViewerBalanceBadge } from "./ViewerBalanceBadge";
 import { LiveViewerCount } from "./LiveViewerCount";
 import { LivePollCard } from "./LivePollCard";
 import { LiveBingoCard } from "./LiveBingoCard";
+import { LiveSpeedrunCard } from "./LiveSpeedrunCard";
 import { LiveBreakCard } from "./LiveBreakCard";
 import { LiveSeriesCard } from "@/components/series/LiveSeriesCard";
 import { LiveTriviaCard } from "./LiveTriviaCard";
@@ -226,6 +227,8 @@ export function LiveStreamView({
             <LiveChatBrainCard communityId={initialLeaderboard.communityId} />
             <LiveBingoCard communityId={initialLeaderboard.communityId} />
             <LiveDraftCard communityId={initialLeaderboard.communityId} />
+            {/* A speedrunner's "PB this run" prediction needs no GameShuffle stream either. */}
+            <LiveSpeedrunCard streamerSlug={streamer.slug} />
           </LiveSiteHost>
           {upcoming && (
             <UpcomingLobbyCard streamerName={streamerName} upcoming={upcoming} />

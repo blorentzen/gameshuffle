@@ -9,6 +9,10 @@
  * Polled by the /live page Markets tab (every ~5s). Public read; no
  * auth required, but if the caller IS authenticated via Twitch we
  * also resolve their own pick / bet for the optimistic-render path.
+ *
+ * A speedrun "PB this run" prediction (src/lib/speedrun/prediction.ts) comes
+ * first and needs no session: `{ kind: "speedrun", … }` with the run and the
+ * viewer's own stake (LiveSpeedrunBody).
  */
 
 import { NextResponse } from "next/server";
@@ -21,6 +25,8 @@ import {
 } from "@/lib/economy/markets/lifecycle";
 import { getSpectatorTally } from "@/lib/economy/markets/spectator";
 import { getIdentityByPlatform } from "@/lib/economy/identity";
+import { walletIdentityFor } from "@/lib/economy/accountWallet";
+import { liveSpeedrunBody } from "@/lib/speedrun/prediction";
 
 export const runtime = "nodejs";
 
@@ -55,6 +61,13 @@ export async function GET(
   if (!streamer) {
     return NextResponse.json({ market: null, reason: "streamer_not_found" });
   }
+
+  // A speedrun prediction in play (or just ended) for this runner.
+  const speedrun = await speedrunFor((streamer as { id: string }).id).catch((e) => {
+    console.error("[live/market] speedrun:", e);
+    return null;
+  });
+  if (speedrun) return NextResponse.json(speedrun, { headers: { "cache-control": "no-store" } });
 
   const { data: sessionRow } = await admin
     .from("gs_sessions")
@@ -166,6 +179,21 @@ export async function GET(
     spectatorTally,
     viewerState,
   });
+}
+
+/** The speedrun prediction with the signed-in viewer's own stake (their Twitch identity and the wallet bets land in). */
+async function speedrunFor(streamerId: string) {
+  const supabase = await createClient();
+  const { data: { user: viewer } } = await supabase.auth.getUser();
+  let who: { identityIds: string[]; isRunner: boolean } | null = null;
+  if (viewer) {
+    const tw = (viewer.identities ?? []).find((i) => i.provider === "twitch");
+    const twitchId = (tw?.identity_data?.sub as string | undefined) ?? (tw?.identity_data?.provider_id as string | undefined) ?? null;
+    const identity = twitchId ? await getIdentityByPlatform("twitch", twitchId) : null;
+    const ids = identity ? [identity.id, await walletIdentityFor(identity.id)] : [];
+    who = { identityIds: [...new Set(ids)], isRunner: viewer.id === streamerId };
+  }
+  return liveSpeedrunBody(streamerId, who);
 }
 
 // Inlined to avoid pulling chat-handler internals; mirrors

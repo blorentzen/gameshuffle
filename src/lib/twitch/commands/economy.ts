@@ -356,34 +356,49 @@ export async function handleBetCommand(
   const econ = await resolveEconomyContext(ctx);
   if (!econ) return;
   const adapter = adapterForCtx(ctx, econ);
+  const parts = args.trim().split(/\s+/);
 
-  if (!econ.activeSessionId || !econ.activeGameSlug) {
-    await adapter.postChatMessage(
-      `🎲 No active session right now. Wait for the streamer to start one.`,
-    );
-    return;
+  // A speedrun "PB this run" prediction needs no session: `!bet pb 100` / `!bet no 100` (src/lib/speedrun/prediction).
+  const { activeSpeedrunMarket } = await import("@/lib/speedrun/prediction");
+  const speedrun = await activeSpeedrunMarket(econ.community.id).catch(() => null);
+  let market: { id: string; status: string; lock_at: string | null } | null = null;
+  if (speedrun && (!econ.activeSessionId || ["pb", "no"].includes((parts[0] ?? "").toLowerCase()))) {
+    if (ctx.isBroadcaster) {
+      await adapter.postChatMessage(`🎲 You're the runner, so this prediction is for chat.`);
+      return;
+    }
+    if (speedrun.status !== "open" || (speedrun.lock_at && Date.parse(speedrun.lock_at) <= Date.now())) {
+      await adapter.postChatMessage(`🔒 @${ctx.senderDisplayName}, bets on this run are locked. It settles when the run ends.`);
+      return;
+    }
+    market = speedrun;
+  } else {
+    if (!econ.activeSessionId || !econ.activeGameSlug) {
+      await adapter.postChatMessage(
+        `🎲 No active session right now. Wait for the streamer to start one.`,
+      );
+      return;
+    }
+
+    const gameKey = canonicalizeGameKey(econ.activeGameSlug);
+    if (!gameKey) {
+      await adapter.postChatMessage(
+        `🎲 Markets aren't supported for the current game yet.`,
+      );
+      return;
+    }
+
+    market = await findActiveMarket({
+      sessionId: econ.activeSessionId,
+      gameKey,
+    });
   }
-
-  const gameKey = canonicalizeGameKey(econ.activeGameSlug);
-  if (!gameKey) {
-    await adapter.postChatMessage(
-      `🎲 Markets aren't supported for the current game yet.`,
-    );
-    return;
-  }
-
-  const market = await findActiveMarket({
-    sessionId: econ.activeSessionId,
-    gameKey,
-  });
   if (!market || market.status !== "open") {
     await adapter.postChatMessage(
       `🎲 @${ctx.senderDisplayName}, no open market to bet on right now.`,
     );
     return;
   }
-
-  const parts = args.trim().split(/\s+/);
 
   // Spectator path — Spec 07 §4. The viewer's region triggers
   // spectator mode for this prediction_pool surface. They pick an
@@ -462,7 +477,7 @@ export async function handleBetCommand(
 
   const lockInSuffix = formatLockInSuffix(market.lock_at);
   await adapter.postChatMessage(
-    `✅ @${ctx.senderDisplayName} bet locked in: ${formatTokens(amount)}🪙 on ${optionKey} · Balance: ${formatTokens(result.balance)}🪙${lockInSuffix}.`,
+    `✅ @${ctx.senderDisplayName} bet locked in: ${formatTokens(amount)} on ${optionKey} · Balance: ${formatTokens(result.balance)}${lockInSuffix}.`,
   );
 }
 
@@ -714,7 +729,7 @@ export async function handleResolveCommand(
   const winningSummary = winningPools
     .map((p) => {
       const verb = p.winnerCount === 1 ? "won" : "shared";
-      return `${p.optionKey}: ${p.winnerCount} ${verb} ${formatTokens(p.payoutTotal)}🪙`;
+      return `${p.optionKey}: ${p.winnerCount} ${verb} ${formatTokens(p.payoutTotal)}`;
     })
     .join(" · ");
   await adapter.postChatMessage(

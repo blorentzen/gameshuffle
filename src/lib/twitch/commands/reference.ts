@@ -35,6 +35,8 @@ export interface CommandReferenceEntry {
   summary: string;
   usage: string;
   detail: string | null;
+  /** A channel's own command with the same trigger answers instead. */
+  yieldToCustom: boolean;
 }
 
 function triggerToDisplay(path: ReadonlyArray<string>): string {
@@ -62,6 +64,7 @@ export function listCommandReference(): CommandReferenceEntry[] {
       summary: c.help?.summary ?? "",
       usage: c.help?.usage ?? triggerToDisplay(c.trigger),
       detail: c.help?.detail ?? null,
+      yieldToCustom: !!c.yieldToCustom,
     }))
     .sort((a, b) => a.trigger.localeCompare(b.trigger));
 }

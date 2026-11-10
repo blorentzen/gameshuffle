@@ -5,7 +5,7 @@
  * message *strings* (Twitch/Discord) keep the 🪙 emoji since they're plain text.
  */
 
-const TOKEN_SRC = "https://cdn.empac.co/gameshuffle/images/standard/gs-token.png";
+export const TOKEN_SRC = "https://cdn.empac.co/gameshuffle/images/standard/gs-token.png";
 
 export function TokenIcon({ size = 16, className }: { size?: number; className?: string }) {
   return (

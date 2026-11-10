@@ -9,14 +9,17 @@ import { after } from "next/server";
  */
 
 import { createServiceClient } from "@/lib/supabase/admin";
+import { isProUser } from "@/lib/subscription-server";
 import { gameEntry, gameKey } from "@/lib/games/key";
 import { speedrunEnv, speedrunEnvOrNull } from "./env";
 import { relayAdmin } from "./relay";
+import { onRelayEventForPrediction } from "./prediction";
 import { newRelayId, signToken, verifyToken } from "./tokens";
 import {
-  ATTEMPTS_MAX, GAME_MAX, attemptPlan, baseForAttempts, cleanCategory, cleanLook, keepSegments,
+  ATTEMPTS_MAX, GAME_MAX, attemptPlan, baseForAttempts, cleanCategory, cleanLook, cleanSettings, cleanSplitNames, keepSegments,
+  mergeSettings, segmentsForNames,
 } from "./rules";
-import type { RelaySegment, RelayWebhookBody, SpeedrunLook, SpeedrunSetupView } from "./types";
+import type { RelaySegment, RelayWebhookBody, SpeedrunLook, SpeedrunSettings, SpeedrunSetupView } from "./types";
 
 export interface SpeedrunSetup {
   userId: string;
@@ -26,6 +29,7 @@ export interface SpeedrunSetup {
   game: string | null;
   category: string | null;
   look: SpeedrunLook;
+  settings: SpeedrunSettings;
   run: RelaySegment[];
   attempts: number;
   attemptBase: number;
@@ -33,10 +37,10 @@ export interface SpeedrunSetup {
 
 type Row = {
   user_id: string; relay_id: string; timer_version: number; overlay_version: number; game: string | null;
-  category: string | null; look: unknown; run: unknown; attempts: number; attempt_base: number;
+  category: string | null; look: unknown; settings: unknown; run: unknown; attempts: number; attempt_base: number;
 };
 
-const COLS = "user_id, relay_id, timer_version, overlay_version, game, category, look, run, attempts, attempt_base";
+const COLS = "user_id, relay_id, timer_version, overlay_version, game, category, look, settings, run, attempts, attempt_base";
 type DbError = { code?: string; message?: string } | null;
 const missing = (e: DbError) => !!e && (["42P01", "PGRST205"].includes(e.code ?? "") || /speedrun_.*(does not exist|schema cache)/i.test(e.message ?? ""));
 
@@ -48,6 +52,7 @@ const fromRow = (r: Row): SpeedrunSetup => ({
   game: r.game,
   category: r.category,
   look: cleanLook(r.look),
+  settings: cleanSettings(r.settings),
   run: Array.isArray(r.run) ? keepSegments(r.run as RelaySegment[]) : [],
   attempts: r.attempts,
   attemptBase: r.attempt_base,
@@ -114,9 +119,16 @@ export async function tokensFor(s: SpeedrunSetup): Promise<{ timer: string; over
   return { timer, overlay };
 }
 
+/** The streamer's Twitch connection (chat commands, bets and prediction lines need the bot in their chat). */
+export async function twitchFor(userId: string): Promise<{ twitchUserId: string; login: string | null } | null> {
+  const { data } = await createServiceClient().from("twitch_connections").select("twitch_user_id, twitch_login").eq("user_id", userId).maybeSingle();
+  const r = data as { twitch_user_id: string | null; twitch_login: string | null } | null;
+  return r?.twitch_user_id ? { twitchUserId: r.twitch_user_id, login: r.twitch_login } : null;
+}
+
 export async function setupView(s: SpeedrunSetup): Promise<SpeedrunSetupView> {
   const { wsUrl } = speedrunEnv();
-  const t = await tokensFor(s);
+  const [t, isPro, twitch] = await Promise.all([tokensFor(s), isProUser(s.userId).catch(() => false), twitchFor(s.userId).catch(() => null)]);
   return {
     timerAddress: `${wsUrl}/lso/${t.timer}`,
     overlayPath: `/run/${t.overlay}`,
@@ -124,6 +136,11 @@ export async function setupView(s: SpeedrunSetup): Promise<SpeedrunSetupView> {
     game: gameName(s.game),
     category: s.category ?? "",
     attempts: s.attempts,
+    settings: s.settings,
+    splits: s.run.map((seg) => seg.name),
+    splitsTimed: s.run.some((seg) => seg.pbMs != null || seg.bestMs != null),
+    isPro,
+    twitch: !!twitch,
   };
 }
 
@@ -136,6 +153,9 @@ export function syncRelay(s: SpeedrunSetup): Promise<boolean> {
     attemptBase: s.attempts,
     game: s.game,
     category: s.category,
+    // The run for the phone remote (the relay keeps LiveSplit One's own while it's connected, and its own times when
+    // the names match).
+    ...(s.run.length ? { segments: s.run } : {}),
   });
 }
 
@@ -144,6 +164,10 @@ export interface SetupPatch {
   game?: unknown;
   category?: unknown;
   attempts?: unknown;
+  /** Partial settings (prediction, commands, replyDelay). */
+  settings?: unknown;
+  /** The phone remote's splits, one name per line (or a list). */
+  splitNames?: unknown;
 }
 
 /** Saves what changed; game, category and attempts are passed on to the relay. */
@@ -160,12 +184,23 @@ export async function saveSetup(userId: string, patch: SetupPatch): Promise<{ ok
     row.attempt_base = baseForAttempts(n, { attempts: cur.attempts, base: cur.attemptBase });
     row.attempts = Math.floor(n);
   }
+  if (patch.settings !== undefined) {
+    const next = mergeSettings(cur.settings, patch.settings);
+    // The prediction is GS Pro: turning it on needs Pro (turning it off never does). A lapsed plan keeps the choice.
+    if (next.prediction.on && !cur.settings.prediction.on && !(await isProUser(userId))) return { ok: false, error: "pro_required" };
+    row.settings = next;
+  }
+  if (patch.splitNames !== undefined) {
+    const names = cleanSplitNames(patch.splitNames);
+    if (!names) return { ok: false, error: "bad_splits" };
+    row.run = segmentsForNames(names, cur.run);
+  }
   if (!Object.keys(row).length) return { ok: true, setup: cur, synced: true };
   row.updated_at = new Date().toISOString();
   const { data, error } = await createServiceClient().from("speedrun_setups").update(row).eq("user_id", userId).select(COLS).maybeSingle();
   if (error || !data) { console.error("[speedrun] save:", error?.message); return { ok: false, error: "save_failed" }; }
   const setup = fromRow(data as Row);
-  const relayKeys = ["game", "category", "attempt_base"].some((k) => k in row);
+  const relayKeys = ["game", "category", "attempt_base", "run"].some((k) => k in row);
   const synced = relayKeys ? await syncRelay(setup) : true;
   return { ok: true, setup, synced };
 }
@@ -222,6 +257,9 @@ export async function recordRelayEvent(body: RelayWebhookBody): Promise<RecordRe
   if ((body.event === "connect" || body.event === "start") && behind) {
     after(() => syncRelay(setup).then((ok) => { if (!ok) console.error("[speedrun] resync: the relay didn't take it"); }));
   }
+
+  // The "PB this run" prediction follows the same events, after the response (it waits out the stream delay).
+  after(() => onRelayEventForPrediction(setup, body).catch((e) => console.error("[speedrun] prediction:", e)));
 
   const plan = attemptPlan(body.event, st);
   const base = { user_id: setup.userId, attempt: plan.kind === "none" ? 0 : plan.attempt };

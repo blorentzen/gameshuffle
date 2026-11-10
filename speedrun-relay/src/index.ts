@@ -6,7 +6,8 @@ import { bearerOk, RELAY_ID_RE, verifyToken } from "./tokens";
 
 export { Relay };
 
-const MAX_BODY = 4096;
+// /admin can carry the run's splits for remote mode (500 names at most); commands are tiny.
+const MAX_BODY = { cmd: 4096, admin: 131072 } as const;
 
 function text(body: string, status: number, headers: Record<string, string> = {}): Response {
   return new Response(body, { status, headers: { "content-type": "text/plain; charset=utf-8", ...headers } });
@@ -61,7 +62,7 @@ export default {
       let body: string | undefined;
       if (method === "POST") {
         body = await req.text();
-        if (body.length > MAX_BODY) return text("Too large", 413);
+        if (body.length > MAX_BODY[route as "cmd" | "admin"]) return text("Too large", 413);
       }
       const headers = new Headers({ "x-relay-op": route, "x-relay-id": arg, "content-type": "application/json" });
       return env.RELAY.getByName(arg).fetch(new Request(`https://relay/${route}`, { method, headers, body }));

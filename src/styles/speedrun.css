@@ -93,6 +93,22 @@
 .sr-cl-line { font: 700 calc(20 * var(--u))/1.2 var(--gs-font-body), "Outfit", sans-serif; color: #fff; }
 .sr-colov.is-reset .sr-cl-rowswrap, .sr-colov.is-reset .sr-cl-stats { opacity: .38; }
 
+/* Chat's prediction (GS Pro): the tally while bets are open or locked, then how it ended. */
+.sr-pred { display: grid; grid-template-columns: calc(46 * var(--u)) minmax(0, 1fr); gap: calc(8 * var(--u)) calc(14 * var(--u)); align-items: center; }
+.sr-pred > b { display: flex; justify-content: space-between; align-items: baseline; gap: calc(10 * var(--u)); min-width: 0; font: 800 calc(24 * var(--u))/1.15 var(--gs-font-body), "Outfit", sans-serif; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sr-pred > b span { color: var(--sr-ink2); font-weight: 600; font-size: calc(19 * var(--u)); }
+.sr-pred > div { min-width: 0; }
+.sr-pred small { display: block; margin-top: calc(6 * var(--u)); font: 600 calc(19 * var(--u))/1.25 var(--gs-font-body), "Outfit", sans-serif; color: var(--sr-ink2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sr-pred__tok, .sr-pred__ico { width: calc(46 * var(--u)); height: calc(46 * var(--u)); grid-row: span 2; }
+.sr-pred__ico { display: grid; place-items: center; border-radius: 50%; background: rgba(255, 255, 255, .18); color: #fff; }
+.sr-pred__ico svg { width: calc(28 * var(--u)); height: calc(28 * var(--u)); stroke-width: 2.4; }
+.sr-pred--won .sr-pred__ico { background: var(--sr-ahead); color: #08291a; }
+.sr-pred--won > b { color: #c9ffe0; }
+.sr-pbar { height: calc(10 * var(--u)); border-radius: calc(99 * var(--u)); background: rgba(255, 255, 255, .14); overflow: hidden; }
+.sr-pbar i { display: block; height: 100%; width: var(--p); border-radius: inherit; background: linear-gradient(90deg, var(--sr-hl), var(--sr-hl2)); }
+.sr-colov > .sr-pred { margin: 0 calc(16 * var(--u)) calc(12 * var(--u)); padding: calc(14 * var(--u)) calc(16 * var(--u)); border-radius: calc(18 * var(--u)); background: rgba(255, 255, 255, .075); }
+.sr-colov > .sr-pred--won { background: rgba(75, 227, 143, .18); box-shadow: inset 0 0 0 calc(1.5 * var(--u)) rgba(75, 227, 143, .45); }
+
 /* Moments over the Column. */
 .sr-banner { position: absolute; left: 0; right: 0; z-index: 5; display: grid; justify-items: center; gap: calc(6 * var(--u)); padding: calc(22 * var(--u)) calc(26 * var(--u)) calc(24 * var(--u)); text-align: center; color: #11152f; animation: sr-banner .45s cubic-bezier(.2, .9, .3, 1.2) both; }
 .sr-banner-at { position: absolute; left: 0; right: 0; top: calc((var(--sr-row) * 42 + 4) * var(--u)); z-index: 5; }
@@ -120,6 +136,12 @@
   display: grid; grid-template-columns: calc(400 * var(--u)) calc(380 * var(--u)) calc(150 * var(--u)) calc(350 * var(--u)) minmax(0, 1fr);
   align-items: center; padding: calc(14 * var(--u)) 0 0;
 }
+.sr-stripov--pred { grid-template-columns: calc(330 * var(--u)) calc(360 * var(--u)) calc(140 * var(--u)) calc(316 * var(--u)) minmax(0, 1fr) calc(300 * var(--u)); }
+.sr-stripov > .sr-st-pred { box-shadow: inset calc(1.5 * var(--u)) 0 0 var(--sr-line); }
+.sr-st-pred .sr-pred { grid-template-columns: calc(44 * var(--u)) minmax(0, 1fr); gap: calc(8 * var(--u)) calc(12 * var(--u)); }
+.sr-st-pred .sr-pred__tok, .sr-st-pred .sr-pred__ico { width: calc(44 * var(--u)); height: calc(44 * var(--u)); }
+.sr-st-pred .sr-pred > b { font-size: calc(23 * var(--u)); }
+.sr-st-pred .sr-pred small { font-size: calc(18 * var(--u)); }
 .sr-stripov--bottom { bottom: calc(34 * var(--u)); }
 .sr-stripov--top { top: calc(34 * var(--u)); }
 .sr-stripov::before { border-radius: inherit; }
@@ -251,6 +273,22 @@ html.dark .sr-status--off { color: #ffb3bd; background: rgba(255, 128, 144, .14)
 .sr-switches .empac-switch-label { font-weight: 600; }
 .sr-switches .empac-switch-helper { color: var(--text-secondary); }
 
+/* Step 2 on the setup: the phone remote, chat's prediction and the chat commands. */
+.sr-remote-row { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: var(--spacing-12); align-items: start; }
+.sr-remote-row b { display: block; font-size: var(--font-size-16); line-height: 1.35; padding-top: .3rem; }
+.sr-remote-row .sr-sub { margin-top: var(--spacing-4); }
+.sr-remote-row__act { display: flex; flex-wrap: wrap; gap: var(--spacing-8) var(--spacing-12); margin-top: var(--spacing-12); }
+.sr-remote-row__act .empac-button { display: inline-flex; align-items: center; gap: var(--spacing-8); text-decoration: none; }
+.sr-remote-splits { margin-top: var(--spacing-16); }
+.sr-acc { margin-top: var(--spacing-8); }
+.sr-splits { display: grid; gap: var(--spacing-12); justify-items: start; padding-bottom: var(--spacing-8); }
+.sr-splits .empac-textarea-wrapper, .sr-splits textarea { width: 100%; }
+.sr-pro { display: inline-flex; align-items: center; padding: .3rem 1rem; border-radius: 99px; font-size: var(--font-size-12); font-weight: 700; letter-spacing: .04em; color: #7a1f8a; background: #f8e6fb; }
+html.dark .sr-pro { color: #f1b8ff; background: rgba(201, 73, 233, .18); }
+.sr-field-block { margin-top: var(--spacing-16); }
+.sr-qr { display: grid; justify-items: center; gap: var(--spacing-16); text-align: center; }
+.sr-qr img { width: 24rem; height: 24rem; border-radius: 1.2rem; background: #fff; padding: 1rem; }
+
 /* The pitch for visitors. */
 .sr-pitch { display: grid; gap: var(--spacing-24); align-items: center; }
 .sr-pitch__h { margin: 0 0 var(--spacing-16); font-family: var(--font-display); font-size: var(--font-size-24); font-weight: 800; }
@@ -269,4 +307,77 @@ html.dark .sr-status--off { color: #ffb3bd; background: rgba(255, 128, 144, .14)
 }
 @media (max-width: 559px) {
   .sr-page__body { padding: var(--spacing-24) var(--spacing-16) 0; }
+}
+
+/* ─── The phone remote (/speedrun/remote, approved mockup screen 5): a full-screen timer on the overlay's dark look.
+   Chrome-free, phone first; on a wider screen it keeps a phone's width in the middle. ─── */
+.rm {
+  position: relative; min-height: 100dvh; width: 100%; max-width: 48rem; margin: 0 auto; box-sizing: border-box; isolation: isolate; overflow: hidden;
+  display: grid; grid-template-rows: auto auto minmax(20rem, 1fr) auto auto; gap: var(--spacing-16);
+  padding: max(var(--spacing-16), env(safe-area-inset-top)) var(--spacing-16) max(var(--spacing-24), env(safe-area-inset-bottom));
+  color: #fff; font-family: var(--gs-font-body), "Outfit", system-ui, sans-serif; font-size: var(--font-size-16); line-height: 1.45;
+  background: radial-gradient(120% 50% at 0% 0%, rgba(75, 92, 245, .45), transparent 60%), radial-gradient(90% 40% at 100% 100%, rgba(201, 73, 233, .25), transparent 60%), #0d1130;
+}
+html:has(.rm), html:has(.rm) body { background: #0d1130; }
+.rm *, .rm *::before, .rm *::after { box-sizing: border-box; }
+.rm-top { display: flex; align-items: center; justify-content: space-between; gap: var(--spacing-12); }
+.rm-mark { display: block; width: 4.8rem; height: 2.6rem; background: #fff; -webkit-mask: url("/images/fg/logos/gs-mark.svg") left center / contain no-repeat; mask: url("/images/fg/logos/gs-mark.svg") left center / contain no-repeat; }
+.rm-mark:focus-visible { outline: .2rem solid #fff; outline-offset: .4rem; }
+.rm-pill { display: inline-flex; align-items: center; gap: var(--spacing-8); padding: .6rem 1.2rem; border-radius: 99px; font-size: var(--font-size-14); font-weight: 700; line-height: 1.2; text-align: right; }
+.rm-pill i { flex: none; width: .8rem; height: .8rem; border-radius: 50%; background: currentColor; }
+.rm-pill--ok { color: #8ff0bb; background: rgba(75, 227, 143, .14); }
+.rm-pill--ok i { box-shadow: 0 0 0 .4rem rgba(75, 227, 143, .25); }
+.rm-pill--wait { color: #ffd38a; background: rgba(255, 190, 80, .14); }
+.rm-pill--off { color: #ffb3bd; background: rgba(255, 128, 144, .16); }
+.rm-run { display: grid; gap: var(--spacing-6, .6rem); justify-items: center; text-align: center; padding-top: var(--spacing-6, .6rem); min-width: 0; }
+.rm-eyebrow { font-size: var(--font-size-12); font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: rgba(255, 255, 255, .78); }
+.rm-run h1 { margin: 0; max-width: 100%; font-family: var(--font-display), "Gabarito", sans-serif; font-size: var(--font-size-28); font-weight: 800; line-height: 1.15; overflow-wrap: anywhere; }
+.rm-meta { margin: 0; font-size: var(--font-size-14); color: rgba(255, 255, 255, .78); font-variant-numeric: tabular-nums; }
+.rm-clock { margin-top: var(--spacing-4); font-family: var(--gs-font-mmr), "Rubik", var(--font-display), sans-serif; font-size: clamp(var(--font-size-56), 19vw, 8rem); font-weight: 900; font-style: italic; line-height: 1; letter-spacing: -.02em; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.rm-clock small { font-size: .55em; }
+.rm-clock.is-pb { color: #ffd25a; }
+.rm-chip { display: inline-flex; align-items: center; gap: var(--spacing-6, .6rem); padding: .6rem 1.2rem; border-radius: 99px; font-size: var(--font-size-16); font-weight: 800; font-variant-numeric: tabular-nums; }
+.rm-chip.is-ahead { color: #4be38f; background: rgba(75, 227, 143, .16); }
+.rm-chip.is-behind { color: #ff8090; background: rgba(255, 128, 144, .16); }
+
+/* The big button and the row under it: CDS Buttons, restyled to fill a phone. */
+.rm .empac-button.rm-big {
+  display: grid; place-content: center; gap: var(--spacing-6, .6rem); width: 100%; min-height: 25rem; height: 100%; padding: var(--spacing-24);
+  border: 0; border-radius: 2.8rem; color: #fff; text-align: center; white-space: normal;
+  background: linear-gradient(160deg, #3b6df2, #6a3df0 70%, #a03fd6);
+  box-shadow: 0 1.8rem 4rem -1.4rem rgba(90, 63, 214, .8), inset 0 .1rem 0 rgba(255, 255, 255, .3);
+  -webkit-tap-highlight-color: transparent; touch-action: manipulation;
+}
+.rm .empac-button.rm-big--go { background: linear-gradient(160deg, #1fa463, #138a6e 70%, #0b6a5c); box-shadow: 0 1.8rem 4rem -1.4rem rgba(19, 138, 110, .8), inset 0 .1rem 0 rgba(255, 255, 255, .3); }
+.rm .empac-button.rm-big .empac-button__label { display: grid; justify-items: center; gap: var(--spacing-6, .6rem); }
+/* Gold with dark words (white on gold is too faint to read). */
+.rm .empac-button.rm-big--done { color: #2b1a00; background: linear-gradient(160deg, #ffd25a, #f0b232 70%, #e09a1c); box-shadow: 0 1.8rem 4rem -1.4rem rgba(224, 154, 28, .7), inset 0 .1rem 0 rgba(255, 255, 255, .5); }
+.rm .empac-button.rm-big.rm-big--done b { font-size: var(--font-size-40); }
+.rm .empac-button.rm-big b { font-family: var(--font-display), "Gabarito", sans-serif; font-size: var(--font-size-56); font-weight: 800; line-height: 1; }
+.rm .empac-button.rm-big span { font-size: var(--font-size-16); font-weight: 600; opacity: .92; overflow-wrap: anywhere; }
+.rm .empac-button.rm-big:active:not(:disabled) { transform: scale(.985); }
+.rm .empac-button.rm-big:disabled { opacity: .5; }
+.rm .empac-button.rm-big:focus-visible { outline: .3rem solid #fff; outline-offset: .3rem; }
+.rm-row { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--spacing-10, 1rem); }
+.rm .empac-button.rm-small .empac-button__label { display: block; }
+.rm .empac-button.rm-small {
+  display: grid; justify-items: center; align-content: center; gap: var(--spacing-4); width: 100%; min-height: 6.4rem; padding: var(--spacing-8);
+  border-radius: 1.6rem; border: 0; color: #fff; background: rgba(255, 255, 255, .1); box-shadow: inset 0 0 0 .1rem rgba(255, 255, 255, .14);
+  font-size: var(--font-size-16); font-weight: 700; touch-action: manipulation;
+}
+.rm .empac-button.rm-small svg { width: 2.2rem; height: 2.2rem; }
+.rm .empac-button.rm-small:disabled { opacity: .45; }
+.rm .empac-button.rm-small--reset { color: #ffccd3; background: rgba(255, 84, 104, .16); box-shadow: inset 0 0 0 .1rem rgba(255, 128, 144, .4); }
+.rm .empac-button.rm-small:focus-visible { outline: .3rem solid #fff; outline-offset: .2rem; }
+.rm-note { margin: 0; text-align: center; font-size: var(--font-size-14); color: rgba(255, 255, 255, .74); }
+.rm-problem { margin: 0; padding: var(--spacing-10, 1rem) var(--spacing-12); border-radius: 1.2rem; text-align: center; font-size: var(--font-size-14); font-weight: 600; color: #ffe1a8; background: rgba(255, 190, 80, .14); }
+.rm--dim::after { content: ""; position: absolute; inset: 0; z-index: 3; background: rgba(4, 6, 18, .62); }
+
+/* Reset asks first: the CDS Modal sits at the bottom of a phone like a sheet. */
+.rm-sheet__text { margin: 0; font-size: var(--font-size-16); line-height: 1.45; }
+@media (max-width: 559px) {
+  .empac-modal-overlay:has(.rm-sheet) { align-items: flex-end; padding: 0; }
+  .empac-modal.rm-sheet { width: 100%; max-width: none; margin: 0; border-radius: 2.2rem 2.2rem 0 0; padding-bottom: env(safe-area-inset-bottom); }
+  .empac-modal.rm-sheet .empac-modal__footer { flex-direction: column-reverse; gap: var(--spacing-8); }
+  .empac-modal.rm-sheet .empac-modal__footer .empac-button { width: 100%; min-height: 4.8rem; justify-content: center; }
 }

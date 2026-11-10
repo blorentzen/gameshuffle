@@ -1,7 +1,8 @@
 /**
  * Speedrunning, phase 1 (specs/gs-speedrun/phase1-contract.md): the contract's token and webhook vectors, LiveSplit's
  * time strings, formatting, and the overlay's rules (deltas, sum of best, previous segment, pace, rows, ticks, moments,
- * the webhook's attempt plan, looks from untrusted input).
+ * the webhook's attempt plan, looks from untrusted input). Step 2: settings, typed splits, the prediction's plan and
+ * lock split, the chat lines (!pb, !pace, !splits and the prediction's), the tally words, and the parimutuel payout.
  *   npx tsx -r ./scripts/server-only-shim.cjs scripts/test-speedrun.ts
  */
 import { newRelayId, parseToken, sameString, signBody, signToken, verifyBody, verifyToken } from "../src/lib/speedrun/tokens";
@@ -11,6 +12,14 @@ import {
   keepSegments, lastDelta, momentFor, pace, prevSegment, segmentLengths, sumOfBest, ticks, timeBefore, visibleRows,
 } from "../src/lib/speedrun/rules";
 import { demoAfterReset, demoState } from "../src/lib/speedrun/demo";
+import {
+  DEFAULT_SETTINGS, cleanSettings, cleanSplitNames, lockAfter, mergeSettings, predictionAction, segmentsForNames, splitsDone,
+} from "../src/lib/speedrun/rules";
+import {
+  CHAT_MAX, PREDICTION_REFUND_LINE, chatCalledIt, paceLine, payoutIfWon, pbLine, predictionLockLine, predictionOpenLine,
+  predictionSettleLine, predictionView, predictionWords, sobOf, splitsLine,
+} from "../src/lib/speedrun/chat";
+import { parimutuel } from "../src/lib/economy/markets/parimutuel";
 import type { RelayState } from "../src/lib/speedrun/types";
 
 let pass = 0, fail = 0;
@@ -214,6 +223,148 @@ async function main() {
   eq(baseForAttempts(300, { attempts: 5, base: 0 }), 295, "five starts already counted");
   eq(baseForAttempts(2, { attempts: 10, base: 0 }), 0, "never below zero");
   eq(baseForAttempts(500, { attempts: 312, base: 300 }), 488, "a base set before");
+
+  // ── Step 2: settings ──
+  eq(cleanSettings(null), DEFAULT_SETTINGS, "nothing = the default settings");
+  eq(DEFAULT_SETTINGS, { prediction: { on: false, lockSplit: null }, commands: { pb: true, pace: true, splits: true }, replyDelay: 5 }, "defaults: prediction off, commands on, 5 seconds (mockup)");
+  eq(cleanSettings({ prediction: { on: "yes", lockSplit: 2.5 }, replyDelay: 7, commands: { pace: false } }), { prediction: { on: false, lockSplit: null }, commands: { pb: true, pace: false, splits: true }, replyDelay: 5 }, "odd values fall back");
+  eq(cleanSettings({ replyDelay: 60, prediction: { on: true, lockSplit: 3 } }).replyDelay, 60, "60 seconds is on offer");
+  eq(cleanSettings({ replyDelay: 61 }).replyDelay, 5, "61 isn't");
+  eq(mergeSettings(DEFAULT_SETTINGS, { prediction: { on: true } }), { ...DEFAULT_SETTINGS, prediction: { on: true, lockSplit: null } }, "a partial change keeps the rest");
+  eq(mergeSettings({ ...DEFAULT_SETTINGS, prediction: { on: true, lockSplit: 4 } }, { commands: { splits: false } }).prediction.lockSplit, 4, "a commands change keeps the lock split");
+
+  // Typed splits for the phone remote.
+  eq(cleanSplitNames("Luigi Raceway\n\n  Moo Moo   Farm \r\nKoopa Troopa Beach"), ["Luigi Raceway", "Moo Moo Farm", "Koopa Troopa Beach"], "one per line, tidied");
+  eq(cleanSplitNames("   \n  "), null, "nothing typed");
+  eq(cleanSplitNames(Array.from({ length: 501 }, (_, i) => `S${i}`)), null, "501 is too many");
+  eq(cleanSplitNames(["x".repeat(200)])?.[0].length, 120, "a name is 120 characters at most");
+  const segs4 = mid.segments.slice(0, 4);
+  eq(segmentsForNames(segs4.map((x) => x.name), segs4), segs4, "the same names keep their times");
+  eq(segmentsForNames(["A", "B"], segs4), [{ name: "A", pbMs: null, bestMs: null }, { name: "B", pbMs: null, bestMs: null }], "new names start fresh");
+
+  // The lock split: a quarter of the way in, never before split 2, never the last.
+  eq(lockAfter(12, null), 3, "12 splits lock after split 3 (picks)");
+  eq(lockAfter(16, null), 4, "16 splits: 4");
+  eq(lockAfter(4, null), 2, "4 splits: 2, never 1 (it opens after split 1)");
+  eq(lockAfter(3, null), 2, "3 splits: 2");
+  eq(lockAfter(2, null), null, "2 splits: no prediction");
+  eq(lockAfter(12, 9), 9, "the streamer's choice");
+  eq(lockAfter(12, 12), 11, "never the last split");
+  eq(lockAfter(12, 1), 2, "never split 1");
+  eq(splitsDone(mid), 7, "seven done on Lightning");
+  eq(splitsDone(pb), 12, "all done at the end");
+  eq(splitsDone(fresh), 0, "none before a run");
+
+  // The prediction's plan (picks: opens after split 1, locks after the lock split, settles at the finish, refunds a
+  // reset before the lock, settles a reset after it as no PB).
+  const at = (i: number): RelayState => ({ ...mid, phase: "running", index: i });
+  const OPEN = { status: "open" as const, lockPending: false };
+  eq(predictionAction("split", at(1), 3, null), { kind: "open" }, "split 1 opens it");
+  eq(predictionAction("split", at(2), 3, null), { kind: "open" }, "a missed open still opens before the lock");
+  eq(predictionAction("split", at(3), 3, null), { kind: "none" }, "too late once the lock split is done");
+  eq(predictionAction("split", at(2), 3, OPEN), { kind: "none" }, "open until the lock split");
+  eq(predictionAction("split", at(3), 3, OPEN), { kind: "lock" }, "the lock split locks it");
+  eq(predictionAction("skip", at(3), 3, OPEN), { kind: "lock" }, "a skip past it locks it too");
+  eq(predictionAction("split", at(4), 3, { status: "open", lockPending: true }), { kind: "none" }, "already locking");
+  eq(predictionAction("split", at(1), null, null), { kind: "none" }, "a short run has no prediction");
+  eq(predictionAction("finish", pb, 3, { status: "locked", lockPending: false }), { kind: "settle", winner: "pb" }, "a PB finish settles as PB");
+  eq(predictionAction("finish", slow, 3, { status: "locked", lockPending: false }), { kind: "settle", winner: "no" }, "a slow finish settles as no PB");
+  eq(predictionAction("reset", at(2), 3, OPEN), { kind: "refund" }, "a reset before the lock gives tokens back");
+  eq(predictionAction("reset", at(4), 3, { status: "open", lockPending: true }), { kind: "settle", winner: "no" }, "a reset inside the delay after the lock counts as locked");
+  eq(predictionAction("reset", at(5), 3, { status: "locked", lockPending: false }), { kind: "settle", winner: "no" }, "a reset after the lock is no PB");
+  eq(predictionAction("reset", at(5), 3, { status: "settled", lockPending: false }), { kind: "none" }, "already settled");
+  eq(predictionAction("undo", at(2), 3, OPEN), { kind: "none" }, "undo changes nothing");
+  eq(predictionAction("start", at(0), 3, null), { kind: "none" }, "start opens nothing");
+
+  // ── Chat lines (mockup screen 6) ──
+  eq(pbLine({ name: "Nova", game: "Mario Kart 8 Deluxe", category: "48 Tracks", segments: mid.segments, sobMs: sumOfBest(mid), setOn: "Nov 2" }),
+    "🏆 Nova's PB in Mario Kart 8 Deluxe, 48 Tracks: 1:40:24.1, set Nov 2. Sum of best: 1:39:17.8.", "!pb (mockup)");
+  eq(pbLine({ name: "Nova", game: "", category: "", segments: noPb.segments, sobMs: null, setOn: null }), "🏆 Nova hasn't finished a run yet.", "!pb with no PB");
+  eq(pbLine({ name: "Nova", game: "X", category: "", segments: [], sobMs: null, setOn: null }), "🏆 No splits from Nova yet.", "!pb with no splits");
+  eq(fmtClock(sobOf(mid.segments)), fmtClock(mid.segments.at(-1)!.bestMs), "sum of best from the run alone");
+  eq(paceLine(mid), "⏱️ Leaf done, 8.1 ahead of PB. On pace for 1:40:16.0 if the rest matches the PB.", "!pace (mockup)");
+  eq(paceLine(fresh), "⏱️ No run going right now. PB: 1:40:24.1.", "!pace before a run");
+  eq(paceLine(pb), "⏱️ Finished in 1:40:05.3, a new PB by 18.8.", "!pace after a PB");
+  ok(paceLine(slow).includes("behind the PB"), "!pace after a slow finish");
+  eq(splitsLine(mid), "📋 Mushroom ▼2.3 · Flower ▲1.0 · Star ▼7.3 ⭐ · Special ▼4.5 · Shell ▼3.1 · Banana ▲1.2 · Leaf ▼8.1 ⭐ · now Lightning", "!splits (mockup)");
+  eq(splitsLine(skipped).includes("Shell skipped"), true, "a skipped split says so");
+  eq(splitsLine(fresh), "📋 No run going right now.", "!splits before a run");
+  const long: RelayState = { ...mid, segments: Array.from({ length: 60 }, (_, i) => ({ name: `Segment number ${i + 1}`, pbMs: (i + 1) * 60_000, bestMs: (i + 1) * 59_000 })), splits: Array.from({ length: 60 }, (_, i) => (i < 55 ? (i + 1) * 60_500 : null)), golds: Array(60).fill(false), index: 55 };
+  const longLine = splitsLine(long);
+  ok(longLine.length <= CHAT_MAX, `a long run fits a chat message (${longLine.length})`);
+  ok(longLine.startsWith("📋 … · ") && longLine.endsWith("now Segment number 56"), "a long run keeps the latest splits");
+
+  // ── The prediction's words ──
+  const tally = (pbT: number, pbN: number, noT: number, noN: number) => [{ optionKey: "pb", total: pbT, bettorCount: pbN }, { optionKey: "no", total: noT, bettorCount: noN }];
+  const base = { id: "m1", attempt: 312, lockAfter: 3, lockName: "Star", endedAt: null };
+  const openV = predictionView({ ...base, status: "open", resolvedValue: null, pools: tally(3806, 34, 2434, 24) });
+  eq([openV.pbPct, openV.total, openV.people], [61, 6240, 58], "the live page's numbers (mockup)");
+  eq(predictionWords(openV), { kind: "tally", title: "Chat: 61% say PB", status: "Open", line: "6,240 tokens in · locks after Star", pct: 61 }, "the overlay while open");
+  const lockedV = predictionView({ ...base, status: "locked", resolvedValue: null, pools: tally(11789, 170, 6631, 98) });
+  eq(predictionWords(lockedV).line, "18,420 tokens in · settles at the finish", "the overlay once locked (mockup)");
+  eq(predictionWords(lockedV, { short: true }).line, "18,420 tokens · locked", "the Strip's shorter line (mockup)");
+  eq(predictionLockLine(lockedV), "🔒 Bets are locked: 64% say PB, 18,420 tokens in. It settles when the run ends.", "the lock line (mockup)");
+  eq(predictionWords(predictionView({ ...base, status: "open", resolvedValue: null, pools: tally(0, 0, 0, 0) })).line, "!bet pb 100 or !bet no 100 · locks after Star", "no bets yet: how to bet");
+  const wonV = predictionView({ ...base, status: "settled", resolvedValue: "pb", endedAt: 1, pools: tally(11789, 268, 6631, 98) });
+  ok(chatCalledIt(wonV), "most tokens on PB and it was a PB: chat called it");
+  eq(predictionWords(wonV), { kind: "won", title: "Chat called it", line: "268 people split 18,420 tokens", pct: null }, "the overlay after a PB (mockup)");
+  eq(predictionSettleLine(wonV, { finalMs: 6_005_300, oldPbMs: 6_024_100 }), "🎉 New PB! 1:40:05.3, 18.8 faster. 268 people who said PB split 18,420 tokens.", "the PB line (mockup)");
+  const noV = predictionView({ ...base, status: "settled", resolvedValue: "no", endedAt: 1, pools: tally(6000, 90, 9860, 151) });
+  ok(chatCalledIt(noV), "most tokens on no and no PB: chat called it");
+  const missV = predictionView({ ...base, status: "settled", resolvedValue: "no", endedAt: 1, pools: tally(11789, 268, 9860, 151) });
+  ok(!chatCalledIt(missV), "most on PB, no PB: chat missed it");
+  eq(predictionWords(missV), { kind: "settled", title: "No PB this run", line: "151 people who said no split 21,649 tokens", pct: null }, "the overlay after a reset (mockup)");
+  eq(predictionSettleLine(missV, { resetAt: "Shell" }), "🔁 Run reset at Shell. No PB this time. 151 people who said no split 21,649 tokens.", "the reset line (mockup)");
+  ok(predictionSettleLine(missV, { finalMs: 6_100_000, oldPbMs: 6_024_100 }).startsWith("🏁 Finished in 1:41:40.0, no PB this time."), "a slow finish line");
+  const oneSided = predictionView({ ...base, status: "settled", resolvedValue: "pb", endedAt: 1, pools: tally(500, 3, 0, 0) });
+  eq(oneSided.result?.refunded, true, "one side only: everyone got their own back");
+  ok(predictionSettleLine(oneSided, { finalMs: 1, oldPbMs: 2 }).includes("everyone has their tokens back"), "and the line says so");
+  eq(predictionWords(predictionView({ ...base, status: "cancelled", resolvedValue: "claim:refund", endedAt: 1, pools: tally(10, 1, 0, 0) })).title, "Bets returned", "a refund before the lock");
+  eq(PREDICTION_REFUND_LINE, "↩️ Reset before the bets locked. Everyone has their tokens back.", "the refund line (mockup)");
+  eq(predictionOpenLine("Nova", "gameshuffle.co/live/novastreams"), "🔮 Prediction: will Nova PB this run? Type !bet pb 100 or !bet no 100 · or pick on gameshuffle.co/live/novastreams", "the open line (mockup)");
+
+  // What a stake would come back as (the live page's "about 162").
+  eq(payoutIfWon(100, "pb", 3806, 2434), 162, "100 on PB now comes back as about 162 (mockup)");
+  eq(payoutIfWon(100, "no", 3806, 2434), 250, "100 on no: 6,340 × 100 / 2,534");
+  eq(payoutIfWon(100, "pb", 500, 0), 100, "nobody on the other side: your own back");
+
+  // ── The parimutuel payout (markets engine fix: binary markets split the whole pot) ──
+  const W = new Set(["o-pb"]);
+  const plan = parimutuel([
+    { identity_id: "a", outcome_id: "o-pb", amount: 100 },
+    { identity_id: "b", outcome_id: "o-pb", amount: 300 },
+    { identity_id: "c", outcome_id: "o-no", amount: 600 },
+  ], W);
+  eq(plan.kind, "payout", "a two-sided market pays out");
+  eq([...plan.credits.entries()].sort(), [["a", 250], ["b", 750]], "winners split all 1,000 by stake");
+  eq(plan.pot, 1000, "the pot");
+  eq(plan.winners, 2, "two winners");
+  const dust = parimutuel([
+    { identity_id: "a", outcome_id: "o-pb", amount: 1 },
+    { identity_id: "b", outcome_id: "o-pb", amount: 1 },
+    { identity_id: "c", outcome_id: "o-pb", amount: 1 },
+    { identity_id: "d", outcome_id: "o-no", amount: 1 },
+  ], W);
+  eq([...dust.credits.values()].reduce((x, y) => x + y, 0), 4, "every token is paid, dust included");
+  eq(dust.credits.get("a"), 2, "dust goes to the largest stake (ties: the lowest id)");
+  const same = parimutuel([{ identity_id: "a", outcome_id: "o-pb", amount: 50 }, { identity_id: "b", outcome_id: "o-pb", amount: 70 }], W);
+  eq([same.kind, [...same.credits.entries()].sort()], ["refund", [["a", 50], ["b", 70]]], "everyone right: stakes back");
+  const wrong = parimutuel([{ identity_id: "a", outcome_id: "o-no", amount: 50 }, { identity_id: "a", outcome_id: "o-no", amount: 25 }], W);
+  eq([wrong.kind, wrong.credits.get("a")], ["refund", 75], "everyone wrong: stakes back, summed per person");
+  eq(parimutuel([], W).kind, "refund", "nobody bet");
+  const multi = parimutuel([
+    { identity_id: "a", outcome_id: "o-pb", amount: 100 },
+    { identity_id: "a", outcome_id: "o-pb", amount: 100 },
+    { identity_id: "b", outcome_id: "o-no", amount: 200 },
+    { identity_id: "a", outcome_id: "o-no", amount: 100 },
+  ], W);
+  eq(multi.credits.get("a"), 500, "a hedger's winning stake takes the whole pot");
+  for (let k = 0; k < 200; k++) {
+    const bets = Array.from({ length: 1 + (k % 9) }, (_, i) => ({ identity_id: `p${(i * 7 + k) % 5}`, outcome_id: i % 2 ? "o-pb" : "o-no", amount: 1 + ((i * 37 + k * 13) % 997) }));
+    const r = parimutuel(bets, W);
+    const paid = [...r.credits.values()].reduce((x, y) => x + y, 0);
+    if (paid !== bets.reduce((x, b) => x + b.amount, 0)) { fail++; console.log("FAIL parimutuel sum", k, paid); break; } else pass++;
+  }
 
   console.log(`speedrun: ${pass} passed, ${fail} failed`);
   if (fail) process.exit(1);

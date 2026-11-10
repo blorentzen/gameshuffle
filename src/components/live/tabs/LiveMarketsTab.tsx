@@ -30,6 +30,8 @@ import type { SpectatorTally } from "@/lib/economy/markets/spectator";
 import { MarketTimer } from "@/components/markets/MarketTimer";
 import { useViewerBalance, refreshViewerBalance } from "@/lib/economy/useViewerBalance";
 import { TokenIcon } from "@/components/TokenIcon";
+import { SpeedrunPredictionCard } from "@/components/live/LiveSpeedrunCard";
+import type { LiveSpeedrunBody } from "@/lib/speedrun/prediction";
 
 interface OutcomeRow {
   id: string;
@@ -58,6 +60,8 @@ interface ViewerState {
 }
 
 interface MarketResponse {
+  /** "speedrun" = the runner's "PB this run" prediction (the rest of the body is LiveSpeedrunBody). */
+  kind?: "speedrun";
   market: MarketState | null;
   outcomes?: OutcomeRow[];
   pools?: MarketPool[];
@@ -154,10 +158,12 @@ export function LiveMarketsTab({
   // so the subscriptions that used to sit here never fired and the 60s safety poll was the only
   // refresh viewers got.
   const marketLive = !!marketResp?.market;
+  // A speedrun prediction follows the run, so it's asked twice as often.
+  const speedrunLive = marketResp?.kind === "speedrun";
   useEffect(() => {
     void refreshMarket();
-    return everyVisible(() => void refreshMarket(), marketLive ? MARKET_LIVE_MS : MARKET_IDLE_MS);
-  }, [refreshMarket, marketLive]);
+    return everyVisible(() => void refreshMarket(), speedrunLive ? MARKET_LIVE_MS / 2 : marketLive ? MARKET_LIVE_MS : MARKET_IDLE_MS);
+  }, [refreshMarket, marketLive, speedrunLive]);
 
   useEffect(() => {
     void refreshBounties();
@@ -269,7 +275,14 @@ export function LiveMarketsTab({
       {/* -------------------- Markets section -------------------- */}
       <section className="live-markets__section">
         <h3 className="live-markets__heading">Active Market</h3>
-        {!market ? (
+        {marketResp?.kind === "speedrun" ? (
+          <SpeedrunPredictionCard
+            body={marketResp as unknown as LiveSpeedrunBody}
+            streamerSlug={streamerSlug}
+            onSignIn={onSignInClick}
+            onPlaced={() => void refreshMarket()}
+          />
+        ) : !market ? (
           <div className="live-markets__empty">
             <p className="live-markets__empty-headline">
               No market open right now.

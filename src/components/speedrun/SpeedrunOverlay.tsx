@@ -1,20 +1,21 @@
 "use client";
 
 /**
- * The OBS overlay's live part: a WebSocket to the relay's /watch/<overlay token> (phase 1 contract). The relay sends
- * { type: "state", state } on connect and on every change; we answer nothing but a ping now and then. A dropped
- * connection comes back with a growing pause (1s, 2s, 4s… up to 30s). A newer state seen on the same connection can
- * play a moment (gold split, new PB, reset); the first state after connecting never does.
+ * The OBS overlay's live part: the relay's /watch socket (useRelayWatch). A newer state seen on the same connection
+ * can play a moment (gold split, new PB, reset); the first state after connecting never does. Chat's "PB this run"
+ * prediction (GS Pro) comes from the site every few seconds while a run is going (`predictionUrl`).
  */
 
 import { useEffect, useRef, useState } from "react";
-import { isRelayState, momentFor } from "@/lib/speedrun/rules";
-import type { RelayState, SpeedrunLook } from "@/lib/speedrun/types";
+import { momentFor } from "@/lib/speedrun/rules";
+import type { RelayState, SpeedrunLook, SpeedrunPredictionView } from "@/lib/speedrun/types";
 import { SpeedrunCanvas, type SpeedrunMoment } from "./SpeedrunCanvas";
+import { useRelayWatch } from "./useRelayWatch";
 
 const MOMENT_MS: Record<SpeedrunMoment["kind"], number> = { gold: 4500, pb: 8000, reset: 4500 };
-const PING_MS = 25_000;
-const MAX_WAIT_MS = 30_000;
+/** How often the prediction is asked for: while a run is going or a prediction shows, and otherwise. */
+const PRED_LIVE_MS = 4_000;
+const PRED_IDLE_MS = 30_000;
 
 interface Props {
   /** The relay's ws(s) address with the token, e.g. wss://relay.example/watch/o1.…; null = no relay here. */
@@ -23,9 +24,11 @@ interface Props {
   look: SpeedrunLook;
   game: string | null;
   category: string | null;
+  /** /api/speedrun/prediction/<token>, or null when the runner has no prediction switched on. */
+  predictionUrl?: string | null;
 }
 
-export function SpeedrunOverlay({ socketUrl, initial, look, game, category }: Props) {
+export function SpeedrunOverlay({ socketUrl, initial, look, game, category, predictionUrl = null }: Props) {
   const [snap, setSnap] = useState<{ state: RelayState; at: number }>({ state: initial, at: 0 });
   const [moment, setMoment] = useState<SpeedrunMoment | null>(null);
   const live = useRef<{ state: RelayState; at: number }>({ state: initial, at: 0 });
@@ -36,61 +39,45 @@ export function SpeedrunOverlay({ socketUrl, initial, look, game, category }: Pr
     return () => document.documentElement.classList.remove("sr-obs-route");
   }, []);
 
-  useEffect(() => {
-    if (!socketUrl || typeof WebSocket === "undefined") return;
-    let ws: WebSocket | null = null;
-    let tries = 0;
-    let stopped = false;
-    let retry: ReturnType<typeof setTimeout> | null = null;
-    let ping: ReturnType<typeof setInterval> | null = null;
-    let momentId = 0;
+  const momentId = useRef(0);
+  useRelayWatch(socketUrl, (next, first) => {
+    const now = performance.now();
+    const prev = live.current;
+    const kind = first ? null : momentFor(prev.state, next);
+    live.current = { state: next, at: now };
+    setSnap(live.current);
+    if (kind) {
+      // A reset shows the run as it stood when it stopped, frozen.
+      const before = kind === "reset"
+        ? { ...prev.state, phase: "paused" as const, elapsedMs: prev.state.phase === "running" ? prev.state.elapsedMs + (now - prev.at) : prev.state.elapsedMs }
+        : null;
+      setMoment({ kind, id: ++momentId.current, before });
+    }
+  });
 
-    const open = () => {
-      if (stopped) return;
-      let first = true;
-      try { ws = new WebSocket(socketUrl); } catch { schedule(); return; }
-      ws.onopen = () => {
-        if (ping) clearInterval(ping);
-        ping = setInterval(() => { try { ws?.send(JSON.stringify({ type: "ping" })); } catch { /* closing */ } }, PING_MS);
-      };
-      ws.onmessage = (ev) => {
-        let msg: unknown;
-        try { msg = JSON.parse(String(ev.data)); } catch { return; }
-        if (!msg || typeof msg !== "object" || (msg as { type?: string }).type !== "state") return;
-        const next = (msg as { state?: unknown }).state;
-        if (!isRelayState(next)) return;
-        tries = 0;
-        const now = performance.now();
-        const prev = live.current;
-        const kind = first ? null : momentFor(prev.state, next);
-        first = false;
-        live.current = { state: next, at: now };
-        setSnap(live.current);
-        if (kind) {
-          // A reset shows the run as it stood when it stopped, frozen.
-          const before = kind === "reset"
-            ? { ...prev.state, phase: "paused" as const, elapsedMs: prev.state.phase === "running" ? prev.state.elapsedMs + (now - prev.at) : prev.state.elapsedMs }
-            : null;
-          setMoment({ kind, id: ++momentId, before });
+  // Chat's prediction: asked often while something's happening, rarely otherwise.
+  const [prediction, setPrediction] = useState<SpeedrunPredictionView | null>(null);
+  const predRef = useRef<SpeedrunPredictionView | null>(null);
+  useEffect(() => {
+    if (!predictionUrl) return;
+    let stopped = false;
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    const ask = async () => {
+      try {
+        const res = await fetch(predictionUrl, { cache: "no-store" });
+        if (res.ok) {
+          const body = (await res.json()) as { prediction?: SpeedrunPredictionView | null };
+          predRef.current = body.prediction ?? null;
+          if (!stopped) setPrediction(predRef.current);
         }
-      };
-      ws.onclose = () => { if (ping) { clearInterval(ping); ping = null; } schedule(); };
-      ws.onerror = () => { try { ws?.close(); } catch { /* already closed */ } };
+      } catch { /* try again next time */ }
+      if (stopped) return;
+      const busy = live.current.state.phase !== "idle" || !!predRef.current;
+      timer = setTimeout(() => void ask(), busy ? PRED_LIVE_MS : PRED_IDLE_MS);
     };
-    const schedule = () => {
-      if (stopped || retry) return;
-      const wait = Math.min(MAX_WAIT_MS, 1000 * 2 ** tries) * (0.8 + Math.random() * 0.4);
-      tries = Math.min(tries + 1, 6);
-      retry = setTimeout(() => { retry = null; open(); }, wait);
-    };
-    open();
-    return () => {
-      stopped = true;
-      if (retry) clearTimeout(retry);
-      if (ping) clearInterval(ping);
-      if (ws) { ws.onclose = null; ws.onerror = null; ws.onmessage = null; try { ws.close(); } catch { /* already closed */ } }
-    };
-  }, [socketUrl]);
+    void ask();
+    return () => { stopped = true; if (timer) clearTimeout(timer); };
+  }, [predictionUrl]);
 
   // A moment plays for a few seconds, then the overlay settles back.
   useEffect(() => {
@@ -100,6 +87,6 @@ export function SpeedrunOverlay({ socketUrl, initial, look, game, category }: Pr
   }, [moment]);
 
   return (
-    <SpeedrunCanvas state={snap.state} receivedAt={snap.at} look={look} game={game} category={category} moment={moment} />
+    <SpeedrunCanvas state={snap.state} receivedAt={snap.at} look={look} game={game} category={category} moment={moment} prediction={prediction} />
   );
 }

@@ -315,6 +315,9 @@ export interface CommandDef {
    *  doesn't break before Phase D migrates it to `family`. New
    *  registrations should use `family` instead. */
   category?: string;
+  /** A channel's own custom command with the same trigger answers instead of this built-in (`!pb` is a common
+   *  custom command; the speedrun ones step aside for it). Built-ins win a clash otherwise. */
+  yieldToCustom?: boolean;
   help: CommandHelp;
   handler: (ctx: CmdContext) => Promise<CmdResult>;
 }

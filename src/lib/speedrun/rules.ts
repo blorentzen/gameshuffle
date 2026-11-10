@@ -5,7 +5,7 @@
  * Pure and client-safe; tests in scripts/test-speedrun.ts.
  */
 
-import type { RelayEvent, RelaySegment, RelayState, SpeedrunLook, SpeedrunStats } from "./types";
+import type { RelayEvent, RelaySegment, RelayState, SpeedrunLook, SpeedrunSettings, SpeedrunStats } from "./types";
 
 export const DEFAULT_STATS: SpeedrunStats = { pb: true, sob: true, attempts: true, prevSegment: false, pace: false };
 export const DEFAULT_LOOK: SpeedrunLook = { layout: "column", position: "bottom", stats: DEFAULT_STATS, theme: null, line: null };
@@ -257,4 +257,110 @@ export function idleState(segments: RelaySegment[], opts: { game: string | null;
 export function baseForAttempts(n: number, current: { attempts: number; base: number }): number {
   const seen = Math.max(0, current.attempts - current.base);
   return Math.max(0, Math.min(ATTEMPTS_MAX, Math.floor(n)) - seen);
+}
+
+// ── Step 2: settings, the phone remote's splits, the prediction ─────────
+
+/** Reply waits on offer (seconds). 60 at most: the delayed lines run inside the webhook's own time. */
+export const REPLY_DELAYS = [0, 2, 5, 10, 15, 20, 30, 45, 60] as const;
+export const DEFAULT_SETTINGS: SpeedrunSettings = {
+  prediction: { on: false, lockSplit: null },
+  commands: { pb: true, pace: true, splits: true },
+  replyDelay: 5,
+};
+export const SPLITS_MAX = 500;
+export const SPLIT_NAME_MAX = 120;
+
+/** Saved or sent settings, cleaned: anything missing or odd falls back to the default. */
+export function cleanSettings(input: unknown): SpeedrunSettings {
+  const o = input && typeof input === "object" ? (input as Record<string, unknown>) : {};
+  const p = o.prediction && typeof o.prediction === "object" ? (o.prediction as Record<string, unknown>) : {};
+  const c = o.commands && typeof o.commands === "object" ? (o.commands as Record<string, unknown>) : {};
+  const flag = (v: unknown, d: boolean) => (typeof v === "boolean" ? v : d);
+  const lock = typeof p.lockSplit === "number" && Number.isInteger(p.lockSplit) && p.lockSplit >= 1 && p.lockSplit <= SPLITS_MAX ? p.lockSplit : null;
+  const delay = typeof o.replyDelay === "number" && (REPLY_DELAYS as readonly number[]).includes(o.replyDelay) ? o.replyDelay : DEFAULT_SETTINGS.replyDelay;
+  return {
+    prediction: { on: flag(p.on, false), lockSplit: lock },
+    commands: { pb: flag(c.pb, true), pace: flag(c.pace, true), splits: flag(c.splits, true) },
+    replyDelay: delay,
+  };
+}
+
+/** A partial change on top of the saved settings (what the setup screen sends). */
+export function mergeSettings(cur: SpeedrunSettings, patch: unknown): SpeedrunSettings {
+  const o = patch && typeof patch === "object" ? (patch as Record<string, unknown>) : {};
+  return cleanSettings({
+    prediction: { ...cur.prediction, ...(o.prediction && typeof o.prediction === "object" ? o.prediction : {}) },
+    commands: { ...cur.commands, ...(o.commands && typeof o.commands === "object" ? o.commands : {}) },
+    replyDelay: o.replyDelay ?? cur.replyDelay,
+  });
+}
+
+/** Typed split names, one per line, tidied: blank lines dropped, 120 characters each, 500 at most. */
+export function cleanSplitNames(input: unknown): string[] | null {
+  const lines = Array.isArray(input) ? input : typeof input === "string" ? input.split(/\r?\n/) : null;
+  if (!lines) return null;
+  const names = lines
+    .map((l) => (typeof l === "string" ? l.replace(/\s+/g, " ").trim().slice(0, SPLIT_NAME_MAX) : ""))
+    .filter(Boolean);
+  return names.length && names.length <= SPLITS_MAX ? names : null;
+}
+
+/** The run for typed names: a split keeps its times when the name is unchanged in the same place, else starts fresh. */
+export function segmentsForNames(names: string[], current: RelaySegment[]): RelaySegment[] {
+  const same = names.length === current.length && names.every((n, i) => n === current[i].name);
+  return same ? current.map((s) => ({ ...s })) : names.map((name) => ({ name, pbMs: null, bestMs: null }));
+}
+
+/**
+ * After which split bets lock: the streamer's choice, else a quarter of the way in. Never before split 2 (the
+ * prediction opens after split 1) and never on the last split (that's the finish). Null for runs under 3 splits.
+ */
+export function lockAfter(n: number, chosen: number | null): number | null {
+  if (n < 3) return null;
+  const want = chosen ?? Math.round(n / 4);
+  return Math.min(Math.max(want, 2), n - 1);
+}
+
+/** Splits done so far in this attempt (the index of the split being run, or every split once it ended). */
+export function splitsDone(st: RelayState): number {
+  if (st.phase === "ended") return st.segments.length;
+  if (st.phase === "idle") return 0;
+  return Math.max(0, st.index ?? 0);
+}
+
+export type PredictionMarketState = { status: "open" | "locked" | "settled" | "cancelled"; lockPending: boolean } | null;
+export type PredictionAction =
+  | { kind: "open" }
+  | { kind: "lock" }
+  | { kind: "settle"; winner: "pb" | "no" }
+  | { kind: "refund" }
+  | { kind: "none" };
+
+/**
+ * What a relay event does to the attempt's "PB this run" prediction (picks 2026-11-09): it opens after split 1, locks
+ * after the lock split, settles at the finish (PB or not), gives the tokens back on a reset before the lock and
+ * settles a reset after the lock as no PB. `market` is this attempt's market, if any; `lockPending` = the lock split
+ * is done but the stream delay hasn't passed yet, so it counts as locked.
+ */
+export function predictionAction(event: RelayEvent, st: RelayState, lockAt: number | null, market: PredictionMarketState): PredictionAction {
+  const live = market && (market.status === "open" || market.status === "locked");
+  const locked = !!market && (market.status === "locked" || market.lockPending);
+  switch (event) {
+    case "split":
+    case "skip": {
+      if (lockAt == null) return { kind: "none" };
+      const done = splitsDone(st);
+      if (!market) return done >= 1 && done < lockAt && st.phase !== "ended" ? { kind: "open" } : { kind: "none" };
+      if (market.status === "open" && !market.lockPending && done >= lockAt) return { kind: "lock" };
+      return { kind: "none" };
+    }
+    case "finish":
+      return live ? { kind: "settle", winner: isNewPb({ ...st, phase: "ended" }) ? "pb" : "no" } : { kind: "none" };
+    case "reset":
+      if (!live) return { kind: "none" };
+      return locked ? { kind: "settle", winner: "no" } : { kind: "refund" };
+    default:
+      return { kind: "none" };
+  }
 }

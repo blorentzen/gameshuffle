@@ -138,6 +138,18 @@ export async function POST(
   });
   const stream = await ensureActiveStream({ communityId: community.id });
 
+  // A speedrun "PB this run" prediction needs no session (src/lib/speedrun/prediction.ts).
+  const { data: early } = await admin.from("gs_markets").select("game_key, community_id").eq("id", marketId).maybeSingle();
+  const isSpeedrun = (early as { game_key?: string } | null)?.game_key === "speedrun";
+  if (isSpeedrun) {
+    if ((early as { community_id: string }).community_id !== community.id) {
+      return NextResponse.json({ error: "market_not_found" }, { status: 404 });
+    }
+    if (viewer.id === (streamer as { id: string }).id) {
+      return NextResponse.json({ error: "runner_cant_bet", message: "You're the runner, so this prediction is for chat." }, { status: 403 });
+    }
+  }
+
   // ---- 3. Active session must exist + match the market ------------------
   const { data: sessionRow } = await admin
     .from("gs_sessions")
@@ -147,7 +159,7 @@ export async function POST(
     .order("activated_at", { ascending: false, nullsFirst: false })
     .limit(1)
     .maybeSingle();
-  if (!sessionRow) {
+  if (!sessionRow && !isSpeedrun) {
     return NextResponse.json({ error: "no_active_session" }, { status: 409 });
   }
 
@@ -216,7 +228,7 @@ export async function POST(
   if (!marketRow) {
     return NextResponse.json({ error: "market_not_found" }, { status: 404 });
   }
-  if ((marketRow as { session_id: string }).session_id !== sessionRow.id) {
+  if (!isSpeedrun && (marketRow as { session_id: string }).session_id !== sessionRow?.id) {
     // The market exists but isn't tied to this streamer's current
     // session — refuse rather than silently bet on a stale market.
     return NextResponse.json({ error: "market_session_mismatch" }, { status: 409 });

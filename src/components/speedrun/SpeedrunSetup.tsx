@@ -3,23 +3,28 @@
 /**
  * The speedrun setup (approved mockup screen 4, step 1 of phase 1): the OBS link beside a preview, then one card with
  * the timer (three steps, the masked address with Copy, live status from the relay, "Make a new address"), the game and
- * category, and the look (Column or Strip, where the Strip sits, what the Column shows). Everything autosaves.
- * Used on /speedrun (signed in) and Studio ▸ Tools ▸ Speedrun (`studio`).
+ * category, and the look (Column or Strip, where the Strip sits, what the Column shows). Step 2 adds the phone remote
+ * (its link, a code to scan, and splits typed for runners without LiveSplit One), chat's "PB this run" prediction
+ * (GS Pro) and the chat commands with the reply delay (mockup screen 4). Everything autosaves but typed splits, which
+ * can replace the run's times and so wait for Save. Used on /speedrun (signed in) and Studio ▸ Tools ▸ Speedrun.
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
-import { Button, Card, Input, Switch } from "@empac/cascadeds";
-import { IconCheck, IconCircleCheckFilled, IconCopy, IconRefresh, IconStopwatch } from "@tabler/icons-react";
+import Link from "next/link";
+import { Accordion, Button, Card, Input, Modal, Switch, Textarea } from "@empac/cascadeds";
+import { IconCheck, IconCircleCheckFilled, IconCopy, IconDeviceMobile, IconQrcode, IconRefresh, IconStopwatch } from "@tabler/icons-react";
 import { LabeledCombobox } from "@/components/ui/LabeledCombobox";
 import { IconTile } from "@/components/ui/IconTile";
+import { Select } from "@/components/ui/Select";
+import { ProTrialPrompt } from "@/components/billing/ProTrialPrompt";
 import { useToast } from "@/components/toast/ToastProvider";
 import { useConfirm } from "@/components/confirm/ConfirmProvider";
 import { useAutosave } from "@/lib/hooks/useAutosave";
 import { EVENTS, track } from "@/lib/analytics/events";
 import { GAME_CATALOG } from "@/data/game-catalog";
 import { demoState } from "@/lib/speedrun/demo";
-import { CATEGORY_MAX } from "@/lib/speedrun/rules";
-import type { SpeedrunLook, SpeedrunSetupView, SpeedrunStats, SpeedrunStatus } from "@/lib/speedrun/types";
+import { CATEGORY_MAX, REPLY_DELAYS, SPLITS_MAX, cleanSplitNames, lockAfter } from "@/lib/speedrun/rules";
+import type { SpeedrunLook, SpeedrunSettings, SpeedrunSetupView, SpeedrunStats, SpeedrunStatus } from "@/lib/speedrun/types";
 import { SpeedrunCanvas } from "./SpeedrunCanvas";
 
 export type SetupBlocked = "not_ready" | "not_configured" | null;
@@ -36,7 +41,15 @@ interface Form {
   game: string;
   category: string;
   attempts: string;
+  settings: SpeedrunSettings;
 }
+
+const COMMAND_ROWS: { id: keyof SpeedrunSettings["commands"]; label: string; note: string }[] = [
+  { id: "pb", label: "!pb", note: "Your personal best and sum of best" },
+  { id: "pace", label: "!pace", note: "Ahead or behind, and where the run is heading" },
+  { id: "splits", label: "!splits", note: "Every split so far" },
+];
+const DELAY_OPTIONS = REPLY_DELAYS.map((s) => ({ value: String(s), label: s === 0 ? "Straight away" : `${s} seconds` }));
 
 const STAT_ROWS: { id: keyof SpeedrunStats; label: string; note?: string }[] = [
   { id: "pb", label: "Personal best" },
@@ -53,7 +66,7 @@ const GAME_OPTIONS = [...GAME_CATALOG.filter((g) => g.family === "Mario Kart"), 
 const POLL_MS = 5000;
 const noopSubscribe = () => () => {};
 
-const formOf = (v: SpeedrunSetupView): Form => ({ look: v.look, game: v.game, category: v.category, attempts: String(v.attempts) });
+const formOf = (v: SpeedrunSetupView): Form => ({ look: v.look, game: v.game, category: v.category, attempts: String(v.attempts), settings: v.settings });
 
 function maskAddress(url: string): string {
   try {
@@ -85,6 +98,9 @@ export function SpeedrunSetup({ initial, blocked, studio = false }: Props) {
   const [form, setForm] = useState<Form | null>(initial ? formOf(initial) : null);
   const [status, setStatus] = useState<SpeedrunStatus | null>(null);
   const [copied, setCopied] = useState(false);
+  const [splitText, setSplitText] = useState<string>(initial ? initial.splits.join("\n") : "");
+  const [savingSplits, setSavingSplits] = useState(false);
+  const [qr, setQr] = useState<string | null>(null);
   const origin = useSyncExternalStore(noopSubscribe, () => window.location.origin, () => "");
   const saved = useRef<Form | null>(initial ? formOf(initial) : null);
 
@@ -96,6 +112,7 @@ export function SpeedrunSetup({ initial, blocked, studio = false }: Props) {
     if (!before || JSON.stringify(before.look) !== JSON.stringify(next.look)) patch.look = next.look;
     if (!before || before.game !== next.game) patch.game = next.game;
     if (!before || before.category !== next.category) patch.category = next.category;
+    if (!before || JSON.stringify(before.settings) !== JSON.stringify(next.settings)) patch.settings = next.settings;
     if (!before || before.attempts !== next.attempts) {
       const n = Number(next.attempts);
       if (next.attempts.trim() !== "" && Number.isInteger(n) && n >= 0) patch.attempts = n;
@@ -146,6 +163,7 @@ export function SpeedrunSetup({ initial, blocked, studio = false }: Props) {
   }
 
   const setLook = (patch: Partial<SpeedrunLook>) => setForm((f) => (f ? { ...f, look: { ...f.look, ...patch } } : f));
+  const setSettings = (fn: (s: SpeedrunSettings) => SpeedrunSettings) => setForm((f) => (f ? { ...f, settings: fn(f.settings) } : f));
   const setStat = (id: keyof SpeedrunStats, on: boolean) => setForm((f) => (f ? { ...f, look: { ...f.look, stats: { ...f.look.stats, [id]: on } } } : f));
 
   async function copy(text: string, ok: string) {
@@ -159,6 +177,33 @@ export function SpeedrunSetup({ initial, blocked, studio = false }: Props) {
   async function copyObs() {
     if (!view) return;
     if (await copy(`${origin}${view.overlayPath}`, "OBS link copied. Paste it into a Browser source.")) track(EVENTS.speedrunAddressCopied, { kind: "overlay" });
+  }
+  async function saveSplits() {
+    if (!view) return;
+    const names = cleanSplitNames(splitText);
+    if (!names) { toast.error(`Type at least one split, one per line (${SPLITS_MAX} at most).`); return; }
+    const same = names.length === view.splits.length && names.every((n, i) => n === view.splits[i]);
+    if (same) { toast.success("Those are your splits already."); return; }
+    if (view.splitsTimed) {
+      const ok = await confirm({ title: "Replace your splits?", body: "Your PB and best times stay with the old splits. The new ones start fresh, and LiveSplit One's splits take over again whenever it connects.", confirmLabel: "Replace my splits" });
+      if (!ok) return;
+    }
+    setSavingSplits(true);
+    const res = await fetch("/api/speedrun/setup", { method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify({ splitNames: names }) }).catch(() => null);
+    setSavingSplits(false);
+    if (!res?.ok) { toast.error("Couldn't save your splits. Try again."); return; }
+    const body = (await res.json()) as { setup: SpeedrunSetupView };
+    setView(body.setup);
+    setSplitText(body.setup.splits.join("\n"));
+    toast.success(`${body.setup.splits.length} splits saved.`);
+  }
+  async function showQr() {
+    try {
+      const QR = (await import("qrcode")).default;
+      setQr(await QR.toDataURL(`${origin}/speedrun/remote`, { margin: 1, width: 480 }));
+    } catch {
+      toast.error("Couldn't make the code. Open gameshuffle.co/speedrun/remote on your phone instead.");
+    }
   }
   async function renew(kind: "timer" | "overlay") {
     const ok = await confirm(kind === "timer"
@@ -195,6 +240,13 @@ export function SpeedrunSetup({ initial, blocked, studio = false }: Props) {
     <span className={`sr-steps__n${done ? " is-done" : ""}`} aria-hidden="true">{done ? <IconCheck size={16} stroke={3} /> : n}</span>
   );
   const host = origin.replace(/^https?:\/\//, "");
+  // "Bets lock after": a quarter of the way in, or any split from the second to the one before last.
+  const n = view.splits.length;
+  const quarter = lockAfter(n, null);
+  const lockOptions = quarter == null ? [] : [
+    { value: "", label: `A quarter of the way in (${view.splits[quarter - 1]}, split ${quarter} of ${n})` },
+    ...Array.from({ length: n - 2 }, (_, i) => i + 2).map((k) => ({ value: String(k), label: `${view.splits[k - 1]} (split ${k} of ${n})` })),
+  ];
 
   return (
     <div className="sr-setup">
@@ -260,6 +312,43 @@ export function SpeedrunSetup({ initial, blocked, studio = false }: Props) {
                 </li>
               </ol>
               <Button variant="ghost" size="small" iconBefore={IconRefresh} className="sr-relink sr-relink--steps" onClick={() => void renew("timer")}>Make a new address</Button>
+            </section>
+
+            <section className="sr-sec" aria-labelledby="sr-remote-h">
+              <div className="sr-sec__h"><h2 id="sr-remote-h">Phone remote</h2></div>
+              <div className="sr-remote-row">
+                <IconTile icon={IconDeviceMobile} tone="violet" />
+                <div>
+                  <b>No timer? Run it from your phone</b>
+                  <p className="sr-sub">Big Split, Undo, Skip and Reset buttons. The phone keeps the time, and with LiveSplit One connected it splits that instead.</p>
+                  <div className="sr-remote-row__act">
+                    <Link href="/speedrun/remote" className="empac-button empac-button--secondary empac-button--small"><IconDeviceMobile size={16} aria-hidden="true" />Open the phone remote</Link>
+                    <Button variant="ghost" size="small" iconBefore={IconQrcode} onClick={() => void showQr()}>Scan with your phone</Button>
+                  </div>
+                </div>
+              </div>
+              <p className="sr-sub sr-remote-splits">
+                {view.splits.length
+                  ? `${view.splits.length} split${view.splits.length === 1 ? "" : "s"}${view.splitsTimed ? " from LiveSplit One" : ""}: ${view.splits.slice(0, 4).join(", ")}${view.splits.length > 4 ? "…" : ""}`
+                  : "No splits yet. Connect LiveSplit One, or type them below for the phone remote."}
+              </p>
+              <Accordion
+                variant="flush"
+                className="sr-acc"
+                defaultOpenIds={view.splits.length ? [] : ["splits"]}
+                items={[{
+                  id: "splits",
+                  title: "Type your splits",
+                  content: (
+                    <div className="sr-splits">
+                      <Textarea id="sr-splits" floatingLabel="One split per line" value={splitText} rows={8} fullWidth
+                        onChange={(e) => setSplitText(e.target.value)} aria-describedby="sr-splits-help" />
+                      <p className="sr-sub" id="sr-splits-help">For runs without LiveSplit One. Times start fresh when the names change.</p>
+                      <Button variant="secondary" size="small" onClick={() => void saveSplits()} disabled={savingSplits}>Save splits</Button>
+                    </div>
+                  ),
+                }]}
+              />
             </section>
 
             <section className="sr-sec" aria-labelledby="sr-game-h">
@@ -331,9 +420,72 @@ export function SpeedrunSetup({ initial, blocked, studio = false }: Props) {
               )}
               <p className="sr-sub sr-fine">Ahead is green with an arrow down, behind is red with an arrow up, and a best ever segment is gold with a star.</p>
             </section>
+
+            <section className="sr-sec" aria-labelledby="sr-pred-h">
+              <div className="sr-sec__h"><h2 id="sr-pred-h">Predictions</h2><span className="sr-pro">GS Pro</span></div>
+              {view.isPro ? (
+                <>
+                  <div className="sr-switches">
+                    <div className="sr-sw">
+                      <Switch size="large" labelPosition="left" label="Open a prediction every run"
+                        helperText="PB or no PB, chat bets tokens. It opens after your first split and settles when the run ends or resets."
+                        checked={form.settings.prediction.on}
+                        onChange={(e) => setSettings((st) => ({ ...st, prediction: { ...st.prediction, on: e.target.checked } }))} />
+                    </div>
+                  </div>
+                  {form.settings.prediction.on && (
+                    <div className="sr-field-block">
+                      {lockOptions.length ? (
+                        <>
+                          <span className="sr-field-label" id="sr-lock-label">Bets lock after</span>
+                          <Select aria-labelledby="sr-lock-label" options={lockOptions} fullWidth
+                            value={form.settings.prediction.lockSplit == null ? "" : String(form.settings.prediction.lockSplit)}
+                            onChange={(v) => setSettings((st) => ({ ...st, prediction: { ...st.prediction, lockSplit: v === "" ? null : Number(v) } }))} />
+                          <p className="sr-sub sr-help">A reset before the lock gives everyone their tokens back.</p>
+                        </>
+                      ) : (
+                        <p className="sr-sub">Predictions need a run with 3 splits or more. Your splits show up here once LiveSplit One connects or you type them.</p>
+                      )}
+                      {!view.twitch && <p className="sr-sub sr-help">Connect Twitch in Streaming, Setup so chat can bet.</p>}
+                    </div>
+                  )}
+                  <p className="sr-sub sr-fine">Tokens come from chat&apos;s own wallets. They can&apos;t be bought or cashed out.</p>
+                </>
+              ) : (
+                <ProTrialPrompt title="Chat predictions are part of GS Pro" from="speedrun-prediction" compact>
+                  <p>Chat bets tokens on PB or no PB every run. It opens after your first split, locks a quarter of the way in and settles itself.</p>
+                </ProTrialPrompt>
+              )}
+            </section>
+
+            <section className="sr-sec" aria-labelledby="sr-chat-h">
+              <div className="sr-sec__h"><h2 id="sr-chat-h">Chat commands</h2></div>
+              <div className="sr-switches" role="group" aria-labelledby="sr-chat-h">
+                {COMMAND_ROWS.map((c) => (
+                  <div className="sr-sw" key={c.id}>
+                    <Switch size="large" labelPosition="left" label={c.label} helperText={c.note} checked={form.settings.commands[c.id]}
+                      onChange={(e) => setSettings((st) => ({ ...st, commands: { ...st.commands, [c.id]: e.target.checked } }))} />
+                  </div>
+                ))}
+              </div>
+              <div className="sr-field-block">
+                <span className="sr-field-label" id="sr-delay-label">Replies wait</span>
+                <Select aria-labelledby="sr-delay-label" options={DELAY_OPTIONS} fullWidth value={String(form.settings.replyDelay)}
+                  onChange={(v) => setSettings((st) => ({ ...st, replyDelay: Number(v) }))} />
+                <p className="sr-sub sr-help">Match your stream delay so chat and your live page never get a split before the stream shows it.</p>
+                {!view.twitch && <p className="sr-sub sr-help">They answer in your Twitch chat once Twitch is connected in Streaming, Setup.</p>}
+              </div>
+            </section>
           </div>
         </div>
       </div>
+      <Modal isOpen={!!qr} onClose={() => setQr(null)} title="Open the remote on your phone" size="small">
+        <div className="sr-qr">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          {qr && <img src={qr} alt="A code that opens the phone remote" width={240} height={240} />}
+          <p className="sr-sub">Point your phone&apos;s camera at the code, or open {host || "gameshuffle.co"}/speedrun/remote. Sign in with this account there.</p>
+        </div>
+      </Modal>
     </div>
   );
 }

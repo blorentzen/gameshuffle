@@ -490,6 +490,36 @@ for (const def of LOUNGE_COMMANDS) {
   });
 }
 
+// Speedrun commands (free, speedrunning step 2): the runner's PB, pace and splits from their speedrun overlay. Quiet
+// unless the streamer has a speedrun setup with the command on; a channel's own !pb (a common custom command) wins.
+const SPEEDRUN_COMMANDS: { name: "pb" | "pace" | "splits"; summary: string; detail: string }[] = [
+  { name: "pb", summary: "The streamer's speedrun personal best and sum of best.", detail: "From their speedrun overlay (gameshuffle.co/speedrun): the PB for the game and category they're running, the day they set it, and the sum of best." },
+  { name: "pace", summary: "Ahead or behind the PB in the run going now, and where it's heading.", detail: "The gap at the last split and the finish time if the rest of the run matches the PB. Replies wait for the stream delay set in the speedrun setup." },
+  { name: "splits", summary: "Every split of the run so far, ahead or behind the PB.", detail: "Each split with its gap to the PB, a star for a best segment, and the split being run now. Replies wait for the stream delay set in the speedrun setup." },
+];
+for (const def of SPEEDRUN_COMMANDS) {
+  registerCommand({
+    name: def.name,
+    trigger: [def.name],
+    actor: "everyone",
+    surface: ["chat"],
+    economy: "none",
+    category: "community",
+    family: "community",
+    minAuthority: "viewer",
+    vipOnly: false,
+    cooldownSeconds: 10,
+    yieldToCustom: true,
+    help: { summary: def.summary, usage: `!${def.name}`, detail: def.detail },
+    handler: async (cmd) => {
+      // Loaded on use: the speedrun store is server-only, and the routing test loads this file in plain Node.
+      const { handleSpeedrunCommand } = await import("./speedrun");
+      await handleSpeedrunCommand({ userId: cmd.userId, reply: cmd.reply }, def.name);
+      return { ok: true };
+    },
+  });
+}
+
 // Coin flip (Pro). Broadcaster + mods only; flips a coin on the overlay.
 registerCommand({
   name: "gs.flip",

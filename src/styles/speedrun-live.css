@@ -1,0 +1,35 @@
+/* ─── The speedrun "PB this run" prediction on the live page (LiveSpeedrunCard, approved mockup screen 7). One card:
+   the run as the stream shows it, the question, the two sides and the stake; after the lock, the viewer's bet and then
+   the result. Sizes in CDS tokens (the root is 10px). ─── */
+
+.live-srp { display: block; }
+.lsrp.empac-card { width: 100%; }
+.lsrp__in { display: grid; gap: var(--spacing-16); padding: var(--spacing-20); }
+.lsrp-run { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: var(--spacing-12); align-items: center; }
+.lsrp-run__body { display: grid; gap: var(--spacing-4); min-width: 0; }
+.lsrp-run__body > b { font-size: var(--font-size-16); line-height: 1.3; }
+.lsrp-run__now { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--spacing-4) var(--spacing-12); font-size: var(--font-size-14); color: var(--text-secondary); }
+.lsrp-run__clock { font-family: var(--font-display); font-size: var(--font-size-20); font-weight: 800; color: var(--text-primary); font-variant-numeric: tabular-nums; }
+.lsrp-d { display: inline-flex; align-items: center; gap: var(--spacing-2, .2rem); font-weight: 700; font-variant-numeric: tabular-nums; }
+.lsrp-d.is-ahead { color: #137a4b; }
+.lsrp-d.is-behind { color: #b42335; }
+html.dark .lsrp-d.is-ahead { color: #8ff0bb; }
+html.dark .lsrp-d.is-behind { color: #ffb3bd; }
+.lsrp__q { margin: 0; font-family: var(--font-display); font-size: var(--font-size-20); font-weight: 800; line-height: 1.25; }
+.lsrp__meta { margin: var(--spacing-4) 0 0; font-size: var(--font-size-14); color: var(--text-secondary); }
+.lsrp-opts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--spacing-12); }
+.lsrp-opt.empac-card { height: 100%; }
+.lsrp-opt__in { display: grid; gap: var(--spacing-8); padding: var(--spacing-12); }
+.lsrp-opt__in b { font-size: var(--font-size-16); }
+.lsrp-opt__in small { font-size: var(--font-size-14); color: var(--text-secondary); font-variant-numeric: tabular-nums; }
+.lsrp-bar { display: block; height: .8rem; border-radius: 99px; background: var(--background-secondary, #eef0f6); overflow: hidden; }
+.lsrp-bar i { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, #4b5cf5, #c949e9); }
+.lsrp-stake { display: grid; gap: var(--spacing-8); }
+.lsrp-stake__row { display: flex; justify-content: space-between; align-items: center; gap: var(--spacing-12); font-size: var(--font-size-14); color: var(--text-secondary); }
+.lsrp-stake__row b { color: var(--text-primary); }
+.lsrp-stake__chips { display: flex; flex-wrap: wrap; gap: var(--spacing-8); }
+.lsrp__est { margin: 0; font-size: var(--font-size-14); font-weight: 600; }
+.lsrp__fine { margin: 0; font-size: var(--font-size-14); color: var(--text-secondary); line-height: 1.45; }
+.lsrp-mini { display: grid; gap: var(--spacing-6, .6rem); justify-items: start; padding-top: var(--spacing-16); border-top: 1px solid var(--border-subtle); }
+.lsrp-mini b { font-size: var(--font-size-16); line-height: 1.35; }
+.lsrp-mini p { margin: 0; font-size: var(--font-size-14); color: var(--text-secondary); line-height: 1.45; }

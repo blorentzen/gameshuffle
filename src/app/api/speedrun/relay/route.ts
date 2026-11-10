@@ -2,7 +2,8 @@
  * The relay's webhook (phase 1 contract, "Webhook: relay → site"). The relay posts every attempt event here:
  *   POST { relayId, event, state }, header x-relay-signature = hex HMAC-SHA256(SPEEDRUN_RELAY_SECRET, raw body)
  * A wrong signature is 401; an unknown runner 404 (the relay doesn't retry those); a database hiccup 500 (it retries
- * once). Events are idempotent per attempt and event (see recordRelayEvent).
+ * once). Events are idempotent per attempt and event (see recordRelayEvent). The "PB this run" prediction moves on
+ * the same events after the response (src/lib/speedrun/prediction.ts).
  */
 
 import { NextResponse, type NextRequest } from "next/server";
@@ -14,6 +15,8 @@ import type { RelayEvent, RelayWebhookBody } from "@/lib/speedrun/types";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+// The prediction's steps run after the response and wait out the stream delay (60 seconds at most).
+export const maxDuration = 90;
 
 const EVENTS = new Set<RelayEvent>(["start", "split", "skip", "undo", "reset", "finish", "connect", "disconnect"]);
 const MAX_BODY = 256 * 1024;

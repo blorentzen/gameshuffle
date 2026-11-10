@@ -12,9 +12,11 @@
 
 import type { CSSProperties, ReactNode } from "react";
 import {
-  IconCaretDownFilled, IconCaretUpFilled, IconConfetti, IconCrownFilled, IconRefresh, IconSparkles, IconStarFilled,
-  IconSteeringWheel, IconStopwatch,
+  IconArrowBackUp, IconCaretDownFilled, IconCaretUpFilled, IconCheck, IconConfetti, IconCrownFilled, IconRefresh, IconSparkles,
+  IconStarFilled, IconSteeringWheel, IconStopwatch,
 } from "@tabler/icons-react";
+import { TOKEN_SRC } from "@/components/TokenIcon";
+import { predictionWords } from "@/lib/speedrun/chat";
 import { mmrRubik } from "@/components/mmr/mmrFonts";
 import { GLYPHS } from "@/components/mmr/glyphs";
 import { gameEntry } from "@/lib/games/key";
@@ -23,7 +25,7 @@ import {
   COLUMN_ROWS, currentIndex, deltas, lastDelta, lastReached, pace, pbTime, prevSegment, segmentLengths, sumOfBest,
   ticks, timeBefore, visibleRows, type MomentKind,
 } from "@/lib/speedrun/rules";
-import type { RelayState, SpeedrunLook } from "@/lib/speedrun/types";
+import type { RelayState, SpeedrunLook, SpeedrunPredictionView } from "@/lib/speedrun/types";
 import { useRunMs } from "./useRunClock";
 
 export interface SpeedrunMoment {
@@ -47,6 +49,8 @@ export interface CanvasProps {
   still?: boolean;
   /** The game behind the overlay in previews (a blurred picture); OBS pages leave it out. */
   backdrop?: boolean;
+  /** Chat's "PB this run" prediction (GS Pro), when one is in play or just ended. */
+  prediction?: SpeedrunPredictionView | null;
 }
 
 // ── Pieces ────────────────────────────────────────────────────────────────
@@ -112,6 +116,26 @@ function names(st: RelayState, game?: string | null, category?: string | null) {
   return { key, name: name || cat || "Speedrun", cat: name ? cat : "" };
 }
 
+// ── Chat's prediction ─────────────────────────────────────────────────────
+
+function PredictionLine({ p, short = false }: { p: SpeedrunPredictionView; short?: boolean }) {
+  const w = predictionWords(p, { short });
+  const icon = w.kind === "won" ? <IconCheck aria-hidden="true" /> : p.status === "cancelled" ? <IconArrowBackUp aria-hidden="true" /> : p.result?.winner === "pb" ? <IconCrownFilled aria-hidden="true" /> : <IconRefresh aria-hidden="true" />;
+  return (
+    <div className={`sr-pred sr-pred--${w.kind}`}>
+      {w.kind === "tally"
+        // eslint-disable-next-line @next/next/no-img-element
+        ? <img className="sr-pred__tok" src={TOKEN_SRC} alt="" aria-hidden="true" />
+        : <span className="sr-pred__ico">{icon}</span>}
+      <b>{w.title}{w.status && !short && <span>{w.status}</span>}</b>
+      <div>
+        {w.pct != null && <div className="sr-pbar" style={{ "--p": `${w.pct}%` } as CSSProperties}><i /></div>}
+        <small>{w.line}</small>
+      </div>
+    </div>
+  );
+}
+
 // ── The Column ────────────────────────────────────────────────────────────
 
 function ColumnBanner({ moment, st }: { moment: SpeedrunMoment; st: RelayState }) {
@@ -168,13 +192,14 @@ function Sparks({ kind, id }: { kind: MomentKind; id: number }) {
   );
 }
 
-function Column({ st, receivedAt, look, game, category, moment, still }: Omit<CanvasProps, "backdrop" | "state"> & { st: RelayState }) {
+function Column({ st, receivedAt, look, game, category, moment, still, prediction }: Omit<CanvasProps, "backdrop" | "state"> & { st: RelayState }) {
   const n = names(st, game, category);
   const cur = currentIndex(st);
   const d = deltas(st);
   const count = st.segments.length;
   const statKeys = (["pb", "sob", "attempts", "prevSegment", "pace"] as const).filter((k) => look.stats[k]);
-  const maxRows = statKeys.length > 3 ? COLUMN_ROWS - 3 : COLUMN_ROWS - 1;
+  // The prediction takes about three rows' height.
+  const maxRows = (statKeys.length > 3 ? COLUMN_ROWS - 3 : COLUMN_ROWS - 1) - (prediction ? 3 : 0);
   const rows = visibleRows(count, cur, maxRows);
   const gold = moment?.kind === "gold" ? st.last?.index ?? null : null;
 
@@ -258,6 +283,7 @@ function Column({ st, receivedAt, look, game, category, moment, still }: Omit<Ca
           {statKeys.map((k) => { const s = stat(k); return <div key={k}><span className="sr-eyebrow">{s.label}</span><b>{s.value}</b></div>; })}
         </div>
       )}
+      {prediction && <PredictionLine p={prediction} />}
       <div className="sr-cl-foot">{look.line ? <span className="sr-cl-line">{look.line}</span> : <BuiltBy />}</div>
       {moment && moment.kind !== "gold" && (
         <div className="sr-banner-at sr-banner-at--mid"><ColumnBanner moment={moment} st={st} /><Sparks kind={moment.kind} id={moment.id} /></div>
@@ -269,7 +295,7 @@ function Column({ st, receivedAt, look, game, category, moment, still }: Omit<Ca
 
 // ── The Strip ─────────────────────────────────────────────────────────────
 
-function Strip({ st, receivedAt, look, game, category, moment, still }: Omit<CanvasProps, "backdrop" | "state"> & { st: RelayState }) {
+function Strip({ st, receivedAt, look, game, category, moment, still, prediction }: Omit<CanvasProps, "backdrop" | "state"> & { st: RelayState }) {
   const n = names(st, game, category);
   const cur = currentIndex(st);
   const count = st.segments.length;
@@ -297,7 +323,7 @@ function Strip({ st, receivedAt, look, game, category, moment, still }: Omit<Can
   }
 
   return (
-    <div className={`sr-ovp sr-stripov sr-stripov--${look.position}${moment?.kind === "reset" ? " is-reset" : ""}`} style={{ "--sr-field": fieldUrl() } as CSSProperties}>
+    <div className={`sr-ovp sr-stripov sr-stripov--${look.position}${prediction ? " sr-stripov--pred" : ""}${moment?.kind === "reset" ? " is-reset" : ""}`} style={{ "--sr-field": fieldUrl() } as CSSProperties}>
       {count > 0 && (
         <div className={`sr-st-ticks${count > 40 ? " is-dense" : ""}`} style={{ gridTemplateColumns: `repeat(${count}, minmax(0, 1fr))` }}>
           {kinds.map((k, i) => <i key={i} className={k} />)}
@@ -323,6 +349,7 @@ function Strip({ st, receivedAt, look, game, category, moment, still }: Omit<Can
         <b>{nextSeg ? nextSeg.name : ended ? fmtClock(st.splits.at(-1) ?? st.elapsedMs) : seg?.name ?? ""}</b>
         {count > 0 && <small>{nextSeg ? `PB ${nextSeg.pbMs != null ? fmtClock(nextSeg.pbMs) : "-"} · finish ${finish != null ? fmtClock(finish) : "-"}` : `PB ${finish != null ? fmtClock(finish) : "-"}`}</small>}
       </div>
+      {prediction && <div className="sr-st-pred"><PredictionLine p={prediction} short /></div>}
       {flag && <span className={`sr-st-flag sr-st-flag--${moment?.kind}`} key={moment?.id}>{flag}</span>}
     </div>
   );
@@ -330,10 +357,10 @@ function Strip({ st, receivedAt, look, game, category, moment, still }: Omit<Can
 
 // ── The canvas ────────────────────────────────────────────────────────────
 
-export function SpeedrunCanvas({ state, receivedAt, look, game, category, moment = null, still = false, backdrop = false }: CanvasProps) {
+export function SpeedrunCanvas({ state, receivedAt, look, game, category, moment = null, still = false, backdrop = false, prediction = null }: CanvasProps) {
   // A reset shows the run as it stood, dimmed, until the moment is over.
   const shown = moment?.kind === "reset" && moment.before ? moment.before : state;
-  const props = { st: shown, receivedAt, look, game, category, moment, still };
+  const props = { st: shown, receivedAt, look, game, category, moment, still, prediction };
   return (
     <div className={`sr-stage ${mmrRubik.variable}${backdrop ? " sr-stage--backdrop" : ""}`}>
       <div className={`sr-cv${look.theme ? ` sr-th-${look.theme}` : ""}`}>

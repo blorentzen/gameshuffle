@@ -16,6 +16,7 @@ the real app: `specs/research/2026-11-09-livesplit-one-check.md`.
 | `src/lso.ts` | LiveSplit One protocol client (ordered replies, events, timeouts, resync) |
 | `src/reads.ts` | Reading the run and the timer in batches |
 | `src/state.ts` | `RelayState` and the pure rules for each event (golds, PB, attempts, reconnects) |
+| `src/remote.ts` | Remote mode: the relay's own timer for the phone remote when no LiveSplit One is connected (pure) |
 | `src/tokens.ts` | Token sign/verify, webhook signature, bearer check (same as the site's `tokens.ts`) |
 | `src/time.ts` | LiveSplit time strings to ms |
 | `test/*.test.ts` | Unit tests (`npm test`), including the contract's shared token vectors |
@@ -59,15 +60,28 @@ the real app: `specs/research/2026-11-09-livesplit-one-check.md`.
   Pinging every 20 to 30s also keeps proxies from dropping an idle socket.
 - **First state:** an overlay gets the latest state on connect, `last` included. Play moments only for states that
   arrive after the first one.
-- **`/cmd`:** answers 200 with `{ok:true, state}` or `{ok:false, error}`; errors: `busy` (LiveSplit One is on a
-  settings screen), `no_run`, `not_connected`, `timeout`, and LiveSplit One's other codes in snake case
+- **`/cmd`:** answers 200 with `{ok:true, state, overlays}` or `{ok:false, error}`; errors: `busy` (LiveSplit One is
+  on a settings screen), `no_run`, `timeout`, and LiveSplit One's other codes in snake case
   (`already_paused`, `not_paused`, `run_finished`, `cant_undo_first_split`, `cant_skip_last_split`,
   `run_already_in_progress`, `negative_time`). 400 `bad_command`, 401 without the secret. As the contract says,
   `start` sends `start` and `split` sends `split`, so a stale Start can never split a run in progress (it answers `run_already_in_progress`; Split with no run answers `no_run`).
 - **Reset after a finish:** the attempt was already closed by `finish`; the following `reset` carries the same
   attempt number. Keep the finished result.
-- **`/admin`:** `{timerVersion?, overlayVersion?, attemptBase?, game?, category?}` (`null` clears game or category,
-  80 characters at most). Answers `{ok:true, state}`.
+- **Remote mode (step 2, the phone remote):** with no LiveSplit One connected, `/cmd` runs the relay's own timer
+  (`src/remote.ts`) over the run's segments and makes the same states and webhooks LiveSplit One would: Start only
+  from idle, Split (the last one finishes), Undo (after a finish it carries on running, as in LiveSplit), Skip (not the
+  last split), Reset (saves the attempt like `saveAttempt`: golds become best segments, a faster finish becomes the
+  PB), Pause and Resume. Its errors use the same names (`no_splits` when there's no run yet, `timer_paused`,
+  `already_paused`, `not_paused`, `run_finished`…). The clock lives in storage (`clock`), so a restart keeps the run.
+  A run LiveSplit One was keeping when it disconnected carries on from where the overlay had it; LiveSplit One
+  connecting again takes over (its reconcile closes a remote run with a reset).
+- **`/admin`:** `{timerVersion?, overlayVersion?, attemptBase?, game?, category?, segments?}` (`null` clears game or
+  category, 80 characters at most; `segments` = `[{name, pbMs?, bestMs?}]`, 500 at most, 128 KB body). Segments are
+  the run for remote mode: ignored while LiveSplit One is connected, kept for the next reset during a remote run, and
+  when the names match the relay's own the relay keeps its times (it saw the latest PB first). Answers
+  `{ok:true, state}`.
+- **`/state`:** `{state, overlays}`: the RelayState and how many overlays are open. The phone remote watches with
+  `/watch/<overlay token>?as=remote`, which gets every state but isn't counted as an overlay.
 
 ## Local development
 
