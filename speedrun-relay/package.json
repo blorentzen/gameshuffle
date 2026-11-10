@@ -1,0 +1,23 @@
+{
+  "name": "gameshuffle-speedrun-relay",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Speedrun relay: LiveSplit One connects here over WebSocket; GameShuffle overlays watch the run. Cloudflare Worker + one Durable Object per runner.",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "dev": "wrangler dev --env= --port 8787",
+    "test": "tsx --test test/*.test.ts",
+    "typecheck": "wrangler types && tsc --noEmit",
+    "deploy": "wrangler deploy --env=",
+    "deploy:dev": "wrangler deploy --env dev",
+    "token": "tsx scripts/token.ts"
+  },
+  "devDependencies": {
+    "tsx": "4.23.15",
+    "typescript": "5.9.3",
+    "wrangler": "4.159.0"
+  }
+}

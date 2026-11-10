@@ -1,0 +1,4 @@
+# Copy to .dev.vars for `npm run dev`. Never commit .dev.vars.
+SPEEDRUN_RELAY_SECRET=test-secret-0123456789abcdef0123456789
+# Where webhooks go locally: the site's dev server, or a test receiver.
+GS_ORIGIN=http://localhost:3001

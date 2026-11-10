@@ -1,0 +1,26 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "gameshuffle-speedrun-relay",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-11-01",
+  "workers_dev": true,
+  "observability": { "enabled": true },
+  "durable_objects": {
+    "bindings": [{ "name": "RELAY", "class_name": "Relay" }]
+  },
+  // SQLite-backed Durable Objects work on the Workers Free plan.
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["Relay"] }],
+  // SPEEDRUN_RELAY_SECRET is a secret: `npx wrangler secret put SPEEDRUN_RELAY_SECRET`
+  // (locally it comes from .dev.vars, which also overrides GS_ORIGIN).
+  "vars": { "GS_ORIGIN": "https://www.gameshuffle.co" },
+  // `npx wrangler deploy --env dev` makes a separate relay (gameshuffle-speedrun-relay-dev) for dev.gameshuffle.co,
+  // with its own objects and its own secret. Bindings and vars aren't inherited, so they're repeated here.
+  "env": {
+    "dev": {
+      "vars": { "GS_ORIGIN": "https://dev.gameshuffle.co" },
+      "durable_objects": {
+        "bindings": [{ "name": "RELAY", "class_name": "Relay" }]
+      }
+    }
+  }
+}
