@@ -14,7 +14,11 @@
 .wt-team__empty code { font-size: var(--font-size-14); }
 
 .wt-tags { display: flex; flex-wrap: wrap; align-items: center; gap: var(--spacing-8); }
-.wt-color { display: inline-flex; align-items: center; }
+.wt-color { display: inline-flex; align-items: center; gap: var(--spacing-8); }
+.wt-color--inline { margin-left: var(--spacing-8); vertical-align: middle; }
+.wt-color--inline .wt-color__swatch { width: 1.8rem; height: 1.8rem; }
+.wt-color__from, .wt-color__hex { font-size: var(--font-size-14); color: var(--text-secondary); }
+.wt-color__hex { font-variant-numeric: tabular-nums; }
 .wt-color__swatch { display: inline-block; width: 2.4rem; height: 2.4rem; border-radius: 50%; box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--text-primary) 28%, transparent); }
 
 .wt-flag { display: inline-flex; align-items: center; gap: var(--spacing-8); white-space: nowrap; }
@@ -83,3 +87,24 @@
 .wt-setting .admin-field { max-width: 52rem; }
 .wt-nick { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 18rem), 1fr)); gap: var(--spacing-12) var(--spacing-16); align-items: start; max-width: 72rem; }
 .wt-nick__go { grid-column: 1 / -1; }
+
+/* War tables (table look picks 2026-11-09): the preview beside the choices from wide screens, above them on phones.
+   The paid choices sit flat under a thin line (no box in a box). */
+.wtl { display: grid; gap: var(--spacing-24); margin-top: var(--spacing-16); }
+.wtl__preview { margin: 0; display: flex; flex-direction: column; gap: var(--spacing-8); min-width: 0; }
+.wtl__img { display: block; width: 100%; height: auto; border-radius: var(--radius-8); background: #07080f; transition: opacity 0.2s ease; }
+.wtl__img--loading { opacity: 0.55; }
+.wtl__caption { font-size: var(--font-size-14); color: var(--text-secondary); }
+.wtl__controls { display: flex; flex-direction: column; gap: var(--spacing-16); min-width: 0; }
+.wtl__bg { display: flex; align-items: center; gap: var(--spacing-12); flex-wrap: wrap; }
+.wtl__bg-thumb { width: 9.6rem; height: 5.4rem; object-fit: cover; border-radius: 6px; flex-shrink: 0; }
+.wtl__bg .admin-field__help { flex: 1 1 16rem; margin: 0; }
+.wtl__paid { display: flex; flex-direction: column; gap: var(--spacing-16); padding-top: var(--spacing-16); border-top: 1px solid var(--border-subtle); }
+.wtl__paid-title { margin: 0; font-size: var(--font-size-16); }
+.wtl__paid > .admin-field__help { margin: calc(var(--spacing-12) * -1) 0 0; }
+.wtl__colors { display: grid; gap: var(--spacing-16); grid-template-columns: repeat(auto-fit, minmax(20rem, 1fr)); }
+.wtl__held { margin: 0; font-size: var(--font-size-14); color: var(--text-secondary); }
+@media (min-width: 64rem) {
+  .wtl { grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); align-items: start; }
+  .wtl__preview { position: sticky; top: calc(var(--gs-nav-offset, 64px) + 16px); transition: var(--gs-nav-slide, none); }
+}

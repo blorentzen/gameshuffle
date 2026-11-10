@@ -12,7 +12,9 @@ import { COMP_COLOR } from "@/lib/discord/ttPanel";
 import { loungeBasic } from "@/lib/mmr/mkcentral";
 import { POINTS, standing, type WarGame } from "./rules";
 import { formatTable, parseTable, type TableModel } from "./table";
-import { renderTable } from "./tableCard";
+import { renderTable, type TablePicture } from "./tableCard";
+import { lookForTable, tableLooksReady } from "./tableLooks";
+import { isTableLayout, type TableLayout, type TableLook } from "./tableLook";
 import { listLogos } from "./logos";
 import { cardsReady, listTeams, playerCardsById } from "./cardStore";
 import { mkcTeam } from "./mkcTeams";
@@ -20,15 +22,17 @@ import { teamAliases, teamCardFor, type TeamCard } from "./cards";
 import { tagKey } from "./tags";
 import { flagsFor } from "./flags";
 import { registryTeam } from "./teams";
-import type { War, WarTeamRef } from "./store";
+import { getWar, warChannel, type War, type WarTeamRef } from "./store";
 import { SITE_URL } from "@/lib/seo";
 import { linkBtn } from "./discord";
 import { warPagePath } from "./page";
 
-export interface WarTableRow { id: string; warId: string | null; guildId: string; channelId: string; body: string; backgroundUrl: string | null; status: "draft" | "posted" | "canceled"; messageId: string | null; createdBy: string; createdByName: string | null; readBody: string | null }
-type Row = { id: string; war_id: string | null; guild_id: string; channel_id: string; body: string; background_url: string | null; status: WarTableRow["status"]; message_id: string | null; created_by: string; created_by_name: string | null; read_body?: string | null };
+export interface WarTableRow { id: string; warId: string | null; guildId: string; channelId: string; body: string; backgroundUrl: string | null; status: "draft" | "posted" | "canceled"; messageId: string | null; createdBy: string; createdByName: string | null; readBody: string | null;
+  /** The layout this table is drawn in when it isn't the channel's (wars-m7). */
+  layout: TableLayout | null }
+type Row = { id: string; war_id: string | null; guild_id: string; channel_id: string; body: string; background_url: string | null; status: WarTableRow["status"]; message_id: string | null; created_by: string; created_by_name: string | null; read_body?: string | null; layout?: string | null };
 const COLS = "id, war_id, guild_id, channel_id, body, background_url, status, message_id, created_by, created_by_name";
-const toRow = (r: Row): WarTableRow => ({ id: r.id, warId: r.war_id, guildId: r.guild_id, channelId: r.channel_id, body: r.body, backgroundUrl: r.background_url, status: r.status, messageId: r.message_id, createdBy: r.created_by, createdByName: r.created_by_name, readBody: r.read_body ?? null });
+const toRow = (r: Row): WarTableRow => ({ id: r.id, warId: r.war_id, guildId: r.guild_id, channelId: r.channel_id, body: r.body, backgroundUrl: r.background_url, status: r.status, messageId: r.message_id, createdBy: r.created_by, createdByName: r.created_by_name, readBody: r.read_body ?? null, layout: isTableLayout(r.layout) ? r.layout : null });
 
 export const TABLE_PREFIX = "wtab:";
 const V2 = 1 << 15;
@@ -79,11 +83,12 @@ export function warTotals(war: War, cards: TeamCard[] = []): { totals: Record<st
   return { totals, team: 6, order: [s.us, s.them] };
 }
 
-export async function createDraft(input: { warId: string | null; guildId: string; channelId: string; body: string; backgroundUrl: string | null; by: { id: string; name: string }; readBody?: string | null }): Promise<string | null> {
+export async function createDraft(input: { warId: string | null; guildId: string; channelId: string; body: string; backgroundUrl: string | null; by: { id: string; name: string }; readBody?: string | null; layout?: TableLayout | null }): Promise<string | null> {
   const withRead = input.readBody && (await cardsReady()) ? { read_body: input.readBody.slice(0, 4000) } : {};
+  const withLayout = input.layout && (await tableLooksReady()) ? { layout: input.layout } : {};
   const { data, error } = await createServiceClient().from("war_tables").insert({
     war_id: input.warId, guild_id: input.guildId, channel_id: input.channelId, body: input.body.slice(0, 4000), background_url: input.backgroundUrl,
-    created_by: input.by.id, created_by_name: input.by.name, ...withRead,
+    created_by: input.by.id, created_by_name: input.by.name, ...withRead, ...withLayout,
   }).select("id").single();
   if (error) { console.error("[wars] table draft failed:", error.message); return null; }
   return (data as { id: string }).id;
@@ -91,18 +96,20 @@ export async function createDraft(input: { warId: string | null; guildId: string
 
 export async function getTable(id: string): Promise<WarTableRow | null> {
   if (!/^[0-9a-f-]{36}$/.test(id)) return null;
-  const cols: string = (await cardsReady()) ? `${COLS}, read_body` : COLS;
+  const [read, looks] = await Promise.all([cardsReady(), tableLooksReady()]);
+  const cols: string = `${COLS}${read ? ", read_body" : ""}${looks ? ", layout" : ""}`;
   const { data } = await createServiceClient().from("war_tables").select(cols).eq("id", id).maybeSingle();
   return data ? toRow(data as unknown as Row) : null;
 }
 
-export async function updateTable(id: string, patch: Partial<{ body: string; status: WarTableRow["status"]; messageId: string | null; backgroundUrl: string | null; readBody: string | null }>): Promise<void> {
+export async function updateTable(id: string, patch: Partial<{ body: string; status: WarTableRow["status"]; messageId: string | null; backgroundUrl: string | null; readBody: string | null; layout: TableLayout | null }>): Promise<void> {
   const row: Record<string, unknown> = { updated_at: new Date().toISOString() };
   if (patch.body !== undefined) row.body = patch.body.slice(0, 4000);
   if (patch.status) row.status = patch.status;
   if (patch.messageId !== undefined) row.message_id = patch.messageId;
   if (patch.backgroundUrl !== undefined) row.background_url = patch.backgroundUrl;
   if (patch.readBody !== undefined && (await cardsReady())) row.read_body = patch.readBody;
+  if (patch.layout !== undefined && (await tableLooksReady())) row.layout = patch.layout;
   await createServiceClient().from("war_tables").update(row).eq("id", id);
 }
 
@@ -201,8 +208,8 @@ export async function postTable(id: string, war: War | null): Promise<PostResult
   if (!table) return "failed";
   const model = parseTable(table.body);
   const codes = model.teams.flatMap((t) => t.players.map((p) => p.flag).filter((f): f is string => !!f));
-  const [logos, flags] = await Promise.all([logosFor(model, table.guildId, war), flagsFor(table.guildId, codes)]);
-  const pic = await renderTable(model, { logos, flags, background: table.backgroundUrl, races: war ? war.races.length : null });
+  const [logos, flags, drawn] = await Promise.all([logosFor(model, table.guildId, war), flagsFor(table.guildId, codes), lookForTable(table.guildId, table.channelId, table.layout)]);
+  const pic = await renderTable(model, { logos, flags, background: table.backgroundUrl, races: war ? war.races.length : null, look: drawn.look });
   const body = tableMessage(table, pic.alt, war);
   const file = { name: "table.png", data: pic.png };
   if (table.status === "posted" && table.messageId) {
@@ -231,3 +238,27 @@ export async function recentWarId(guildId: string, channelId: string): Promise<s
   return r && Date.now() - Date.parse(r.created_at) < 6 * 3600_000 ? r.id : null;
 }
 
+/** A table to show when a channel has none yet: the server's first two team cards (or two made-up teams). */
+async function sampleTable(guildId: string): Promise<TableModel> {
+  const cards = (await cardsReady()) ? await listTeams(guildId).catch(() => []) : [];
+  const teams = [cards[0] ?? { tags: ["YOU"], name: "Your team", color: null }, cards[1] ?? { tags: ["THEM"], name: "Their team", color: null }];
+  const scores = [[118, 101, 92, 84, 77, 66], [104, 90, 81, 73, 62, 52]];
+  return {
+    title: null, date: null, settings: [], skipped: [],
+    teams: teams.map((t, i) => ({ tag: t.tags[0] ?? "?", name: t.name, color: t.color, penalty: 0, players: scores[i].map((score, j) => ({ name: `Player ${i * 6 + j + 1}`, flag: null, score })) })),
+  };
+}
+
+/**
+ * The Teams page's preview: the channel's newest posted table (else a sample with the server's teams) drawn in
+ * `look`, on the channel's saved background, the way new tables there will be.
+ */
+export async function previewTable(guildId: string, channelId: string, look: TableLook): Promise<TablePicture> {
+  const { data } = await createServiceClient().from("war_tables").select("body, war_id").eq("guild_id", guildId).eq("channel_id", channelId).eq("status", "posted").order("updated_at", { ascending: false }).limit(1).maybeSingle();
+  const row = data as { body: string; war_id: string | null } | null;
+  const [war, channel] = await Promise.all([row?.war_id ? getWar(row.war_id) : null, warChannel(guildId, channelId)]);
+  const model = row ? parseTable(row.body) : await sampleTable(guildId);
+  const codes = model.teams.flatMap((t) => t.players.map((p) => p.flag).filter((f): f is string => !!f));
+  const [logos, flags] = await Promise.all([logosFor(model, guildId, war), flagsFor(guildId, codes)]);
+  return renderTable(model, { logos, flags, background: channel?.background ?? null, races: war ? war.races.length : row ? null : 12, look });
+}

@@ -46,7 +46,9 @@ export function WarTeamEditor({ guild, draft, linksReady, logos, onLogos, onClos
   const [tagsText, setTagsText] = useState((team?.tags ?? (draft.tag ? [draft.tag] : [])).join(", "));
   const [name, setName] = useState(team?.name ?? draft.name ?? "");
   const [colorOn, setColorOn] = useState(!!team?.color);
-  const [color, setColor] = useState(team?.color ?? tagColor(team?.tags[0] ?? draft.tag ?? "GS"));
+  // Turning a color on starts from the one tables pick now (the logo's, else the tag's), so nothing jumps.
+  const picked = team?.logoColor ?? null;
+  const [color, setColor] = useState(team?.color ?? picked ?? tagColor(team?.tags[0] ?? draft.tag ?? "GS"));
   const [file, setFile] = useState<{ file: File; preview: string } | null>(null);
   const [dropLogo, setDropLogo] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -166,8 +168,16 @@ export function WarTeamEditor({ guild, draft, linksReady, logos, onLogos, onClos
 
         <div className="wt-field">
           <Switch checked={colorOn} onChange={(e) => setColorOn(e.target.checked)} label="Give the team its own color" aria-describedby="wt-color-help" />
-          <p className="admin-field__help" id="wt-color-help">Used on war tables. Without one, tables pick a color from the logo or the tag.</p>
-          {colorOn && <LookColorPicker label="Team color" value={color} onChange={setColor} presets={COLORS} />}
+          <p className="admin-field__help" id="wt-color-help">
+            {colorOn ? "Used on war tables: the team's names, its total and its side of the table." : picked ? "Tables use a color picked from the logo now:" : "Without one, tables pick a color from the logo, or from the tag when the logo has none."}
+            {!colorOn && picked && (
+              <span className="wt-color wt-color--inline">
+                <span className="wt-color__swatch" style={{ background: picked }} aria-hidden="true" />
+                <span className="wt-color__hex">{picked}</span>
+              </span>
+            )}
+          </p>
+          {colorOn && <LookColorPicker label="Team color" value={color} onChange={setColor} presets={picked && !COLORS.some((c) => c.value === picked) ? [{ value: picked, label: "From the logo" }, ...COLORS] : COLORS} />}
         </div>
 
         <div className="wt-field" role="group" aria-labelledby="wt-logo-label">

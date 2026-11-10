@@ -39,6 +39,8 @@ export interface TeamView {
   links: TeamLinksView | null;
   /** A linked team's players on MKCentral, for the server's game (null when it isn't linked). */
   mkcPlayers: MkcPlayerView[] | null;
+  /** The color war tables pick from the team's logo when the card has none (null: no logo, or one without color). */
+  logoColor: string | null;
 }
 
 /** The MKCentral team a card is linked to, as the Teams page shows it. */

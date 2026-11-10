@@ -132,6 +132,7 @@ export default function Page() {
         <li><strong>Final results screenshot</strong>{" "}(optional): every name and score is read from it, and you check them before the table is posted. Players are sorted into teams by the tag in their names, at the front or the back (<code>Ω umiko</code>, <code>FRVR♪ichor</code>, <code>Jalen [FRVR]</code>), and the tag comes off the name.</li>
         <li><strong>Background</strong>{" "}(optional): use it just this once, or save it for this channel&apos;s tables. Left empty, the channel&apos;s saved background is used.</li>
         <li><strong>Players and scores</strong>: Lorenzi&apos;s format, with a team&apos;s tag on its own line and then one player per line, like <code>Name [us] 94</code>. An Ice Mario table (starting with <code>!tablel</code>) or a Lounge <code>!submit</code>{" "}block can be pasted as it is.</li>
+        <li><strong>Look</strong>: the channel&apos;s look, or another layout for this table. Save it with the background to make it the channel&apos;s.</li>
       </ul>
       <p>
         Names and flags come from your server&apos;s team cards and players&apos; own cards (below). When
@@ -143,7 +144,24 @@ export default function Page() {
         <strong>Draw it anyway</strong>, <strong>Fix the text</strong>{" "}or <strong>Cancel</strong>, and{" "}
         <strong>Swap teams</strong>{" "}when the teams may be the wrong way round. A posted table has{" "}
         <strong>Edit</strong>{" "}(for whoever made it, or anyone who manages the server) and{" "}
-        <strong>Copy the text</strong>.
+        <strong>Copy the text</strong>. Edit can also redraw the table in another layout.
+      </p>
+
+      <h3>How tables look</h3>
+      <p>
+        Each channel has its own look, set on the server&apos;s Teams page (Account ▸ Discord ▸ Teams) under{" "}
+        <strong>War tables</strong>, with a preview drawn from the channel&apos;s newest table.
+      </p>
+      <ul>
+        <li><strong>Layouts:</strong>{" "}Stacked (one team above the other, big logos, totals on the right), Side by side (each team under a header in its color) and Classic.</li>
+        <li><strong>Team colors:</strong>{" "}a team&apos;s card color, else one picked from its logo. A team whose picked color is too close to the other team&apos;s gets another, so the two never look alike; a color set on the card is always used.</li>
+        <li><strong>Medals</strong>{" "}for 1st to 3rd, and each team&apos;s total with who won and by how much.</li>
+        <li><strong>Background:</strong>{" "}the channel&apos;s saved one, else the two teams&apos; colors or Competitive&apos;s checker. The Teams page can stop using a saved background.</li>
+      </ul>
+      <p>
+        With GS Pro or Supporter looks on the account that added GameShuffle Competitive to the server,
+        tables can also use a brand theme or your own two colors for the frame, another font, a light
+        version, and leave out the gameshuffle.co line. They can be tried in the preview either way.
       </p>
 
       <h3>Teams and players</h3>

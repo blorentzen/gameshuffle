@@ -24,6 +24,7 @@ import { WarAddPlayers, WarEditPlayer, type PlayerPreset } from "./WarPlayerForm
 import { WarTeamPlayers } from "./WarTeamPlayers";
 import { WarMkcLine, WarMkcLinkModal } from "./WarMkcLink";
 import { WarServerSettings } from "./WarServerSettings";
+import { WarTableLooks } from "./WarTableLooks";
 import { errorText, teamsApi, type WithView } from "./teamsApi";
 
 type Saved = LogoPageData["logos"][number];
@@ -122,10 +123,11 @@ export function WarTeamsManager({ guild, serverName, logos: logoData, initial }:
                               {g}{i === 0 && <span className="sr-only"> (shown on tables)</span>}
                             </Chip>
                           ))}
-                          {t.color && (
-                            <span className="wt-color">
-                              <span className="wt-color__swatch" style={{ background: t.color }} aria-hidden="true" />
-                              <span className="sr-only">Team color {t.color}</span>
+                          {(t.color ?? t.logoColor) && (
+                            <span className="wt-color" title={t.color ? "Team color" : "Picked from the logo"}>
+                              <span className="wt-color__swatch" style={{ background: (t.color ?? t.logoColor)! }} aria-hidden="true" />
+                              {!t.color && <span className="wt-color__from">from the logo</span>}
+                              <span className="sr-only">{t.color ? `Team color ${t.color}` : `Tables use ${t.logoColor}, picked from the logo`}</span>
                             </span>
                           )}
                         </div>
@@ -174,6 +176,8 @@ export function WarTeamsManager({ guild, serverName, logos: logoData, initial }:
       )}
 
       <WarLogosManager guild={guild} serverName={serverName} initial={logoData} logos={logos} onLogos={setLogos} />
+
+      <WarTableLooks guild={guild} />
 
       {view && <WarServerSettings guild={guild} view={view} />}
 

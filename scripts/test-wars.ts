@@ -17,6 +17,8 @@ import { cardLogo } from "../src/lib/wars/tables";
 import { parsePasted } from "../src/lib/wars/table";
 import { readWarSlug, warPagePath, warShort } from "../src/lib/wars/page";
 import { headlineFor, leads, playerRows, tapGrid, waitingOn } from "../src/lib/wars/roomView";
+import { cleanTableLook, contrast, DEFAULT_TABLE_LOOK, freeTableLook, readableTeamColor, SURFACE, tableColors, tablePaidUsed } from "../src/lib/wars/tableLook";
+import { mainColor } from "../src/lib/wars/teamColor";
 
 let pass = 0;
 let fail = 0;
@@ -433,6 +435,39 @@ Münch [inward] 94
   eq("they won", headlineFor("done", 12, 12, T("KC", 462), T("NOR", 522)), "NOR won 522 to 462");
   eq("tie", headlineFor("done", 12, 12, T("KC", 492), T("NOR", 492)), "A tie, 492 to 492");
   eq("ended early", headlineFor("ended", 7, 12, T("KC", 300), T("NOR", 274)), "Ended after race 7, 300 to 274");
+}
+
+// ── Table looks (table look picks 2026-11-09) ───────────────────────────────────────────────
+{
+  eq("no look: the default", cleanTableLook(null), DEFAULT_TABLE_LOOK);
+  eq("default is Stacked with medals on team colors", [DEFAULT_TABLE_LOOK.layout, DEFAULT_TABLE_LOOK.medals, DEFAULT_TABLE_LOOK.ground, DEFAULT_TABLE_LOOK.frame], ["stacked", true, "teams", "teams"]);
+  eq("unknown values fall back", cleanTableLook({ layout: "huge", font: "comic", frame: "nope", c1: "red", light: "yes" }), DEFAULT_TABLE_LOOK);
+  const paid = cleanTableLook({ layout: "sides", medals: false, ground: "checker", frame: "midnight", font: "bebas", light: true, brand: false });
+  eq("paid choices named", tablePaidUsed(paid), ["the Midnight theme", "Bebas Neue", "the light version", "no gameshuffle.co line"]);
+  eq("free choices aren't paid", tablePaidUsed(cleanTableLook({ layout: "classic", medals: false, ground: "checker" })), []);
+  eq("custom colors are paid", tablePaidUsed(cleanTableLook({ frame: "custom", c1: "#112233", c2: "#445566" })), ["your own colors"]);
+  const free = freeTableLook(paid);
+  eq("the free version keeps the free choices", [free.layout, free.medals, free.ground], ["sides", false, "checker"]);
+  eq("and swaps the paid ones", [free.frame, free.font, free.light, free.brand], ["teams", "gabarito", false, true]);
+  eq("the free version has nothing paid", tablePaidUsed(free), []);
+  // Team colors read as text: 4.5:1 on the dark rows and on the light version's white.
+  for (const c of ["#1f5f9a", "#5b2a8a", "#000000", "#ffffff", "#f2c14e", "#7a6a12", "#a78bfa", "#f0435c"]) {
+    eq(`${c} reads on dark`, contrast(readableTeamColor(c, false), SURFACE.dark) >= 4.5, true);
+    eq(`${c} reads on light`, contrast(readableTeamColor(c, true), SURFACE.light) >= 4.5, true);
+  }
+  eq("a readable color keeps its hue's family (purple stays purple)", readableTeamColor("#5b2a8a", false).slice(1, 3) > readableTeamColor("#5b2a8a", false).slice(3, 5), true);
+  const two = tableColors([{ color: "#d9363e", own: false }, { color: "#e0303a", own: false }], false);
+  eq("two picked reds: the second gets a spare", two[0] !== two[1] && two[1] === readableTeamColor("#8cc8f0", false), true);
+  const ownRed = tableColors([{ color: "#d9363e", own: false }, { color: "#e0303a", own: true }], false);
+  eq("a card's own color is never swapped", ownRed[1], readableTeamColor("#e0303a", false));
+  eq("the picked one moves instead", ownRed[0] !== readableTeamColor("#d9363e", false), true);
+  eq("far apart colors stay", tableColors([{ color: "#a78bfa", own: false }, { color: "#f0435c", own: false }], false), [readableTeamColor("#a78bfa", false), readableTeamColor("#f0435c", false)]);
+  // A logo's color: clear pixels, greys, black and white don't count.
+  const px = (rgba: number[][]) => Buffer.from(rgba.flat());
+  const clear = Array.from({ length: 60 }, () => [0, 0, 0, 0]);
+  eq("clear pixels don't make a logo black", mainColor(px([...clear, ...Array.from({ length: 20 }, () => [150, 60, 240, 255])])), "#963cf0");
+  eq("mostly black and white with a little red: red", mainColor(px([...Array.from({ length: 40 }, () => [0, 0, 0, 255]), ...Array.from({ length: 40 }, () => [255, 255, 255, 255]), ...Array.from({ length: 10 }, () => [220, 30, 40, 255])])), "#dc1e28");
+  eq("a grey logo has no color", mainColor(px(Array.from({ length: 50 }, () => [128, 128, 128, 255]))), null);
 }
 
 void (async () => {

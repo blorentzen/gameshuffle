@@ -11,6 +11,7 @@ import { compRest, compRestFile } from "@/lib/discord/compRest";
 import { COMP_COLOR } from "@/lib/discord/ttPanel";
 import { SITE_URL } from "@/lib/seo";
 import { renderTable } from "@/lib/wars/tableCard";
+import { flagsFor } from "@/lib/wars/flags";
 import type { TableModel } from "@/lib/wars/table";
 import { blocking, divisionFor, listNames, roomIssues, signed, tableTitle, type Change, type Room, type RoomIssue } from "./rules";
 import { tableRoom, type LadderTable, type Verified } from "./store";
@@ -121,7 +122,10 @@ async function picture(ladder: Ladder, t: LadderTable): Promise<{ name: string; 
   const room = tableRoom(ladder, t);
   if (room.teams.length < 2) return null;
   try {
-    const pic = await renderTable(roomModel(ladder, room, t), { logos: {}, background: null, races: null });
+    const model = roomModel(ladder, room, t);
+    // Flags as pictures: the server's own (from /flag), else the country flag; anything else stays text.
+    const flags = await flagsFor(ladder.guildId, model.teams.flatMap((x) => x.players.map((p) => p.flag).filter((f): f is string => !!f))).catch(() => ({}));
+    const pic = await renderTable(model, { logos: {}, flags, background: null, races: null });
     return { name: "table.png", data: pic.png };
   } catch (err) {
     console.error("[ladders] picture failed:", err);

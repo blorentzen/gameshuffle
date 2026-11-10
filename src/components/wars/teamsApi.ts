@@ -4,7 +4,7 @@ import type { TeamsView } from "@/lib/wars/teamView";
 
 export type ApiResult<T> = { ok: true; data: T } | { ok: false; error: string; data: Record<string, unknown> };
 
-export async function teamsApi<T>(path: string, method: "GET" | "POST" | "PATCH" | "DELETE", body?: unknown): Promise<ApiResult<T>> {
+export async function teamsApi<T>(path: string, method: "GET" | "POST" | "PATCH" | "PUT" | "DELETE", body?: unknown): Promise<ApiResult<T>> {
   const res = await fetch(path, {
     method,
     headers: body === undefined ? undefined : { "Content-Type": "application/json" },

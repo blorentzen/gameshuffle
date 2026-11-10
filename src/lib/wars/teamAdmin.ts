@@ -23,8 +23,10 @@ import { mkcIdFrom, mkcTeam, rosterFor, searchMkcTeams, type MkcTeam } from "./m
 import { warTrack, type WarGame } from "./rules";
 import { tagKey } from "./tags";
 import { playedTeams, registryTeam } from "./teams";
+import { listLogos } from "./logos";
+import { logoColor } from "./teamColor";
 import {
-  cleanFlagText, mkcShownName, type MkcHitView, type MkcLinkView, type MkcPlayerView, type SetBy, type TeamLinksView, type TeamsView, type TeamView,
+  cleanFlagText, logoNow, mkcShownName, ownLogo, type MkcHitView, type MkcLinkView, type MkcPlayerView, type SetBy, type TeamLinksView, type TeamsView, type TeamView,
   type TrackNickView, type TrackOption,
 } from "./teamView";
 
@@ -240,8 +242,19 @@ export async function teamsView(guildId: string): Promise<TeamsView | null> {
       }),
       links: teamLinks,
       mkcPlayers: m ? mkcPlayersFor(m, game, roster.filter((r) => r.team_id === t.id), own, tapped.get(t.id) ?? new Set(), flags) : null,
+      logoColor: null,
     };
   });
+
+  // The color tables pick from each team's logo (the logo a table shows, the way logoNow picks it), for cards without
+  // their own color.
+  const uploads = await listLogos(guildId).catch(() => []);
+  await Promise.all(view.map(async (t) => {
+    if (t.color) return;
+    const upload = ownLogo(t.tags, uploads)?.url ?? null;
+    const url = t.links ? logoNow(t.links.source, { upload, linked: t.links.mkc ? { name: t.links.mkc.name, logo: t.links.mkc.logo } : null, tagLogo: t.links.tagLogo }).url : upload ?? t.mkLogo;
+    t.logoColor = url ? await withTimeout(logoColor(url).catch(() => null), 2500, null) : null;
+  }));
 
   return {
     teams: view,

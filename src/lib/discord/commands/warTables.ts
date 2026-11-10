@@ -24,6 +24,8 @@ import { tagKey } from "@/lib/wars/tags";
 import { cardSetFor, cardsReady, linksReady, listTeams, saveTeam, setRoster } from "@/lib/wars/cardStore";
 import { readResults } from "@/lib/wars/tableRead";
 import { createDraft, getTable, postTable, prefillFor, recentWarId, TABLE_PREFIX, tagAliases, updateTable, warTotals, type WarTableRow } from "@/lib/wars/tables";
+import { savedTableLook, saveTableLayout, tableLooksReady } from "@/lib/wars/tableLooks";
+import { isTableLayout, layoutLabel, TABLE_LAYOUTS, type TableLayout } from "@/lib/wars/tableLook";
 import { randomBytes } from "node:crypto";
 import sharp from "sharp";
 
@@ -67,7 +69,21 @@ const attachmentOf = (interaction: Record<string, unknown>, id: string | undefin
 
 const TEMPLATE = "#title Your team vs Their team\nTAG - Your team\nPlayer [us] 0\nTAG - Their team\nPlayer [us] 0";
 
-function makeForm(warId: string | null, body: string): Record<string, unknown> {
+/**
+ * The Look menu (table look picks 2026-11-09, pick 7): the channel's look first, then each layout. `current` is the
+ * table's own layout when it has one (Edit), so the menu opens on it.
+ */
+function lookMenu(channel: TableLayout, current: TableLayout | null, description: string): Record<string, unknown> {
+  return {
+    type: 18, label: "Look", description,
+    component: { type: 3, custom_id: "look", min_values: 1, max_values: 1, required: false, options: [
+      { value: "channel", label: `This channel's look (${layoutLabel(channel)})`, default: !current },
+      ...TABLE_LAYOUTS.map((l) => ({ value: l.id, label: l.label, description: l.line, default: current === l.id })),
+    ] },
+  };
+}
+
+function makeForm(warId: string | null, body: string, channel: TableLayout | null): Record<string, unknown> {
   return {
     custom_id: `${TABLE_MODAL_PREFIX}new:${warId ?? "none"}`,
     title: "Make the table",
@@ -75,25 +91,35 @@ function makeForm(warId: string | null, body: string): Record<string, unknown> {
       { type: 18, label: "Final results screenshot", description: "Optional. Every name and score is read from it; you check before it's posted.", component: { type: 19, custom_id: "shot", min_values: 0, max_values: 1, required: false, file_types: ["image"] } },
       { type: 18, label: "Background", description: "Optional. Leave it empty to use this channel's saved background.", component: { type: 19, custom_id: "bg", min_values: 0, max_values: 1, required: false, file_types: ["image"] } },
       { type: 18, label: "Players and scores", description: "Lorenzi's format: a team's tag on its own line, then Name [us] 94", component: { type: 4, custom_id: "body", style: 2, required: false, max_length: 4000, value: body.slice(0, 4000) } },
-      { type: 18, label: "That background", component: { type: 21, custom_id: "keep", required: false, options: [
+      ...(channel ? [lookMenu(channel, null, "Colors, fonts and more are on the Teams page.")] : []),
+      { type: 18, label: channel ? "That background and look" : "That background", component: { type: 21, custom_id: "keep", required: false, options: [
         { value: "once", label: "Just this table", default: true },
-        { value: "keep", label: "Save it for this channel's tables" },
+        { value: "keep", label: channel ? "Save them for this channel's tables" : "Save it for this channel's tables" },
       ] } },
     ],
   };
 }
 
-const textForm = (prefix: "fix" | "edit", table: WarTableRow) => ({
+/** The channel's layout, for the Look menu (null before wars-m7.sql runs: no menu). */
+async function channelLayout(guildId: string | null, channelId: string | null): Promise<TableLayout | null> {
+  if (!guildId || !channelId || !(await tableLooksReady())) return null;
+  return (await savedTableLook(guildId, channelId))?.layout ?? "stacked";
+}
+
+const textForm = (prefix: "fix" | "edit", table: WarTableRow, channel: TableLayout | null = null) => ({
   custom_id: `${TABLE_MODAL_PREFIX}${prefix}:${table.id}`,
   title: prefix === "fix" ? "Fix the table" : "Edit the table",
-  components: [{ type: 18, label: "Players and scores", description: "Lorenzi's format: a team's tag on its own line, then Name [us] 94", component: { type: 4, custom_id: "body", style: 2, required: true, max_length: 4000, value: table.body } }],
+  components: [
+    { type: 18, label: "Players and scores", description: "Lorenzi's format: a team's tag on its own line, then Name [us] 94", component: { type: 4, custom_id: "body", style: 2, required: true, max_length: 4000, value: table.body } },
+    ...(channel ? [lookMenu(channel, table.layout, "Redraws this table only.")] : []),
+  ],
 });
 
-/** Opens the form for a war (or a blank table). */
-export async function tableForm(warId: string | null): Promise<Response> {
+/** Opens the form for a war (or a blank table) in a channel. */
+export async function tableForm(warId: string | null, where: { guildId: string | null; channelId: string | null } = { guildId: null, channelId: null }): Promise<Response> {
   const war = warId ? await getWar(warId) : null;
-  const body = war ? await prefillFor(war) : TEMPLATE;
-  return Response.json({ type: 9, data: makeForm(war?.id ?? null, body) });
+  const [body, channel] = await Promise.all([war ? prefillFor(war) : TEMPLATE, channelLayout(war?.guildId ?? where.guildId, war?.channelId ?? where.channelId)]);
+  return Response.json({ type: 9, data: makeForm(war?.id ?? null, body, channel) });
 }
 
 /** /table: the channel's war from the last few hours, or a blank one. */
@@ -102,7 +128,7 @@ export async function handleTableCommand(interaction: Record<string, unknown>): 
   const guildId = (interaction.guild_id as string | undefined) ?? null;
   const channelId = (interaction.channel_id as string | undefined) ?? null;
   if (!guildId || !channelId) return say("Make tables in a server's channel.");
-  return tableForm(await recentWarId(guildId, channelId));
+  return tableForm(await recentWarId(guildId, channelId), { guildId, channelId });
 }
 
 // ── Building, checking, posting ───────────────────────────────────────────────────────────────
@@ -216,6 +242,8 @@ export async function handleTableModal(interaction: Record<string, unknown>, cus
     const bg = attachmentOf(interaction, parts.get("bg")?.values?.[0]);
     const keep = parts.get("keep")?.value === "keep";
     const text = String(parts.get("body")?.value ?? "");
+    const picked = parts.get("look")?.values?.[0];
+    const layout = isTableLayout(picked) ? picked : null;
     after(async () => {
       try {
         const war = ref && ref !== "none" ? await getWar(ref) : null;
@@ -250,7 +278,9 @@ export async function handleTableModal(interaction: Record<string, unknown>, cus
           if (stored.url && keep) await rememberChannel(guildId, channelId, { background: stored.url });
         }
         if (!backgroundUrl) backgroundUrl = (await warChannel(guildId, channelId))?.background ?? null;
-        const id = await createDraft({ warId: war?.id ?? null, guildId, channelId, body: formatTable(model), backgroundUrl, by, readBody });
+        // A layout saved for the channel draws every table there; "Just this table" keeps it to this one.
+        if (layout && keep) await saveTableLayout(guildId, channelId, layout);
+        const id = await createDraft({ warId: war?.id ?? null, guildId, channelId, body: formatTable(model), backgroundUrl, by, readBody, layout: layout && !keep ? layout : null });
         const table = id ? await getTable(id) : null;
         if (!table) { await editOriginal(appId, token, { content: "The table couldn't be saved. Try again in a moment." }); return; }
         await finish(table, war, appId, token, notes, guessed);
@@ -316,8 +346,10 @@ export async function handleTableModal(interaction: Record<string, unknown>, cus
   }
 
   if (kind === "edit") {
+    const picked = parts.get("look")?.values?.[0];
+    const layout = isTableLayout(picked) ? picked : picked === "channel" ? null : undefined;
     after(async () => {
-      await updateTable(table.id, { body: formatTable(parsePasted(body)) });
+      await updateTable(table.id, { body: formatTable(parsePasted(body)), ...(layout !== undefined ? { layout } : {}) });
       const res = await postTable(table.id, table.warId ? await getWar(table.warId) : null);
       const fresh = await getTable(table.id);
       await editOriginal(appId, token, res === "ok" && fresh ? rememberPrompt(fresh, "Updated.") : { content: res === "ok" ? "Updated." : "The table couldn't be updated. Try again in a moment." });
@@ -331,7 +363,7 @@ export async function handleTableComponent(interaction: Record<string, unknown>,
   const by = who(interaction);
   if (!by) return say("Couldn't tell who you are.");
   const [kind, ref, a, b] = customId.slice(TABLE_PREFIX.length).split(":");
-  if (kind === "make") return tableForm(ref && ref !== "none" ? ref : null);
+  if (kind === "make") return tableForm(ref && ref !== "none" ? ref : null, { guildId: (interaction.guild_id as string | undefined) ?? null, channelId: (interaction.channel_id as string | undefined) ?? null });
   const table = await getTable(ref ?? "");
   if (!table) return say("That table is gone.");
   const appId = String(interaction.application_id ?? "");
@@ -392,7 +424,7 @@ export async function handleTableComponent(interaction: Record<string, unknown>,
     }
     case "edit": {
       if (table.createdBy !== by.id && !canManageGuild(interaction)) return say("Only whoever made this table, or someone who can manage the server, can edit it.");
-      return Response.json({ type: 9, data: textForm("edit", table) });
+      return Response.json({ type: 9, data: textForm("edit", table, await channelLayout(table.guildId, table.channelId)) });
     }
     case "copy": return say("Lorenzi's text for this table:", [], { embeds: [{ color: COMP_COLOR, description: `\`\`\`\n${table.body.slice(0, 3900)}\n\`\`\`` }] });
     default: return say("Unknown button.");
