@@ -58,7 +58,7 @@ export async function helpState(player: string, wallet: string | null, game: Dai
     helpPrices(),
     helpFor(player, game.id, day),
     wallet ? getBalance(wallet).catch(() => null) : Promise.resolve(null),
-    createServiceClient().from("daily_help").select("player", { head: true, count: "exact" }).limit(1),
+    createServiceClient().from("daily_help").select("player").limit(1),
   ]);
   const allowed = lettersAllowed(answerFor(day, game).name, freeLetters(game, day), prices.letters);
   return { ready: !missing(probe.error), balance, prices, help, lettersLeft: Math.max(0, allowed - help.letters) };

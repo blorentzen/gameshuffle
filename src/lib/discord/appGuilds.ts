@@ -31,7 +31,7 @@ const toGuild = (r: Row): AppGuild => ({ app: r.app, guildId: r.guild_id, ownerU
 let ready: boolean | null = null;
 export async function appGuildsReady(): Promise<boolean> {
   if (ready) return true;
-  const { error } = await createServiceClient().from("discord_app_guilds").select("guild_id", { head: true, count: "exact" }).limit(1);
+  const { error } = await createServiceClient().from("discord_app_guilds").select("guild_id").limit(1);
   ready = !error;
   return ready;
 }

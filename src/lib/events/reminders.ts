@@ -99,7 +99,7 @@ export interface ReminderRunResult { events: number; notifs: number; emails: num
 export async function sendDueEventReminders(now = Date.now()): Promise<ReminderRunResult> {
   const svc = createServiceClient();
   // Guard: ledger table missing (migration not applied) → do nothing, say so.
-  const probe = await svc.from("event_reminders_sent").select("event_id", { head: true, count: "exact" }).limit(1);
+  const probe = await svc.from("event_reminders_sent").select("event_id").limit(1);
   if (probe.error) return { events: 0, notifs: 0, emails: 0, texts: 0, discord: 0, skipped: "event_reminders_sent missing" };
 
   const base = getBaseUrl();
@@ -188,7 +188,7 @@ export interface CheckInAlertResult { events: number; notifs: number; emails: nu
 export async function sendCheckInOpenAlerts(now = Date.now()): Promise<CheckInAlertResult> {
   const svc = createServiceClient();
   const out: CheckInAlertResult = { events: 0, notifs: 0, emails: 0, texts: 0, covered: 0, skipped: null };
-  const probe = await svc.from("event_reminders_sent").select("event_id", { head: true, count: "exact" }).limit(1);
+  const probe = await svc.from("event_reminders_sent").select("event_id").limit(1);
   if (probe.error) return { ...out, skipped: "event_reminders_sent missing" };
 
   const base = getBaseUrl();

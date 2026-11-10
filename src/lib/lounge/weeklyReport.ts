@@ -112,7 +112,7 @@ export async function sendWeeklyReports(opts: { weekOf?: string; dry?: boolean; 
   if (opts.dry) out.previews = [];
 
   // The claim table guards against double sends: without it (migration pending) nothing goes out.
-  const probe = await db.from("lounge_weekly_reports").select("user_id", { head: true, count: "exact" }).limit(1);
+  const probe = await db.from("lounge_weekly_reports").select("user_id").limit(1);
   if (probe.error && !opts.dry) return { ...out, skipped: "lounge_weekly_reports missing" };
 
   let q = db.from("lounge_links").select("user_id");

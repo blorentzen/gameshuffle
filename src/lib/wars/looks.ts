@@ -12,7 +12,7 @@ import { cleanLook, freeLook, type WarLook } from "./look";
 let ready: boolean | null = null;
 export async function looksReady(): Promise<boolean> {
   if (ready) return true;
-  const { error } = await createServiceClient().from("war_looks").select("id", { head: true, count: "exact" }).limit(1);
+  const { error } = await createServiceClient().from("war_looks").select("id").limit(1);
   ready = !error;
   return ready;
 }

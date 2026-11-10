@@ -28,7 +28,7 @@ let ready: boolean | null = null;
 /** Whether war_flags exists (wars-m4.sql). */
 export async function flagsReady(): Promise<boolean> {
   if (ready) return true;
-  const { error } = await createServiceClient().from("war_flags").select("id", { head: true, count: "exact" }).limit(1);
+  const { error } = await createServiceClient().from("war_flags").select("id").limit(1);
   ready = !error;
   return ready;
 }
