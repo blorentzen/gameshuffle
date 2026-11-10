@@ -38,7 +38,7 @@ export async function readResults(bytes: Uint8Array, args: { userId: string | nu
   try {
     const { value: res, tokens } = await withAiTokens(() => draftStructured({
       system: "You read Mario Kart 8 Deluxe and Mario Kart World online results screens and report exactly what they show. Never invent a name or a digit.",
-      prompt: "This should be the results screen at the end of a war: up to 12 (or 24) players, each row with a name and a points total, rows often colored by team. List every row top to bottom. Copy names exactly, including any team tag at the start. Use the total on the right of each row, not the points just added for the last race. If it isn't a results screen, say so.",
+      prompt: "This should be the results screen at the end of a war: up to 12 (or 24) players, each row with a name and a points total, rows often colored by team. List every row top to bottom. Copy names exactly, including any team tag at the start or the end and any symbol between the tag and the name; write a symbol you can't make out as □. Use the total on the right of each row, not the points just added for the last race. If it isn't a results screen, say so.",
       schema: SCHEMA,
       image: { base64: jpeg.toString("base64"), mediaType: "image/jpeg" },
       maxTokens: 2000,

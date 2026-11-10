@@ -9,16 +9,20 @@ import { IconLink } from "@tabler/icons-react";
 import { useToast } from "@/components/toast/ToastProvider";
 import { track, EVENTS } from "@/lib/analytics/events";
 import { tagColor } from "@/lib/wars/look";
+import { onColorFor } from "@/lib/theme/contrast";
 import "@/styles/war-mark.css";
 
-export function WarTeamMark({ tag, logo, size = "md" }: { tag: string; logo: string | null; size?: "md" | "lg" }) {
+/** `color`: the lettered tile's color when there's no logo (a team card's own; else one from the tag). */
+export function WarTeamMark({ tag, logo, size = "md", color }: { tag: string; logo: string | null; size?: "md" | "lg"; color?: string | null }) {
   const [failed, setFailed] = useState(false);
   if (logo && !failed) {
     // A picture that failed before the page woke up never fires onError here, so the ref checks it too.
     // eslint-disable-next-line @next/next/no-img-element -- a team logo from MKCentral or our storage, any size
     return <img className={`wp-mark wp-mark--${size}`} src={logo} alt="" onError={() => setFailed(true)} ref={(el) => { if (el?.complete && el.naturalWidth === 0) setFailed(true); }} />;
   }
-  return <span className={`wp-mark wp-mark--${size} wp-mark--text`} style={{ background: tagColor(tag) }} aria-hidden="true">{[...tag].slice(0, 4).join("")}</span>;
+  // A light team color (Ice, Gold) takes dark letters so the tag still reads.
+  const bg = color || tagColor(tag);
+  return <span className={`wp-mark wp-mark--${size} wp-mark--text`} style={{ background: bg, color: /^#[0-9a-f]{6}$/i.test(bg) ? onColorFor(bg).color : undefined }} aria-hidden="true">{[...tag].slice(0, 4).join("")}</span>;
 }
 
 export function WarCopyLink({ url }: { url: string }) {

@@ -1,0 +1,85 @@
+/* A server's Teams page (/account/discord/teams/<guild>): the teams with their players, and the war channel settings.
+   One surface per section: teams sit flat, split by thin lines; each player list is a framed table (data). */
+
+.wt-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.wt-team { display: flex; flex-direction: column; gap: var(--spacing-12); padding: var(--spacing-20) 0; min-width: 0; }
+.wt-team:first-child { padding-top: var(--spacing-8); }
+.wt-team + .wt-team { border-top: 1px solid var(--border-subtle, var(--border-default)); }
+.wt-team__head { display: flex; flex-wrap: wrap; align-items: flex-start; gap: var(--spacing-12) var(--spacing-16); min-width: 0; }
+.wt-team__who { flex: 1 1 22rem; min-width: 0; display: flex; flex-direction: column; gap: var(--spacing-8); }
+.wt-team__name { margin: 0; font-size: var(--font-size-18); font-weight: var(--font-weight-semibold); line-height: 1.25; overflow-wrap: anywhere; }
+.wt-team__line { margin: 0; font-size: var(--font-size-14); color: var(--text-secondary); }
+.wt-team__acts { flex-wrap: wrap; gap: var(--spacing-8); }
+.wt-team__empty { margin: 0; max-width: 68ch; font-size: var(--font-size-14); line-height: var(--line-height-relaxed); color: var(--text-secondary); }
+.wt-team__empty code { font-size: var(--font-size-14); }
+
+.wt-tags { display: flex; flex-wrap: wrap; align-items: center; gap: var(--spacing-8); }
+.wt-color { display: inline-flex; align-items: center; }
+.wt-color__swatch { display: inline-block; width: 2.4rem; height: 2.4rem; border-radius: 50%; box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--text-primary) 28%, transparent); }
+
+.wt-flag { display: inline-flex; align-items: center; gap: var(--spacing-8); white-space: nowrap; }
+.wt-flag img { display: block; width: 2.4rem; height: 1.8rem; object-fit: contain; border-radius: 2px; }
+.wt-flag code { font-size: var(--font-size-14); }
+
+/* A team's MKCentral line (logos + MKCentral picks 2026-11-09): the linked team as a chip to MKCentral, Update, Unlink;
+   or the button that links it. */
+.wt-mkc-wrap { display: flex; flex-direction: column; gap: var(--spacing-4); min-width: 0; }
+.wt-mkc { display: flex; flex-wrap: wrap; align-items: center; gap: var(--spacing-8); min-width: 0; }
+.wt-mkc__chip { display: inline-flex; max-width: 100%; min-height: 2.4rem; border-radius: 999px; color: inherit; text-decoration: none; }
+.wt-mkc__chip:hover .empac-chip { border-color: var(--border-strong, var(--text-secondary)); }
+.wt-mkc__chip:focus-visible { outline: 2px solid var(--border-focus); outline-offset: 2px; }
+.wt-mkc__chip .empac-chip { max-width: 100%; white-space: normal; text-align: left; cursor: pointer; }
+.wt-team__note { margin: 0; font-size: var(--font-size-14); color: var(--text-secondary); }
+
+/* A team's players: a linked team's MKCentral players, the rest folded, then the server's lines not on MKCentral. */
+.wt-roster { display: flex; flex-direction: column; gap: var(--spacing-12); min-width: 0; }
+.wt-roster__key { margin: 0; font-size: var(--font-size-14); color: var(--text-secondary); }
+.wt-roster__own { display: flex; flex-direction: column; gap: var(--spacing-8); min-width: 0; padding-top: var(--spacing-8); }
+.wt-sub { margin: 0; font-size: var(--font-size-16); font-weight: var(--font-weight-semibold); }
+.wt-more .empac-accordion__trigger { padding: var(--spacing-12) 0; background: none; min-height: 4.4rem; }
+.wt-more .empac-accordion__trigger-title { font-size: var(--font-size-16); font-weight: var(--font-weight-semibold); text-align: left; color: var(--text-primary); }
+.wt-more .empac-accordion__content-inner { padding: 0 0 var(--spacing-12); }
+/* CDS measures an item's height once; a table that grows after (flags loading, a row added) keeps its full height. */
+.wt-more .empac-accordion__content--open { height: auto !important; overflow: visible; }
+
+/* Teams from the server's wars that no card covers: a flat line under the list. */
+.wt-played { display: flex; flex-direction: column; gap: var(--spacing-8); padding-top: var(--spacing-20); border-top: 1px solid var(--border-subtle, var(--border-default)); }
+.wt-played__label { margin: 0; font-size: var(--font-size-14); color: var(--text-secondary); }
+.wt-played__list { display: flex; flex-wrap: wrap; gap: var(--spacing-8); }
+
+/* The windows: add or edit a team, add players. */
+.wt-form { max-width: none; }
+.wt-form--tab { padding-top: var(--spacing-16); }
+.wt-field { display: flex; flex-direction: column; gap: var(--spacing-8); min-width: 0; }
+.wt-logo { display: flex; flex-wrap: wrap; align-items: center; gap: var(--spacing-16); }
+.wt-logo__side { position: relative; flex: 1 1 22rem; min-width: 0; display: flex; flex-direction: column; gap: var(--spacing-8); }
+.wt-logo__acts { display: flex; flex-wrap: wrap; gap: var(--spacing-8); }
+.wt-count { margin: 0; min-height: 2rem; font-size: var(--font-size-14); color: var(--text-secondary); }
+.wt-form__intro { margin: 0; max-width: 68ch; font-size: var(--font-size-14); line-height: var(--line-height-relaxed); color: var(--text-secondary); }
+
+/* Where the logo comes from: a fieldset of radios, then which logo shows now and why. */
+.wt-source { margin: 0; padding: 0; border: 0; min-width: 0; }
+.wt-source legend { padding: 0; margin-bottom: var(--spacing-8); }
+/* CDS sets a radio's helper at 12px; these are sentences, so reading size. */
+.wt-source .empac-radio-helper { font-size: var(--font-size-14); line-height: var(--line-height-relaxed); }
+.wt-source__now { margin: var(--spacing-4) 0 0; max-width: 68ch; font-size: var(--font-size-14); line-height: var(--line-height-relaxed); color: var(--text-primary); }
+
+/* The MKCentral link search: the field (and the game, when the server plays both), then the teams found. */
+.wt-find { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--spacing-12) var(--spacing-16); align-items: start; }
+@media (min-width: 40rem) { .wt-find:has(> :nth-child(2)) { grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); } }
+.wt-hits.empac-list { gap: 0; }
+.wt-hits .empac-list__item { padding: var(--spacing-12) 0; gap: var(--spacing-12); }
+.wt-hits .empac-list__item-icon { width: auto; height: auto; }
+.wt-hits .empac-list__item-suffix { font-size: var(--font-size-14); }
+.wt-hit { display: flex; flex-direction: column; gap: var(--spacing-4); min-width: 0; }
+.wt-hit__name { font-size: var(--font-size-16); font-weight: var(--font-weight-semibold); color: var(--text-primary); overflow-wrap: anywhere; }
+.wt-hit__meta { font-size: var(--font-size-14); color: var(--text-secondary); }
+
+/* War channel settings: two settings, flat, split by a thin line. */
+.wt-setting { display: flex; flex-direction: column; gap: var(--spacing-12); min-width: 0; }
+.wt-setting + .wt-setting { margin-top: var(--spacing-12); padding-top: var(--spacing-24); border-top: 1px solid var(--border-subtle, var(--border-default)); }
+.wt-setting__head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--spacing-8) var(--spacing-12); }
+.wt-setting__title { margin: 0; font-size: var(--font-size-16); font-weight: var(--font-weight-semibold); }
+.wt-setting .admin-field { max-width: 52rem; }
+.wt-nick { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 18rem), 1fr)); gap: var(--spacing-12) var(--spacing-16); align-items: start; max-width: 72rem; }
+.wt-nick__go { grid-column: 1 / -1; }

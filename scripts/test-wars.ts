@@ -1,5 +1,5 @@
 /**
- * War scoring checks: npx tsx scripts/test-wars.ts
+ * War scoring checks: npx tsx -r ./scripts/server-only-shim.cjs scripts/test-wars.ts
  * The places reader against the cases Sokuji and Quaxly agree on, the race and war math, and the codes.
  */
 
@@ -7,7 +7,14 @@ import {
   maxSwing, placeName, raceLine, raceScore, readRaceLine, readSpots, readTrack, RACE_TOTAL, spotsCode, spotsFromCode,
   standing, suggestTracks, tapClashes, tapsToSpots, type WarRace,
 } from "../src/lib/wars/rules";
-import { cleanFlagCode, fillFromRows, formatTable, parseTable, placesOf, swapTeams, tableIssues, tagFromFile, teamTotal } from "../src/lib/wars/table";
+import { cleanFlagCode, fillFromRows, formatTable, parseTable, placesOf, splitTyped, swapTeams, tableIssues, tagFromFile, teamTotal } from "../src/lib/wars/table";
+import { bestSplit, groupByTag, samePlayer, withoutTag } from "../src/lib/wars/tags";
+import { logoFrom } from "../src/lib/wars/tables";
+import { readTyped, type TypedContext } from "../src/lib/wars/legacy";
+import { applyCards, fixesBetween, matchMkc, readRosterLines, teamAliases, unknownOnLinked, whoIs, type CardSet, type MkcPlayerLite } from "../src/lib/wars/cards";
+import { mkcIdFrom } from "../src/lib/wars/mkcTeams";
+import { cardLogo } from "../src/lib/wars/tables";
+import { parsePasted } from "../src/lib/wars/table";
 import { readWarSlug, warPagePath, warShort } from "../src/lib/wars/page";
 import { headlineFor, leads, playerRows, tapGrid, waitingOn } from "../src/lib/wars/roomView";
 
@@ -177,6 +184,187 @@ Münch [inward] 94
   eq("not guessed", full.guessed, false);
 }
 
+// ── Tags in names: front or back, any separator or none (a real Nov 9 war: Twilight Zone wears Ω, FRVR Racing FRVR) ──
+{
+  const shot = [
+    ["Ω umikofy", 125], ["Ω Twinsia", 107], ["FRVR Jalen", 102], ["Ω JJz3r0", 86], ["Ω Deku", 82], ["FRVR\uE000nsn", 81],
+    ["Ω Clarence", 74], ["Ω vok", 74], ["FRVR♪ichor", 72], ["FRVR Toret", 64], ["FRVR\uFFFDyozo", 62], ["FRVRTRA$H", 55],
+  ].map(([name, score]) => ({ name: name as string, score: score as number, color: null }));
+  const names = shot.map((r) => r.name);
+  const split = groupByTag(names, 6);
+  eq("tags found", split.groups.map((g) => [g.tag, g.rows.length]), [["Ω", 6], ["FRVR", 6]]);
+  eq("tags taken off (space, symbol, a box, nothing)", split.groups[1].names, ["Jalen", "nsn", "ichor", "Toret", "yozo", "TRA$H"]);
+  eq("no size given: 2 teams of 6", bestSplit(names).size, 6);
+  const back = ["umiko Ω", "Twinsia Ω", "Jalen [FRVR]", "JJz3r0 Ω", "Deku Ω", "nsn [FRVR]", "Clarence Ω", "vok Ω", "ichor [FRVR]", "Toret | FRVR", "yozo-FRVR", "TRA$HFRVR"];
+  eq("back tags", bestSplit(back).groups.map((g) => [g.tag, g.names.join(" ")]), [["Ω", "umiko Twinsia JJz3r0 Deku Clarence vok"], ["FRVR", "Jalen nsn ichor Toret yozo TRA$H"]]);
+  eq("one team front, one back", bestSplit(["KC Riley", "Mira NOR", "KC Quinn", "Kai NOR", "KC|Sam", "Rowan.NOR"]).groups.map((g) => g.tag), ["KC", "NOR"]);
+  const plain = ["Alpha", "Bravo", "Charlie", "Delta", "Echo", "Foxtrot", "Golf", "Hotel", "India", "Juliet", "Kilo", "Lima"];
+  eq("names that only start or end alike aren't tags", bestSplit(plain).groups.length, 0);
+  eq("same start, no edge: not a tag", bestSplit(["Sam", "Sky", "Sol", "Rae", "Rio", "Ray"]).groups.length, 0);
+  eq("withoutTag front, back, none", [withoutTag("FRVRTRA$H", "FRVR"), withoutTag("Jalen FRVR", "frvr"), withoutTag("Clarence", "Ω"), withoutTag("[KC] Riley", "KC")], ["TRA$H", "Jalen", "Clarence", "Riley"]);
+  eq("same player under two names", [samePlayer("umikofy", "umiko"), samePlayer("Twinsia", "Twins2133"), samePlayer("vok", "vokii"), samePlayer("Jalen", "peep/Sxyd")], [true, true, true, false]);
+
+  // The war's teams were typed as TWILIGHT and INTED: MKCentral knows Ω as Twilight Zone, and FRVR is the team that's left.
+  const war = parseTable("#title int vs inted\nTWILIGHT\nINTED");
+  const fixed = fillFromRows(war, shot, { aliases: { "ω": ["Twilight Zone"], frvr: ["RACINGFRVR"] } });
+  eq("split into the war's teams", fixed.model.teams.map((t) => [t.tag, t.name, t.players.length, teamTotal(t)]), [["Ω", "TWILIGHT", 6, 548], ["FRVR", "INTED", 6, 436]]);
+  eq("not a guess", [fixed.guessed, fixed.by], [false, "tags"]);
+  eq("their names", fixed.model.teams[0].players.map((p) => p.name), ["umikofy", "Twinsia", "JJz3r0", "Deku", "Clarence", "vok"]);
+  eq("totals check by the war's tag, now the name", tableIssues(fixed.model, { totals: { twilight: 548, inted: 436 }, team: 6 }), []);
+  eq("round trip keeps tag and name", parseTable(formatTable(fixed.model)).teams.map((t) => [t.tag, t.name]), [["Ω", "TWILIGHT"], ["FRVR", "INTED"]]);
+  // Nothing to go on: in order, the first row's team first, and flagged so Swap teams is offered; the war's tags stay.
+  const blind = fillFromRows(parseTable("AAA\nBBB"), shot);
+  eq("blind: in order, guessed", [blind.guessed, blind.model.teams.map((t) => [t.tag, t.players[0].name, t.players.length])], [true, [["AAA", "umikofy", 6], ["BBB", "Jalen", 6]]]);
+  eq("swap after a guess", swapTeams(blind.model).teams.map((t) => [t.tag, t.players[0].name]), [["AAA", "Jalen"], ["BBB", "umikofy"]]);
+  const direct = fillFromRows(parseTable("FRVR - FRVR Racing\nΩ - Twilight Zone"), shot);
+  eq("tags that match go straight in", [direct.guessed, direct.model.teams.map((t) => [t.tag, teamTotal(t)])], [false, [["FRVR", 436], ["Ω", 548]]]);
+  const byName = fillFromRows(parseTable("TZ - Twilight Zone\nFR - FRVR Racing"), shot);
+  eq("tag inside a team's name", byName.model.teams.map((t) => [t.tag, t.name, teamTotal(t)]), [["Ω", "Twilight Zone", 548], ["FRVR", "FRVR Racing", 436]]);
+  // Our six came in from taps under their lounge names; the screen's Ω rows are theirs, FRVR fills the other team.
+  const tapped = parseTable("TWILIGHT\numiko [us] 125\nTwins2133 [us] 107\nJJz3r0 [us] 86\nDekuMK8 [mx] 82\nvokii [us] 74\nClarence [us] 74\nINTED");
+  const rest = fillFromRows(tapped, shot);
+  eq("tapped team stays as typed", rest.model.teams[0].players.map((p) => p.flag), ["us", "us", "us", "mx", "us", "us"]);
+  eq("the other team from the screen, under the tag it wears", [rest.guessed, rest.model.teams[1].tag, rest.model.teams[1].name, rest.model.teams[1].players.map((p) => p.name)], [false, "FRVR", "INTED", ["Jalen", "nsn", "ichor", "Toret", "yozo", "TRA$H"]]);
+  // No teams typed (blank form): the tags make them, named from MKCentral.
+  const scratch = fillFromRows(parseTable(""), shot, { aliases: { "ω": ["Twilight Zone"] } });
+  eq("teams from the screen", scratch.model.teams.map((t) => [t.tag, t.name, teamTotal(t)]), [["Ω", "Twilight Zone", 548], ["FRVR", null, 436]]);
+  const untagged = fillFromRows(parseTable(""), [{ name: "a", score: 9, color: "red" }, { name: "b", score: 8, color: "blue" }, { name: "c", score: 7, color: "red" }]);
+  eq("untagged by color, marked", [untagged.guessed, untagged.model.teams.map((t) => [t.tag, t.players.length])], [true, [["?", 2], ["?", 1]]]);
+  eq("a team without a tag says so", tableIssues(untagged.model, null).map((i) => i.kind), ["unnamed", "unnamed"]);
+  // Typed with no team lines: split by tags, flags kept.
+  const typed = splitTyped(parseTable(shot.map((r, i) => `${r.name}${i === 4 ? " [mx]" : ""} ${r.score}`).join("\n")));
+  eq("typed split", typed.teams.map((t) => [t.tag, t.players.length, teamTotal(t)]), [["Ω", 6, 548], ["FRVR", 6, 436]]);
+  eq("typed flag kept", typed.teams[0].players[3], { name: "Deku", flag: "mx", score: 82 });
+  // Logos: the server's logo for the tag the team wears, else for the war's tag (kept as the name), else the war's own.
+  const own = [{ tag: "Ω", name: "Twilight Zone", url: "omega.webp" }, { tag: "INTED", name: null, url: "inted.webp" }];
+  const sides = [{ tag: "TWILIGHT", name: null, logo: "war-us.webp" }, { tag: "INTED", name: null, logo: null }];
+  eq("logo by the worn tag", logoFrom(fixed.model.teams[0], own, sides).url, "omega.webp");
+  eq("logo by the war's tag", logoFrom(fixed.model.teams[1], own, sides).url, "inted.webp");
+  eq("logo by name", logoFrom({ tag: "TZ", name: "Twilight Zone" }, own, []).url, "omega.webp");
+  eq("the war's own logo", logoFrom(fixed.model.teams[0], [], sides).url, "war-us.webp");
+
+  // The old mistake shows up in the check: twelve on one team.
+  const one = parseTable(`TWILIGHT\n${shot.map((r) => `${r.name} ${r.score}`).join("\n")}\nINTED`);
+  eq("twelve on one team is flagged", tableIssues(one, { totals: { twilight: 548, inted: 436 }, team: 6 }).map((i) => i.kind), ["count", "total", "missing"]);
+}
+
+// ── Typed lines, the way the other war bots read them (overrides picks 5 to 7) ──
+{
+  const ctx: TypedContext = { game: "mk8dx", readsLike: "sokuji", us: { tag: "Ω", name: "Twilight Zone" }, them: { tag: "FRVR", name: "FRVR Racing" }, trackNames: { bazaar: "x-shy-guy-bazaar" } };
+  const k = (line: string, played = 3, c = ctx) => { const t = readTyped(line, c, played); return t.kind === "race" ? ["race", t.spots.ok ? t.spots.spots.join(",") : "bad", t.track] : t.kind === "fix" ? ["fix", t.n, t.spots?.ok ? t.spots.spots.join(",") : null, t.track] : t.kind === "pen" || t.kind === "unpen" ? [t.kind, t.side, t.points] : t.kind === "track" ? ["track", t.track] : t.kind === "tag" ? ["tag", t.side, t.tag] : [t.kind]; };
+  eq("plain places", k("1-378"), ["race", "1,2,3,7,8,12", null]);
+  eq("leading dash", k("-379"), ["race", "1,2,3,7,9,12", null]);
+  eq("spaced places", k("1 3 5 7 9 11"), ["race", "1,3,5,7,9,11", null]);
+  eq("full-width digits", k("１２３７８"), ["race", "1,2,3,7,8,12", null]);
+  eq("track alone", k("SSC"), ["track", "mushroom-sweet-sweet-canyon"]);
+  eq("server nickname", k("Bazaar"), ["track", "x-shy-guy-bazaar"]);
+  eq("track then places", k("SSC 12378"), ["race", "1,2,3,7,8,12", "mushroom-sweet-sweet-canyon"]);
+  eq("back, every way", ["back", "undo", "%back", "!back", "!u"].map((l) => k(l)[0]), ["back", "back", "back", "back", "back"]);
+  eq("a lone u is chat", k("u"), ["none"]);
+  eq("Quaxly race fix", k("race 3 1-378"), ["fix", 3, "1,2,3,7,8,12", null]);
+  eq("Quaxly race track", k("race 2 SSC"), ["fix", 2, null, "mushroom-sweet-sweet-canyon"]);
+  eq("Sokuji %race", k("%race 2 12378"), ["fix", 2, "1,2,3,7,8,12", null]);
+  eq("Sokuji counts back", k("%race -1 12378"), ["fix", 3, "1,2,3,7,8,12", null]);
+  eq("Kiwi !editrace with a tag", k("!editrace 2 FRVR 12378"), ["fix", 2, "1,2,3,7,8,12", null]);
+  eq("race not played yet", k("race 9 12378"), ["none"]);
+  eq("Quaxly pen hits them", k("pen 15"), ["pen", "them", 15]);
+  eq("Quaxly pen -15 is yours", k("pen -15"), ["pen", "us", 15]);
+  eq("Sokuji %penalty is yours", k("%penalty 10"), ["pen", "us", 10]);
+  eq("Sokuji %penalty -10 FRVR", k("%penalty -10 FRVR"), ["pen", "them", 10]);
+  eq("repick is 15", k("%repick"), ["pen", "us", 15]);
+  eq("Ice Mario !penalty TAG", k("!penalty 15 FRVR"), ["pen", "them", 15]);
+  eq("by team name", k("pen 15 Twilight Zone"), ["pen", "us", 15]);
+  eq("Kiwi !ap opponent", k("!ap opponent 10"), ["pen", "them", 10]);
+  eq("unpen", k("unpen 15"), ["unpen", "them", 15]);
+  eq("Ice Mario !a", k("!a 1 2 3 7 8 12"), ["race", "1,2,3,7,8,12", null]);
+  eq("Toad _race", k("_race 1 2 3 4 5 6"), ["race", "1,2,3,4,5,6", null]);
+  eq("%tag sets theirs", k("%tag FRVR2"), ["tag", "them", "FRVR2"]);
+  eq("%tag 1 sets yours", k("%tag 1 ΩZ"), ["tag", "us", "ΩZ"]);
+  eq("chat is chat", ["nice race", "gg", "lol", "ok see you at 9"].map((l) => k(l)[0]), ["none", "none", "none", "none"]);
+  eq("Sokuji 12 later is 12th", k("3712", 0), ["race", "3,7,9,10,11,12", null]);
+  eq("Kiwi 12 is 1st and 2nd", k("3712", 0, { ...ctx, readsLike: "kiwi" }), ["race", "1,2,3,7,11,12", null]);
+}
+
+// ── Team and player cards (overrides picks 1 to 3) ──
+{
+  const set: CardSet = {
+    teams: [{ id: "t1", name: "Twilight Zone", tags: ["Ω", "TZ"], color: "#6a35c9" }, { id: "t2", name: "FRVR Racing", tags: ["FRVR"], color: null }],
+    roster: [
+      { teamId: "t2", ingame: "Jalen", shown: "peep/Sxyd", flag: "us", source: "captain" },
+      { teamId: "t2", ingame: "TRA$H", shown: "brisktrash", flag: "ca", source: "remember" },
+      { teamId: "t1", ingame: "Jalen", shown: "Jalen TZ", flag: "mx", source: "captain" },
+    ],
+    cards: [
+      { discordId: "1", shown: "umiko", flag: "us", ingame: ["umikofy"], teams: ["Ω"] },
+      { discordId: "2", shown: "Clarence", flag: "us", ingame: ["Clarence"], teams: [] },
+      { discordId: "3", shown: "Other Clarence", flag: "gb", ingame: ["Clarence"], teams: ["XYZ"] },
+    ],
+  };
+  eq("server list for this team", whoIs("Jalen", { tag: "FRVR", name: null }, set), { shown: "peep/Sxyd", flag: "us", from: "server" });
+  eq("same name, other team's list", whoIs("Jalen", { tag: "TZ", name: null }, set), { shown: "Jalen TZ", flag: "mx", from: "server" });
+  eq("spelled differently", whoIs("TRA$H", { tag: "FRVR", name: null }, set)?.shown, "brisktrash");
+  eq("player's own card on their team", whoIs("umikofy", { tag: "Ω", name: null }, set), { shown: "umiko", flag: "us", from: "player" });
+  eq("two cards claim a name: only the one on this team", whoIs("Clarence", { tag: "XYZ", name: null }, set)?.shown, "Other Clarence");
+  eq("two cards, neither on this team: nobody", whoIs("Clarence", { tag: "Ω", name: null }, set), null);
+  eq("unknown name", whoIs("vok", { tag: "Ω", name: null }, set), null);
+  eq("aliases by tag", teamAliases(set.teams)["tz"], ["Twilight Zone", "Ω", "TZ"]);
+  const table = parseTable("TWILIGHT\numikofy 125\nvok 74\nFRVR\nJalen 102\nTRA$H 55");
+  const dressed = applyCards(table, set, [1]);
+  eq("cards dress the teams", dressed.teams.map((t) => [t.tag, t.name, t.color]), [["TWILIGHT", null, null], ["FRVR", "FRVR Racing", null]]);
+  eq("only the filled team's players change", [dressed.teams[0].players[0].name, dressed.teams[1].players.map((p) => `${p.name} ${p.flag}`)], ["umikofy", ["peep/Sxyd us", "brisktrash ca"]]);
+  const tz = applyCards(parseTable("TZ\numikofy 125"), set, [0]);
+  eq("a card's other tag shows the first", [tz.teams[0].tag, tz.teams[0].name, tz.teams[0].color, tz.teams[0].players[0].name], ["Ω", "Twilight Zone", "#6a35c9", "umiko"]);
+  const read = parseTable("FRVR\nJalen 102\nnsn 81\nTRA$H 55");
+  const posted = parseTable("FRVR - FRVR Racing\npeep/Sxyd [us] 102\nneiseun [us] 81\nTRA$H 55");
+  eq("what a fix changed", fixesBetween(read, posted), [{ team: 0, ingame: "Jalen", shown: "peep/Sxyd", flag: "us" }, { team: 0, ingame: "nsn", shown: "neiseun", flag: "us" }]);
+  eq("roster lines", readRosterLines("Jalen = peep/Sxyd [us]\nnsn -> neiseun\nTRA$H [ca]\n\nyozo: yozo75 [US]"), [
+    { ingame: "Jalen", shown: "peep/Sxyd", flag: "us" }, { ingame: "nsn", shown: "neiseun", flag: null }, { ingame: "TRA$H", shown: null, flag: "ca" }, { ingame: "yozo", shown: "yozo75", flag: "us" },
+  ]);
+}
+
+// ── MKCentral teams (logos + MKCentral picks, all A; players from the real Nov 9 rosters) ──
+{
+  const P = (id: number, name: string, country: string | null, discordId: string | null = null): MkcPlayerLite => ({ id, name, country, discordId });
+  const frvr = [P(1, "Acria/Rei", "us"), P(2, "brisktrash", "ca"), P(3, "cloudedichor", "us"), P(4, "neiseun", "us"), P(5, "TorettoMK8", "us"), P(6, "yozo75/Eternal", "us"), P(7, "FRVRFRIDAY", "ca")];
+  const tz = [P(11, "Aira / Umiko", "us", "1374992892988227634"), P(12, "DekuMK8", "us", "691754011329691709"), P(13, "JJz3r0", "us"), P(14, "Clarence", "us"), P(15, "cook", "us")];
+  const m = (n: string, list: MkcPlayerLite[]) => matchMkc(n, list)?.shown ?? null;
+  eq("a part of their name", m("umikofy", tz), "Umiko");
+  eq("the start", [m("Deku", tz), m("Toret", frvr), m("yozo", frvr)], ["DekuMK8", "TorettoMK8", "yozo75"]);
+  eq("the end, 4 letters or more", m("ichor", frvr), "cloudedichor");
+  eq("exact", [m("JJz3r0", tz), m("Clarence", tz)], ["JJz3r0", "Clarence"]);
+  eq("no guess", [m("nsn", frvr), m("TRA$H", frvr), m("Jalen", frvr), m("vok", tz), m("Twinsia", tz)], [null, null, null, null, null]);
+  eq("two who fit: nobody", matchMkc("Ki", [P(21, "Kirby", null), P(22, "Kiki", null)]), null);
+  eq("an exact name beats a start", m("cook", [P(31, "cook", null), P(32, "cookie", null)]), "cook");
+  const set: CardSet = {
+    teams: [{ id: "tz", name: "Twilight Zone", tags: ["Ω"], color: null, mkcTeamId: 3592 }, { id: "fr", name: "FRVR Racing", tags: ["FRVR"], color: null, mkcTeamId: 2929 }],
+    roster: [{ teamId: "fr", ingame: "Jalen", shown: "peep/Sxyd", flag: "us", source: "captain" }],
+    cards: [{ discordId: "691754011329691709", shown: null, flag: "mx", ingame: [], teams: [] }],
+    mkc: { tz, fr: frvr },
+  };
+  eq("MKCentral fills in", whoIs("umikofy", { tag: "Ω", name: null }, set), { shown: "Umiko", flag: "us", from: "mkcentral", mkcPlayerId: 11 });
+  eq("their own card beats MKCentral's country", whoIs("Deku", { tag: "Ω", name: null }, set), { shown: "DekuMK8", flag: "mx", from: "player", mkcPlayerId: 12 });
+  eq("your server's line beats MKCentral", whoIs("Jalen", { tag: "FRVR", name: null }, set)?.shown, "peep/Sxyd");
+  const screen = parseTable("Ω\numikofy 125\nTwinsia 107\nJJz3r0 86\nDeku 82\nClarence 74\nvok 74\nFRVR\nJalen 102\nnsn 81\nichor 72\nToret 64\nyozo 62\nTRA$H 55");
+  const linked = applyCards(screen, set, [0, 1]);
+  eq("the Nov 9 table, linked", linked.teams.map((t) => t.players.map((p) => `${p.name}${p.flag ? ` ${p.flag}` : ""}`).join(", ")), [
+    "Umiko us, Twinsia, JJz3r0 us, DekuMK8 mx, Clarence us, vok", "peep/Sxyd us, nsn, cloudedichor us, TorettoMK8 us, yozo75 us, TRA$H",
+  ]);
+  const who = unknownOnLinked(linked, set, [0, 1]);
+  eq("who's left to ask", who.map((u) => `${u.team}:${u.ingame}`), ["0:Twinsia", "0:vok", "1:nsn", "1:TRA$H"]);
+  eq("the menu leaves out who's on the table", who.find((u) => u.ingame === "nsn")!.options.map((p) => p.name), ["Acria/Rei", "brisktrash", "neiseun", "FRVRFRIDAY"]);
+  eq("not linked: nobody asked", unknownOnLinked(linked, { ...set, mkc: {} }, [0, 1]), []);
+  eq("MKCentral links", [mkcIdFrom("https://mkcentral.com/en-us/registry/teams/profile?id=2929"), mkcIdFrom("mkcentral.com/registry/teams/3592"), mkcIdFrom("2929"), mkcIdFrom("FRVR")], [2929, 3592, 2929, null]);
+}
+
+// ── Tables pasted from other tools (overrides pick 8) ──
+{
+  const ice = parsePasted("!tablel light nodate\n#title Twilight Zone vs FRVR\n#bg https://example.com/bg.png\nΩ - Twilight Zone #6a35c9 -vx\numiko [us] 125\nDeku [mx] 80-10\nFRVR - FRVR Racing\npeep [us] 102\nPenalty -15");
+  eq("Ice Mario block", [ice.title, ice.teams.map((t) => [t.tag, t.name, t.color, teamTotal(t)]), ice.settings], ["Twilight Zone vs FRVR", [["Ω", "Twilight Zone", "#6a35c9", 195], ["FRVR", "FRVR Racing", null, 87]], ["#bg https://example.com/bg.png"]]);
+  const lounge = parsePasted("!submit 3 a\nΩ umiko [us] 125\nΩ Deku [mx] 82\nΩ vok 74\nFRVR Jalen 102\nFRVR nsn 81\nFRVR ichor 72");
+  eq("Lounge !submit block", lounge.teams.map((t) => [t.tag, t.players.map((p) => p.name).join(" "), teamTotal(t)]), [["Ω", "umiko Deku vok", 281], ["FRVR", "Jalen nsn ichor", 255]]);
+  eq("Lorenzi text unchanged", parsePasted("KC - Kart Club\nRiley 118\nNOR\nMira 101").teams.map((t) => t.tag), ["KC", "NOR"]);
+}
+
 // ── The war page's address ──
 {
   const id = "2c273be3-da06-4b7a-9c1e-5f0e1d2c3b4a";
@@ -247,5 +435,13 @@ Münch [inward] 94
   eq("ended early", headlineFor("ended", 7, 12, T("KC", 300), T("NOR", 274)), "Ended after race 7, 300 to 274");
 }
 
-console.log(`${pass} passed, ${fail} failed`);
-if (fail) process.exit(1);
+void (async () => {
+  // The logo setting (no network: these settings never reach MKCentral).
+  const card = { id: "t", name: "X", tags: ["X"], color: null };
+  eq("upload only", await cardLogo({ ...card, logoSource: "upload" }, { upload: "u.png", warLogo: "w.png", tags: [], game: "mk8dx" }), "u.png");
+  eq("upload only, none", await cardLogo({ ...card, logoSource: "upload" }, { upload: null, warLogo: "w.png", tags: [], game: "mk8dx" }), null);
+  eq("automatic: your upload first", await cardLogo({ ...card, logoSource: "auto" }, { upload: "u.png", warLogo: "w.png", tags: [], game: "mk8dx" }), "u.png");
+  eq("automatic: then the war's", await cardLogo(null, { upload: null, warLogo: "w.png", tags: [], game: "mk8dx" }), "w.png");
+  console.log(`${pass} passed, ${fail} failed`);
+  process.exit(fail ? 1 : 0);
+})();

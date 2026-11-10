@@ -9,6 +9,7 @@
  *   - Server LOGGING          (message delete/edit, member join/leave, role
  *                              change) → discord_guilds.log_channel_id/_events
  *   - Server removed / re-added (GuildDelete / GuildCreate) → discord_guilds.removed_at
+ *   - Races typed in a war's channel, as GameShuffle Competitive (a second connection, off until its env is set)
  *
  * Each server's settings live on its discord_guilds row (one account per
  * server, up to 5 with GS Pro). Logging, the Pro role and autoroles are GS Pro
@@ -314,3 +315,72 @@ process.on("uncaughtException", (err) => fatal("uncaughtException", err));
 process.on("unhandledRejection", (err) => fatal("unhandledRejection", err));
 
 client.login(DISCORD_BOT_TOKEN).catch((err) => fatal("login", err));
+
+/**
+ * GameShuffle Competitive: races typed in a war's channel (overrides picks 2026-11-09). A second connection, as the
+ * Competitive app, that reads plain messages ONLY in channels with a war going (the list is refreshed from the
+ * database every 30 seconds, so nothing else is looked at) and passes short ones to the site, which reads them the
+ * way /race does and says what to do: a check mark, a short reply, or nothing.
+ *
+ * Off unless all three are set: DISCORD_COMP_BOT_TOKEN (the Competitive app's bot token), GS_ORIGIN
+ * (https://www.gameshuffle.co) and WARS_TYPED_SECRET (the same value as on Vercel). The Competitive app needs the
+ * Message Content intent turned on (Developer Portal → Bot → Privileged Gateway Intents).
+ */
+const { DISCORD_COMP_BOT_TOKEN, GS_ORIGIN, WARS_TYPED_SECRET } = process.env;
+if (DISCORD_COMP_BOT_TOKEN && GS_ORIGIN && WARS_TYPED_SECRET) {
+  const comp = new Client({
+    intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages, GatewayIntentBits.MessageContent],
+  });
+  /** Channels with a war going: live, or finished in the last 6 hours (fixes and back after the last race). */
+  let warChannels = new Set();
+  let warChannelsAt = 0;
+  async function channelsWithWars() {
+    if (Date.now() - warChannelsAt < 30_000) return warChannels;
+    warChannelsAt = Date.now();
+    const since = new Date(Date.now() - 6 * 3600_000).toISOString();
+    const { data, error } = await supabase.from("wars").select("channel_id, status, updated_at").or(`status.eq.live,and(status.eq.done,updated_at.gte.${since})`).limit(500);
+    if (!error) warChannels = new Set((data ?? []).map((r) => r.channel_id));
+    return warChannels;
+  }
+  comp.on(Events.MessageCreate, async (message) => {
+    try {
+      if (message.author?.bot || !message.guildId || !message.content) return;
+      const text = message.content.trim();
+      if (text.length > 60 || text.includes("\n")) return;
+      if (!(await channelsWithWars()).has(message.channelId)) return;
+      const res = await fetch(`${GS_ORIGIN}/api/discord/comp/typed`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "x-typed-secret": WARS_TYPED_SECRET },
+        body: JSON.stringify({ guildId: message.guildId, channelId: message.channelId, authorId: message.author.id, authorName: message.member?.displayName ?? message.author.globalName ?? message.author.username, content: text }),
+        signal: AbortSignal.timeout(8000),
+      });
+      if (!res.ok) return;
+      const out = await res.json();
+      if (out.action === "react" || out.action === "react_reply") await message.react(out.emoji ?? "✅").catch(() => {});
+      if ((out.action === "reply" || out.action === "react_reply") && out.text) {
+        await message.reply({ content: String(out.text).slice(0, 300), allowedMentions: { repliedUser: false, parse: [] } }).catch(() => {});
+      }
+    } catch (err) {
+      console.error("[worker] typed race failed:", err?.message ?? err);
+    }
+  });
+  comp.once(Events.ClientReady, (c) => console.log(`[worker] Competitive ready as ${c.user.tag}: reading typed races in war channels`));
+  comp.on(Events.Error, (err) => console.error("[worker] Competitive client error:", err?.message ?? err));
+  // A problem with the Competitive connection never stops the main bot's work: it's logged and left off. Discord
+  // throws a missing intent from deep inside the connection (it would reach fatal() above and take the whole worker
+  // down), so the app's Message Content setting is checked first and the connection only opens when it's on.
+  const MESSAGE_CONTENT = (1 << 18) | (1 << 19);
+  fetch("https://discord.com/api/v10/applications/@me", { headers: { Authorization: `Bot ${DISCORD_COMP_BOT_TOKEN}` }, signal: AbortSignal.timeout(8000) })
+    .then(async (r) => {
+      if (!r.ok) throw new Error(`Discord said ${r.status} for the Competitive token`);
+      const app = await r.json();
+      if (!((app.flags ?? 0) & MESSAGE_CONTENT)) {
+        console.error("[worker] typed races stay off: turn on Message Content for GameShuffle Competitive (Developer Portal -> Bot -> Privileged Gateway Intents)");
+        return;
+      }
+      await comp.login(DISCORD_COMP_BOT_TOKEN);
+    })
+    .catch((err) => console.error(`[worker] Competitive login failed, typed races stay off: ${err?.message ?? err}`));
+} else {
+  console.log("[worker] typed races off (set DISCORD_COMP_BOT_TOKEN, GS_ORIGIN and WARS_TYPED_SECRET to read them)");
+}

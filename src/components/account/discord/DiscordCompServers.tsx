@@ -161,9 +161,9 @@ function ServerRow({ s, pro, onChanged }: { s: Server; pro: boolean; onChanged: 
       {!s.removedAt && s.lounge && <LoungePanel guildId={s.guildId} start={s.lounge} pro={pro} hasChannel={!!channel} />}
       {!s.removedAt && (
         <div className="discord-apps__panel">
-          <strong>Team logos</strong>
-          <p className="discord-apps__help">For war cards, tables and the overlay. Add many at once here, or one at a time with /logo add.</p>
-          <div><ArrowLink href={`/account/discord/logos/${s.guildId}`}>Manage team logos</ArrowLink></div>
+          <strong>Teams</strong>
+          <p className="discord-apps__help">Names, tags, colors, logos and players for war cards, tables and the overlay. Add logos many at once there, or one at a time with /logo add.</p>
+          <div><ArrowLink href={`/account/discord/teams/${s.guildId}`}>Manage teams</ArrowLink></div>
         </div>
       )}
     </li>

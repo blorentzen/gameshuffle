@@ -72,7 +72,10 @@ export default function Page() {
       <ul>
         <li><code>/war</code>: start a war against another team&apos;s tag and score it race by race on the war card. The channel remembers your tag, the game and how races go in.</li>
         <li><code>/cans</code>: post a war time for your team. Players tap Can, Sub, Maybe or Can&apos;t, and the captain locks the lineup. <code>/cans timezone</code>{" "}sets the time zone you type times in, <code>/cans setup</code>{" "}sets a team&apos;s role, and <code>/cans hours</code>{" "}opens the War room to mark the hours you can usually race.</li>
+        <li><code>/race</code>: add or fix a race the way you&apos;d type it to another war bot: <code>12378</code>, <code>SSC 1-378</code>, <code>back</code>, <code>race 3 12378</code>, <code>pen 15 FRVR</code>.</li>
         <li><code>/table</code>: make a war table from this channel&apos;s last war, a results screenshot, or pasted text.</li>
+        <li><code>/team</code>: this server&apos;s team cards: a team&apos;s name, every tag it plays under, its color, its players (in-game name, the name for tables, a flag), where its logo comes from, and its MKCentral team (<code>/team link</code>).</li>
+        <li><code>/me</code>: your own war card: the name and flag tables show for you, your in-game names and your teams. Used in every server.</li>
         <li><code>/logo</code>: add, show, list or remove this server&apos;s team logos for war cards, tables and the overlay.</li>
         <li><code>/flag</code>: add, show, list or remove the server&apos;s own flags for war tables, for codes the country flags don&apos;t cover.</li>
       </ul>
@@ -98,7 +101,7 @@ export default function Page() {
         <li><strong>Posts go to:</strong> the channel for the bot&apos;s posts.</li>
         <li><strong>Time trial panel:</strong> post it, move it, or take it down.</li>
         <li><strong>Mario Kart lounge:</strong> Post rank-ups (free) posts when a member who confirmed their lounge name reaches a new division, once a season. Division roles and the Monday board come with GS Pro.</li>
-        <li><strong>Team logos:</strong> add many at once for war cards and tables.</li>
+        <li><strong>Teams:</strong> each team&apos;s name, tags, color, logo and players for war cards and tables, with logos added many at once.</li>
       </ul>
 
       <h2>The old commands on the main bot</h2>

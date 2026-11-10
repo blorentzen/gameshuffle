@@ -69,7 +69,7 @@ export async function renderTable(model: TableModel, opts: { logos: Record<strin
             // eslint-disable-next-line @next/next/no-img-element -- drawn by ImageResponse
             <img src={logoPngs[i]!} width={u(60)} height={u(60)} alt="" />
           ) : (
-            <div style={{ width: u(56), height: u(56), borderRadius: u(56), background: tagColor(t.tag), border: `${u(3)}px solid rgba(255,255,255,0.85)`, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "Gabarito", fontSize: u(t.tag.length > 3 ? 12 : 15), color: "#fff" }}>{clip(t.tag, 5)}</div>
+            <div style={{ width: u(56), height: u(56), borderRadius: u(56), background: t.color ?? tagColor(t.tag), border: `${u(3)}px solid rgba(255,255,255,0.85)`, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "Gabarito", fontSize: u(t.tag.length > 3 ? 12 : 15), color: "#fff" }}>{clip(t.tag, 5)}</div>
           )}
         </div>
         <div style={{ display: "flex", flexDirection: "column", width: u(rowsW), marginLeft: u(12) }}>

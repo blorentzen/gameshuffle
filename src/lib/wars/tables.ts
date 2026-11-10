@@ -13,18 +13,22 @@ import { loungeBasic } from "@/lib/mmr/mkcentral";
 import { POINTS, standing, type WarGame } from "./rules";
 import { formatTable, parseTable, type TableModel } from "./table";
 import { renderTable } from "./tableCard";
-import { serverLogo } from "./logos";
+import { listLogos } from "./logos";
+import { cardsReady, listTeams, playerCardsById } from "./cardStore";
+import { mkcTeam } from "./mkcTeams";
+import { teamAliases, teamCardFor, type TeamCard } from "./cards";
+import { tagKey } from "./tags";
 import { flagsFor } from "./flags";
 import { registryTeam } from "./teams";
-import type { War } from "./store";
+import type { War, WarTeamRef } from "./store";
 import { SITE_URL } from "@/lib/seo";
 import { linkBtn } from "./discord";
 import { warPagePath } from "./page";
 
-export interface WarTableRow { id: string; warId: string | null; guildId: string; channelId: string; body: string; backgroundUrl: string | null; status: "draft" | "posted" | "canceled"; messageId: string | null; createdBy: string; createdByName: string | null }
-type Row = { id: string; war_id: string | null; guild_id: string; channel_id: string; body: string; background_url: string | null; status: WarTableRow["status"]; message_id: string | null; created_by: string; created_by_name: string | null };
+export interface WarTableRow { id: string; warId: string | null; guildId: string; channelId: string; body: string; backgroundUrl: string | null; status: "draft" | "posted" | "canceled"; messageId: string | null; createdBy: string; createdByName: string | null; readBody: string | null }
+type Row = { id: string; war_id: string | null; guild_id: string; channel_id: string; body: string; background_url: string | null; status: WarTableRow["status"]; message_id: string | null; created_by: string; created_by_name: string | null; read_body?: string | null };
 const COLS = "id, war_id, guild_id, channel_id, body, background_url, status, message_id, created_by, created_by_name";
-const toRow = (r: Row): WarTableRow => ({ id: r.id, warId: r.war_id, guildId: r.guild_id, channelId: r.channel_id, body: r.body, backgroundUrl: r.background_url, status: r.status, messageId: r.message_id, createdBy: r.created_by, createdByName: r.created_by_name });
+const toRow = (r: Row): WarTableRow => ({ id: r.id, warId: r.war_id, guildId: r.guild_id, channelId: r.channel_id, body: r.body, backgroundUrl: r.background_url, status: r.status, messageId: r.message_id, createdBy: r.created_by, createdByName: r.created_by_name, readBody: r.read_body ?? null });
 
 export const TABLE_PREFIX = "wtab:";
 const V2 = 1 << 15;
@@ -50,23 +54,36 @@ export async function prefillFor(war: War): Promise<string> {
       pts.set(p.id, now);
     }
     const ids = [...pts.keys()];
-    const flags = await withTimeout(Promise.all(ids.map((id) => loungeBasic({ discordId: id }, lounge(war.game)).catch(() => null))), 3000, ids.map(() => null));
-    model.teams[0].players = ids.map((id, i) => ({ name: flags[i]?.name ?? pts.get(id)!.name, flag: flags[i]?.country?.toLowerCase() ?? null, score: pts.get(id)!.score }))
+    const [flags, cards] = await Promise.all([
+      withTimeout(Promise.all(ids.map((id) => loungeBasic({ discordId: id }, lounge(war.game)).catch(() => null))), 3000, ids.map(() => null)),
+      playerCardsById(ids).catch(() => new Map()),
+    ]);
+    // A player's own card (/me) wins over MKCentral.
+    model.teams[0].players = ids.map((id, i) => ({ name: cards.get(id)?.shown ?? flags[i]?.name ?? pts.get(id)!.name, flag: cards.get(id)?.flag ?? flags[i]?.country?.toLowerCase() ?? null, score: pts.get(id)!.score }))
       .sort((a, b) => b.score - a.score);
   }
   return formatTable(model);
 }
 
-/** A war's totals as the table check wants them (penalties included). */
-export function warTotals(war: War): { totals: Record<string, number>; team: number } {
+/**
+ * A war's totals as the table check wants them (penalties included): by each team's tag and name, every tag on its
+ * team card, and in order (your team first) for a table team that matches none of those.
+ */
+export function warTotals(war: War, cards: TeamCard[] = []): { totals: Record<string, number>; team: number; order: number[] } {
   const s = standing(war.races, war.penalties, war.racesTotal);
-  return { totals: { [war.us.tag.toLowerCase()]: s.us, [war.them.tag.toLowerCase()]: s.them }, team: 6 };
+  const totals: Record<string, number> = {};
+  for (const [side, total] of [[war.them, s.them], [war.us, s.us]] as const) {
+    const card = teamCardFor(cards, side.tag, side.name);
+    for (const k of [side.name, side.tag, card?.name, ...(card?.tags ?? [])]) if (k) totals[k.toLowerCase()] = total;
+  }
+  return { totals, team: 6, order: [s.us, s.them] };
 }
 
-export async function createDraft(input: { warId: string | null; guildId: string; channelId: string; body: string; backgroundUrl: string | null; by: { id: string; name: string } }): Promise<string | null> {
+export async function createDraft(input: { warId: string | null; guildId: string; channelId: string; body: string; backgroundUrl: string | null; by: { id: string; name: string }; readBody?: string | null }): Promise<string | null> {
+  const withRead = input.readBody && (await cardsReady()) ? { read_body: input.readBody.slice(0, 4000) } : {};
   const { data, error } = await createServiceClient().from("war_tables").insert({
     war_id: input.warId, guild_id: input.guildId, channel_id: input.channelId, body: input.body.slice(0, 4000), background_url: input.backgroundUrl,
-    created_by: input.by.id, created_by_name: input.by.name,
+    created_by: input.by.id, created_by_name: input.by.name, ...withRead,
   }).select("id").single();
   if (error) { console.error("[wars] table draft failed:", error.message); return null; }
   return (data as { id: string }).id;
@@ -74,31 +91,91 @@ export async function createDraft(input: { warId: string | null; guildId: string
 
 export async function getTable(id: string): Promise<WarTableRow | null> {
   if (!/^[0-9a-f-]{36}$/.test(id)) return null;
-  const { data } = await createServiceClient().from("war_tables").select(COLS).eq("id", id).maybeSingle();
-  return data ? toRow(data as Row) : null;
+  const cols: string = (await cardsReady()) ? `${COLS}, read_body` : COLS;
+  const { data } = await createServiceClient().from("war_tables").select(cols).eq("id", id).maybeSingle();
+  return data ? toRow(data as unknown as Row) : null;
 }
 
-export async function updateTable(id: string, patch: Partial<{ body: string; status: WarTableRow["status"]; messageId: string | null; backgroundUrl: string | null }>): Promise<void> {
+export async function updateTable(id: string, patch: Partial<{ body: string; status: WarTableRow["status"]; messageId: string | null; backgroundUrl: string | null; readBody: string | null }>): Promise<void> {
   const row: Record<string, unknown> = { updated_at: new Date().toISOString() };
   if (patch.body !== undefined) row.body = patch.body.slice(0, 4000);
   if (patch.status) row.status = patch.status;
   if (patch.messageId !== undefined) row.message_id = patch.messageId;
   if (patch.backgroundUrl !== undefined) row.background_url = patch.backgroundUrl;
+  if (patch.readBody !== undefined && (await cardsReady())) row.read_body = patch.readBody;
   await createServiceClient().from("war_tables").update(row).eq("id", id);
 }
 
-/** Each team's logo for a table: this server's, else MKCentral's, else the war's own. */
+const same = (a: string | null | undefined, b: string | null | undefined) => !!a && !!b && !!tagKey(a) && tagKey(a) === tagKey(b);
+
+/**
+ * A table team's logo from this server's logos (by its tag, its name or any tag on its team card) or the war's team
+ * it is (by tag or name).
+ */
+export function logoFrom(t: { tag: string; name: string | null }, own: { tag: string; name: string | null; url: string }[], sides: WarTeamRef[], cards: TeamCard[] = []): { url: string | null; side: WarTeamRef | undefined } {
+  const card = teamCardFor(cards, t.tag, t.name);
+  const keys = [t.tag, t.name, ...(card?.tags ?? []), card?.name];
+  const side = sides.find((s) => keys.some((v) => same(s.tag, v) || same(s.name, v)));
+  const ownFor = (v: string | null | undefined) => own.find((l) => same(l.tag, v) || same(l.name, v))?.url ?? null;
+  const url = keys.map(ownFor).find(Boolean) ?? ownFor(side?.tag) ?? ownFor(side?.name) ?? side?.logo ?? null;
+  return { url, side };
+}
+
+/**
+ * Each team's logo for a table: this server's logo for its tag or its name, then the war's own team (matched by tag or
+ * name: a team the screenshot showed under another tag keeps the war's as its name), then MKCentral's for either tag.
+ */
 async function logosFor(model: TableModel, guildId: string, war: War | null): Promise<Record<string, string | null>> {
   const game: WarGame = war?.game ?? "mk8dx";
+  const [own, cards] = await Promise.all([listLogos(guildId).catch(() => []), listTeams(guildId).catch(() => [])]);
   const entries = await Promise.all(model.teams.map(async (t) => {
-    const k = t.tag.toLowerCase();
-    const own = await serverLogo(guildId, t.tag);
-    if (own) return [k, own] as const;
-    const fromWar = war ? (war.us.tag.toLowerCase() === k ? war.us.logo : war.them.tag.toLowerCase() === k ? war.them.logo : null) : null;
-    if (fromWar) return [k, fromWar] as const;
-    return [k, (await registryTeam(t.tag, game).catch(() => null))?.logo ?? null] as const;
+    const card = teamCardFor(cards, t.tag, t.name);
+    const { url, side } = logoFrom(t, own, war ? [war.us, war.them] : [], cards);
+    // logoFrom's url is an upload or the war's own team logo; which counts depends on the card's logo setting.
+    const upload = logoFrom(t, own, [], cards).url;
+    return [t.tag.toLowerCase(), await cardLogo(card, { upload, warLogo: url !== upload ? url : null, tags: [t.tag, side?.tag], game })] as const;
   }));
   return Object.fromEntries(entries);
+}
+
+/**
+ * A team's logo by its card's setting (logos + MKCentral picks 2026-11-09): auto = this server's upload, then the
+ * linked MKCentral team's (read live, the last one seen when MKCentral can't be reached), then the war's own, then
+ * MKCentral by tag; upload = the upload only; mkcentral = the linked team's (or MKCentral by tag when not linked).
+ */
+export async function cardLogo(card: TeamCard | null, opts: { upload: string | null; warLogo?: string | null; tags: (string | null | undefined)[]; game: WarGame }): Promise<string | null> {
+  const source = card?.logoSource ?? "auto";
+  if (source === "upload") return opts.upload;
+  const linked = card?.mkcTeamId ? ((await mkcTeam(card.mkcTeamId).catch(() => null))?.logo ?? card.mkcLogo ?? null) : null;
+  const byTag = async () => {
+    for (const tag of [...new Set([...(card?.tags ?? []), ...opts.tags].filter((v): v is string => !!v && v !== "?"))]) {
+      const logo = (await registryTeam(tag, opts.game).catch(() => null))?.logo;
+      if (logo) return logo;
+    }
+    return null;
+  };
+  if (source === "mkcentral") return linked ?? (card?.mkcTeamId ? null : await byTag());
+  return opts.upload ?? linked ?? opts.warLogo ?? (await byTag());
+}
+
+/**
+ * Other names for the tags on a results screen, so its teams can be matched to the war's: MKCentral's team for the
+ * tag (Ω is Twilight Zone) and this server's logos ("Ω - Twilight Zone.png"). By tagKey.
+ */
+export async function tagAliases(tags: string[], game: WarGame, guildId: string): Promise<Record<string, string[]>> {
+  const list = tags.slice(0, 6);
+  const [own, cards, reg] = await Promise.all([
+    listLogos(guildId).catch(() => []),
+    listTeams(guildId).catch(() => []),
+    withTimeout(Promise.all(list.map((t) => registryTeam(t, game).catch(() => null))), 2500, list.map(() => null)),
+  ]);
+  const out: Record<string, string[]> = {};
+  list.forEach((t, i) => {
+    const k = tagKey(t);
+    const names = [...(teamAliases(cards)[k] ?? []), reg[i]?.name, ...own.filter((l) => tagKey(l.tag) === k).map((l) => l.name)].filter((v): v is string => !!v);
+    if (names.length) out[k] = [...new Set(names)];
+  });
+  return out;
 }
 
 function tableMessage(table: WarTableRow, alt: string, war: War | null): Record<string, unknown> {

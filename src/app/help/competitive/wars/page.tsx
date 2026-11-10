@@ -32,7 +32,7 @@ export default function Page() {
         the Send Messages and Attach Files permissions in that channel.
       </p>
       <ul>
-        <li><code>vs</code>{" "}(required): the other team&apos;s tag. It suggests teams this server has played, then teams from MKCentral.</li>
+        <li><code>vs</code>{" "}(required): the other team&apos;s tag. It suggests this server&apos;s team cards, then teams it has played, then teams from MKCentral.</li>
         <li><code>us</code>: your team&apos;s tag. The channel remembers it after the first war.</li>
         <li><code>game</code>: Mario Kart 8 Deluxe or Mario Kart World.</li>
         <li><code>entry</code>: one person adds each race, or everyone taps the place they finished.</li>
@@ -75,6 +75,24 @@ export default function Page() {
         your sixth. If more than one is filled in, the card says so. More than six keeps the best six.
       </p>
 
+      <h3>Typing races with /race</h3>
+      <p>
+        <code>/race</code>{" "}takes what you&apos;d type to another war bot, in the war&apos;s channel:
+      </p>
+      <ul>
+        <li>Places, any of the ways above: <code>/race 1-378</code>, or with the track first: <code>/race SSC 12378</code>.</li>
+        <li>A track on its own sets the next race&apos;s track: <code>/race rMMM</code>.</li>
+        <li>Take the last race back: <code>back</code>, <code>undo</code>, <code>%back</code>, <code>!back</code>{" "}or <code>!u</code>.</li>
+        <li>Fix a race: <code>race 3 1-378</code>, <code>race 3 SSC</code>, <code>%race 3 12378</code>{" "}or <code>!editrace 3 12378</code>.</li>
+        <li>Penalties: <code>pen 15</code>{" "}is 15 off the other team and <code>pen -15</code>{" "}15 off yours (Quaxly&apos;s way); <code>%penalty 10</code>{" "}and <code>%repick</code>{" "}(15) are off yours (Sokuji&apos;s way); add a team&apos;s tag or name to say which, like <code>pen 15 FRVR</code>. <code>unpen 15</code>{" "}takes one back.</li>
+        <li>Ice Mario&apos;s <code>!a 1 2 3 7 8 12</code>{" "}and Toad&apos;s <code>_race 1 2 3 4 5 6</code>{" "}add a race. <code>%tag FRVR</code>{" "}changes the other team&apos;s tag mid-war.</li>
+      </ul>
+      <p>
+        Where the other bots disagree, your server picks which one it reads like: press{" "}
+        <strong>More &rsaquo; Typed races</strong>{" "}on the card (people who manage the server). Sokuji
+        and Quaxly is the default; Kiwi reads every <code>12</code>{" "}as 1st and 2nd.
+      </p>
+
       <h3>Everyone taps their place</h3>
       <p>
         Each player taps the place they finished on the card. Tap it again to take it back, or tap
@@ -94,6 +112,7 @@ export default function Page() {
         <li><strong>Add a penalty:</strong> take 1 to 200 points off either team, with a reason shown on the card.</li>
         <li><strong>Make the table:</strong> see Tables below.</li>
         <li><strong>Overlay link:</strong> see The war overlay below.</li>
+        <li><strong>Typed races:</strong> how <code>/race</code>{" "}reads lines in this server (see above).</li>
         <li>Switch between one person scoring and everyone tapping.</li>
         <li><strong>End the war:</strong> stop before all 12 races are in.</li>
       </ul>
@@ -110,10 +129,15 @@ export default function Page() {
         starts from the channel&apos;s last war and has:
       </p>
       <ul>
-        <li><strong>Final results screenshot</strong>{" "}(optional): every name and score is read from it, and you check them before the table is posted.</li>
+        <li><strong>Final results screenshot</strong>{" "}(optional): every name and score is read from it, and you check them before the table is posted. Players are sorted into teams by the tag in their names, at the front or the back (<code>Ω umiko</code>, <code>FRVR♪ichor</code>, <code>Jalen [FRVR]</code>), and the tag comes off the name.</li>
         <li><strong>Background</strong>{" "}(optional): use it just this once, or save it for this channel&apos;s tables. Left empty, the channel&apos;s saved background is used.</li>
-        <li><strong>Players and scores</strong>: Lorenzi&apos;s format, with a team&apos;s tag on its own line and then one player per line, like <code>Name [us] 94</code>.</li>
+        <li><strong>Players and scores</strong>: Lorenzi&apos;s format, with a team&apos;s tag on its own line and then one player per line, like <code>Name [us] 94</code>. An Ice Mario table (starting with <code>!tablel</code>) or a Lounge <code>!submit</code>{" "}block can be pasted as it is.</li>
       </ul>
+      <p>
+        Names and flags come from your server&apos;s team cards and players&apos; own cards (below). When
+        you fix names on a table, the bot asks whether to <strong>Remember</strong>{" "}them for that
+        team, so the next table fills them in on its own.
+      </p>
       <p>
         Each team&apos;s total is checked against the war. If something is off, you see it privately with{" "}
         <strong>Draw it anyway</strong>, <strong>Fix the text</strong>{" "}or <strong>Cancel</strong>, and{" "}
@@ -122,12 +146,42 @@ export default function Page() {
         <strong>Copy the text</strong>.
       </p>
 
+      <h3>Teams and players</h3>
+      <p>
+        Anything the bot works out on its own can be set by hand. A team card holds a team&apos;s name,
+        every tag it plays under (the first one is shown), its color and its players:
+      </p>
+      <ul>
+        <li><code>/team set</code>: make or change a card, with <code>also</code>{" "}for the other tags it plays under, like <code>TZ</code>{" "}for Twilight Zone (Ω).</li>
+        <li><code>/team players</code>: the team&apos;s players, one per line: in-game name, the name for tables, a flag, like <code>Jalen = peep/Sxyd [us]</code>.</li>
+        <li><code>/team link</code>: link the card to the team on MKCentral (start typing its name or tag, or paste its MKCentral link). It fills the card&apos;s blanks and brings the team&apos;s players with their countries, so names on tables fill in. <code>/team unlink</code>{" "}undoes it.</li>
+        <li><code>/team logo</code>: where the logo comes from: <strong>Automatic</strong>{" "}(your upload, then the linked MKCentral team&apos;s, then MKCentral by tag), <strong>Upload</strong>{" "}(only yours) or <strong>From MKCentral</strong>.</li>
+        <li><code>/team show</code>{" "}and <code>/team remove</code>.</li>
+      </ul>
+      <p>
+        The first time a war&apos;s tag matches teams on MKCentral, <code>/war</code>{" "}asks which one it
+        is, and remembers the answer (including <strong>None of these</strong>). On a linked team, an
+        in-game name matches a player when it&apos;s the same, the start of their name (<code>yozo</code>{" "}
+        for yozo75) or its last four letters or more (<code>ichor</code>{" "}for cloudedichor), and only
+        when one player fits. Names it can&apos;t place come up as <strong>Who are these?</strong>{" "}when
+        the table is checked: pick each from the team&apos;s list once, and it&apos;s remembered.
+      </p>
+      <p>
+        Players can set their own card with <code>/me</code>: the name and flag tables show for them,
+        the in-game names they race under and the teams they race for. It starts from their MKCentral
+        profile and is used in every server. In your server, your server&apos;s player list wins, then a
+        player&apos;s own card, then MKCentral.
+        Anyone can fill in something blank; changing what someone else set takes them or someone who
+        manages the server.
+      </p>
+
       <h3>Logos and flags</h3>
       <p>
         Team logos show on war cards, tables and the overlay. Add one with <code>/logo add</code>, and
         use <code>/logo get</code>, <code>/logo list</code>{" "}or <code>/logo remove</code>{" "}to manage
         them. To add many at once, open <strong>Account &rsaquo; Discord &rsaquo; Servers</strong>,
-        pick GameShuffle Competitive at the top and press <strong>Manage team logos</strong>.{" "}
+        pick GameShuffle Competitive at the top and press <strong>Manage teams</strong>. The same
+        page sets each team&apos;s name, tags, color and players.{" "}
         <code>/flag</code>{" "}works the same way for flags on tables. Country codes like{" "}
         <code>[us]</code>{" "}already have theirs.
       </p>

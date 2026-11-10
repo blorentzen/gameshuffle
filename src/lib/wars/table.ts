@@ -8,6 +8,10 @@
  * A line that isn't a setting, a player or a penalty starts a team, which is how Ice Mario's headers work ("INTWARD").
  */
 
+import { bestSplit, groupByTag, samePlayer, stripTag, tagAt, tagKey, type TagGroup } from "./tags";
+
+export { withoutTag } from "./tags";
+
 export interface TablePlayer { name: string; flag: string | null; score: number }
 export interface TableTeam { tag: string; name: string | null; color: string | null; players: TablePlayer[]; penalty: number }
 export interface TableModel { title: string | null; date: string | null; settings: string[]; teams: TableTeam[]; skipped: string[] }
@@ -64,6 +68,33 @@ export function parseTable(text: string): TableModel {
   return model;
 }
 
+/**
+ * Table text pasted from another tool (overrides pick 8): Ice Mario's block (a first line of !table or !tablel and its
+ * style words, a "-vx" for no logo on a team line) and a Lounge !submit block (no team lines; players come in teams of
+ * the size given, each team's tag found in its names), as well as Lorenzi's text. Anything else reads as parseTable does.
+ */
+export function parsePasted(text: string): TableModel {
+  const lines = text.split(/\r?\n/);
+  const first = (lines.find((l) => l.trim()) ?? "").trim();
+  const submit = /^!submit\s+(\d{1,2})(?:\s+\S+)?\s*$/i.exec(first);
+  if (/^!tablel?(\s|$)/i.test(first) || submit) lines.splice(lines.indexOf(lines.find((l) => l.trim())!), 1);
+  const model = parseTable(lines.map((l) => l.replace(/\s+-vx\s*$/i, "")).join("\n"));
+  const size = submit ? Number(submit[1]) : 0;
+  if (!size || model.teams.length !== 1 || model.teams[0].tag !== "?" || model.teams[0].players.length <= size) return splitTyped(model);
+  const players = model.teams[0].players;
+  const teams: TableTeam[] = [];
+  for (let i = 0; i < players.length; i += size) {
+    const chunk = players.slice(i, i + size);
+    const { groups } = groupByTag(chunk.map((p) => p.name), chunk.length);
+    const g = groups.find((x) => x.rows.length * 2 >= chunk.length);
+    teams.push({
+      tag: g ? g.tag.slice(0, 12) : "?", name: null, color: null, penalty: 0,
+      players: chunk.map((p, j) => { const at = g ? g.rows.indexOf(j) : -1; return at >= 0 ? { ...p, name: g!.names[at].slice(0, 32) } : p; }),
+    });
+  }
+  return { ...model, teams };
+}
+
 export function formatTable(model: TableModel): string {
   const out: string[] = [];
   if (model.title) out.push(`#title ${model.title}`);
@@ -93,14 +124,17 @@ export interface TableIssue { kind: "missing" | "total" | "count" | "skipped" | 
  * What to check before drawing: teams with no players, players per team, each team's total against the war's (when
  * there's a war), and lines that couldn't be read.
  */
-export function tableIssues(model: TableModel, war: { totals: Record<string, number>; team: number } | null): TableIssue[] {
+export function tableIssues(model: TableModel, war: { totals: Record<string, number>; team: number; order?: number[] } | null): TableIssue[] {
   const issues: TableIssue[] = [];
   if (model.teams.length < 2) issues.push({ kind: "missing", text: "A table needs two teams, each starting with its tag on a line of its own." });
-  for (const t of model.teams) {
-    if (t.tag === "?") issues.push({ kind: "unnamed", text: "Some players come before any team's tag." });
+  for (const [i, t] of model.teams.entries()) {
+    if (t.tag === "?") issues.push({ kind: "unnamed", text: "A team has no tag yet: put its tag on its own line above its players." });
     if (!t.players.length) { issues.push({ kind: "missing", text: `${t.name || t.tag} has no players yet.` }); continue; }
     if (war && t.players.length < war.team) issues.push({ kind: "count", text: `${t.name || t.tag} has ${t.players.length} of ${war.team} players.` });
-    const want = war?.totals[t.tag.toLowerCase()];
+    if (war && t.players.length > war.team) issues.push({ kind: "count", text: `${t.name || t.tag} has ${t.players.length} players; a team in this war has ${war.team}. Some of them are likely the other team's.` });
+    // A team the screen showed under another tag keeps the war's tag as its name.
+    // In order (your team first) when neither its tag nor its name is the war's: a two-team table from the war.
+    const want = war?.totals[t.tag.toLowerCase()] ?? (t.name ? war?.totals[t.name.toLowerCase()] : undefined) ?? (model.teams.length === 2 ? war?.order?.[i] : undefined);
     const got = teamTotal(t);
     if (want != null && got !== want) issues.push({ kind: "total", text: `${t.name || t.tag} adds up to ${got}; the war says ${want} (${got < want ? `${want - got} short` : `${got - want} over`}). A score was likely misread.` });
   }
@@ -108,45 +142,151 @@ export function tableIssues(model: TableModel, war: { totals: Record<string, num
   return issues;
 }
 
-/** Rows read from a results screenshot, sorted into the table's teams that have no players yet. */
+/** A row read from a results screenshot. */
 export interface ReadRow { name: string; score: number; color: string | null }
 
-const escapeRe = (t: string) => t.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-const SEP = "[\\s\\-_.|★☆*:]";
-const hasTag = (name: string, tag: string) => new RegExp(`^${escapeRe(tag)}(?:${SEP}|$)`, "i").test(name.trim());
-/** A name without a leading team tag ("KC Riley" → "Riley"). */
-export const withoutTag = (name: string, tag?: string) =>
-  (tag ? name.trim().replace(new RegExp(`^${escapeRe(tag)}${SEP}+`, "i"), "") : name.trim().replace(new RegExp(`^\\S{1,5}${SEP}+`), "")).trim() || name.trim();
+export interface FillOptions {
+  /** Other names each tag on the screen goes by, by tagKey: MKCentral's registry team for that tag (its name, then its tag). */
+  aliases?: Record<string, string[]>;
+}
+
+/** `by`: what sorted the rows ("tags" when the names' tags did it). `guessed`: a team was picked with nothing to go on. */
+export interface FillResult { model: TableModel; guessed: boolean; by: "tags" | "colors" | null; tags: string[] }
+
+/** Teams that wear the same tag: the team's own tag or name, MKCentral's name for the tag, or the names its players go by. */
+function evidence(g: TagGroup, t: TableTeam, aliases: string[]): number {
+  const key = tagKey(g.tag);
+  const team = [t.tag, t.name ?? ""].map(tagKey).filter(Boolean);
+  if (team.includes(key)) return 3;
+  const near = (a: string, b: string) => a === b || (Math.min(a.length, b.length) >= 4 && (a.includes(b) || b.includes(a)));
+  if (aliases.map(tagKey).filter(Boolean).some((a) => team.some((k) => near(a, k)))) return 2;
+  if (key.length >= 2 && team.some((k) => k.includes(key))) return 2;
+  const known = t.players.length ? g.names.filter((n) => t.players.some((p) => samePlayer(n, p.name))).length : 0;
+  return known * 2 >= g.names.length && known > 0 ? 2 : 0;
+}
 
 /**
- * Fills the teams that have no players from a results screenshot's rows. A row belongs to a team that already has
- * players when it carries that team's tag or one of its players' names, and so does every row of the same color; the
- * rest go to the empty teams by tag, then by row color (`guessed` when a color had nothing else to go on).
+ * Fills the teams that have no players from a results screenshot's rows. Tags in the names come first: names sharing a
+ * tag at their front or back are one team ("Ω umikofy", "FRVR♪ichor", "FRVRTRA$H"), matched to a table team by its tag,
+ * its name, MKCentral's name for the tag or its players; a team the screen shows under another tag takes that tag (its
+ * name stays). The team that's left takes the tag that's left. Rows of a team that already has players stay out, and
+ * the rest go by row color. Without teams at all, the tags make them.
  */
-export function fillFromRows(model: TableModel, rows: ReadRow[]): { model: TableModel; guessed: boolean } {
+export function fillFromRows(model: TableModel, rows: ReadRow[], opts: FillOptions = {}): FillResult {
+  if (!rows.length) return { model, guessed: false, by: null, tags: [] };
+  if (!model.teams.length) return teamsFromRows(model, rows, opts);
   const empty = model.teams.filter((t) => !t.players.length);
-  if (!empty.length || !rows.length) return { model, guessed: false };
-  const known = new Set(model.teams.flatMap((t) => t.players.map((p) => withoutTag(p.name).toLowerCase())));
-  const filledColors = new Set<string>();
-  const byTeam = new Map<TableTeam, ReadRow[]>();
-  const rest: ReadRow[] = [];
-  for (const r of rows) {
-    const tagTeam = model.teams.find((t) => hasTag(r.name, t.tag));
-    if ((tagTeam && tagTeam.players.length) || known.has(withoutTag(r.name).toLowerCase()) || known.has(r.name.toLowerCase())) { if (r.color) filledColors.add(r.color); continue; }
-    if (tagTeam) byTeam.set(tagTeam, [...(byTeam.get(tagTeam) ?? []), r]);
-    else rest.push(r);
-  }
+  if (!empty.length) return { model, guessed: false, by: null, tags: [] };
+  const filled = model.teams.filter((t) => t.players.length);
+  const left = rows.length - filled.reduce((a, t) => a + t.players.length, 0);
+  const size = left > 0 && left % empty.length === 0 ? left / empty.length : null;
+  const { groups, rest } = groupByTag(rows.map((r) => r.name), size);
+  const aliasesOf = (g: TagGroup) => opts.aliases?.[tagKey(g.tag)] ?? [];
+
+  const owner = new Map<number, TableTeam>();
+  const names = new Map<number, string>();
+  const kept = new Set<number>();
+  const retag = new Map<TableTeam, string>();
+  const taken = new Set<TableTeam>();
   let guessed = false;
-  for (const color of [...new Set(rest.map((r) => r.color ?? "none"))]) {
-    if (color !== "none" && filledColors.has(color)) continue;
-    const group = rest.filter((r) => (r.color ?? "none") === color);
-    const tagged = empty.find((t) => (byTeam.get(t) ?? []).some((r) => (r.color ?? "none") === color));
-    const target = tagged ?? empty.find((t) => !(byTeam.get(t)?.length)) ?? empty[0];
-    if (!tagged) guessed = true;
-    byTeam.set(target, [...(byTeam.get(target) ?? []), ...group]);
+
+  // A tag that's a filled team's: those rows are in already.
+  const open: TagGroup[] = [];
+  for (const g of groups) {
+    const best = filled.map((t) => ({ t, e: evidence(g, t, aliasesOf(g)) })).sort((a, b) => b.e - a.e)[0];
+    if (best && best.e > 0 && best.e >= Math.max(0, ...empty.map((t) => evidence(g, t, aliasesOf(g))))) g.rows.forEach((i) => kept.add(i));
+    else open.push(g);
   }
-  const teams = model.teams.map((t) => (byTeam.has(t) ? { ...t, players: byTeam.get(t)!.map((r) => ({ name: withoutTag(r.name, t.tag).slice(0, 32), flag: null, score: r.score })) } : t));
-  return { model: { ...model, teams }, guessed };
+  const place = (g: TagGroup, t: TableTeam, matched: boolean) => {
+    g.rows.forEach((i, j) => { owner.set(i, t); names.set(i, g.names[j]); });
+    taken.add(t);
+    if (matched && tagKey(g.tag) !== tagKey(t.tag)) retag.set(t, g.tag);
+  };
+  const pairs = open.flatMap((g) => empty.map((t) => ({ g, t, e: evidence(g, t, aliasesOf(g)) }))).filter((p) => p.e > 0).sort((a, b) => b.e - a.e);
+  const placed = new Set<TagGroup>();
+  for (const p of pairs) {
+    if (placed.has(p.g) || taken.has(p.t)) continue;
+    place(p.g, p.t, true);
+    placed.add(p.g);
+  }
+  const waiting = open.filter((g) => !placed.has(g));
+  const free = empty.filter((t) => !taken.has(t));
+  // One tag and one team left: it's that team's (nothing else it could be). More than one: in order, as a guess.
+  if (waiting.length === 1 && free.length === 1) place(waiting[0], free[0], true);
+  else waiting.forEach((g, j) => { if (free[j]) { place(g, free[j], false); guessed = true; } });
+
+  // Names without a shared tag: a team's own tag on the name, a player a team already has, then the row's color.
+  const loose: number[] = [];
+  for (const i of rest) {
+    const r = rows[i];
+    const tagged = model.teams.map((t) => ({ t, hit: tagAt(r.name, retag.get(t) ?? t.tag) })).find((x) => x.hit);
+    const name = tagged ? stripTag(r.name, tagged.hit!) : r.name.trim();
+    if (filled.some((t) => t === tagged?.t || t.players.some((p) => samePlayer(name, p.name)))) { kept.add(i); continue; }
+    if (tagged) { owner.set(i, tagged.t); names.set(i, name); continue; }
+    loose.push(i);
+  }
+  const colorOf = (i: number) => rows[i].color ?? "none";
+  const colorTeam = new Map<string, TableTeam | "kept" | "both">();
+  const mark = (c: string, t: TableTeam | "kept") => colorTeam.set(c, colorTeam.has(c) && colorTeam.get(c) !== t ? "both" : t);
+  for (const [i, t] of owner) if (rows[i].color) mark(rows[i].color!, t);
+  for (const i of kept) if (rows[i].color) mark(rows[i].color!, "kept");
+  const colors = [...new Set(loose.map(colorOf))];
+  const unknown = colors.filter((c) => c === "none" || !colorTeam.has(c) || colorTeam.get(c) === "both");
+  let usedColors = false;
+  for (const c of colors) {
+    const group = loose.filter((i) => colorOf(i) === c);
+    const known = c === "none" ? undefined : colorTeam.get(c);
+    if (known === "kept") continue;
+    let target: TableTeam | undefined = known && known !== "both" ? known : undefined;
+    if (!target) {
+      const room = empty.filter((t) => ![...owner.values()].includes(t));
+      target = room[0] ?? empty.reduce((a, t) => ([...owner.values()].filter((x) => x === t).length < [...owner.values()].filter((x) => x === a).length ? t : a), empty[0]);
+      if (room.length !== 1 || unknown.length > 1) guessed = true;
+      usedColors = usedColors || c !== "none";
+    }
+    for (const i of group) { owner.set(i, target); names.set(i, rows[i].name.trim()); }
+  }
+
+  const teams = model.teams.map((t) => {
+    const mine = rows.map((_, i) => i).filter((i) => owner.get(i) === t);
+    if (!mine.length) return t;
+    const tag = retag.get(t);
+    return {
+      ...t,
+      ...(tag ? { tag: tag.slice(0, 12), name: t.name ?? t.tag } : {}),
+      players: mine.map((i) => ({ name: (names.get(i) ?? rows[i].name).slice(0, 32), flag: null, score: rows[i].score })),
+    };
+  });
+  return { model: { ...model, teams }, guessed, by: groups.length ? "tags" : usedColors ? "colors" : null, tags: groups.map((g) => g.tag) };
+}
+
+/** No teams given: the tags make them (named from MKCentral when it knows the tag); untagged rows split by color under "?". */
+function teamsFromRows(model: TableModel, rows: ReadRow[], opts: FillOptions): FillResult {
+  const { groups, rest } = bestSplit(rows.map((r) => r.name));
+  const teams: TableTeam[] = groups.map((g) => {
+    const alias = (opts.aliases?.[tagKey(g.tag)] ?? []).find((a) => tagKey(a) && tagKey(a) !== tagKey(g.tag)) ?? null;
+    return { tag: g.tag.slice(0, 12), name: alias?.slice(0, 60) ?? null, color: null, penalty: 0, players: g.rows.map((i, j) => ({ name: g.names[j].slice(0, 32), flag: null, score: rows[i].score })) };
+  });
+  const colors = [...new Set(rest.map((i) => rows[i].color ?? "none"))];
+  for (const c of colors) {
+    teams.push({ tag: "?", name: null, color: null, penalty: 0, players: rest.filter((i) => (rows[i].color ?? "none") === c).map((i) => ({ name: rows[i].name.trim().slice(0, 32), flag: null, score: rows[i].score })) });
+  }
+  return { model: { ...model, teams }, guessed: colors.length > 1, by: groups.length ? "tags" : colors.length > 1 ? "colors" : null, tags: groups.map((g) => g.tag) };
+}
+
+/**
+ * Typed players with no team lines (one "?" team): split by their tags the same way, keeping each player's flag.
+ * Anything it can't split stays as it was.
+ */
+export function splitTyped(model: TableModel): TableModel {
+  if (model.teams.length !== 1 || model.teams[0].tag !== "?" || model.teams[0].players.length < 4) return model;
+  const players = model.teams[0].players;
+  const { groups, rest } = bestSplit(players.map((p) => p.name));
+  if (!groups.length) return model;
+  const teams: TableTeam[] = groups.map((g) => ({ tag: g.tag.slice(0, 12), name: null, color: null, penalty: 0, players: g.rows.map((i, j) => ({ ...players[i], name: g.names[j].slice(0, 32) })) }));
+  if (rest.length) teams.push({ tag: "?", name: null, color: null, penalty: model.teams[0].penalty, players: rest.map((i) => players[i]) });
+  else teams[teams.length - 1].penalty = model.teams[0].penalty;
+  return { ...model, teams };
 }
 
 /** Swaps the players of the first two teams (when row colors put them the wrong way round). */

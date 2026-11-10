@@ -64,6 +64,7 @@ export function cardComponents(war: War, alt: string, opts: { room?: boolean } =
       ...(war.races.length ? [{ label: "Make the table", value: "table", description: "Players, scores, logos and your background" }] : []),
       { label: "Add a penalty", value: "pen", description: "Points off either team" },
       { label: "Overlay link", value: "link", description: "The OBS link for this channel's wars" },
+      { label: "Typed races", value: "typed", description: "How /race reads 12378, back or pen 15 here" },
       ...(war.status === "live" ? [war.entry === "taps"
         ? { label: "One person scores", value: "entry", description: "Back to Add race for each race" }
         : { label: "Everyone taps their place", value: "entry", description: "Each player taps where they finished" }] : []),

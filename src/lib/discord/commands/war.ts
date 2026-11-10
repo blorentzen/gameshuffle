@@ -18,6 +18,9 @@ import {
 import { playedTeams, registryTeam, searchRegistry } from "@/lib/wars/teams";
 import { serverLogo } from "@/lib/wars/logos";
 import { editCard, overlayLinks, postCard, warTitle, WAR_MODAL_PREFIX, WAR_PREFIX, type CardPost } from "@/lib/wars/discord";
+import { mkcQuestion, typedSettings } from "./warCards";
+import { listTeams, teamFor } from "@/lib/wars/cardStore";
+import { teamFromTag } from "@/lib/wars/typed";
 import { tableForm } from "./warTables";
 
 export { WAR_MODAL_PREFIX, WAR_PREFIX };
@@ -64,8 +67,10 @@ async function editOriginal(appId: string, token: string, data: Record<string, u
   }).catch(() => null);
 }
 
-/** A team for a war: the channel's remembered team, else MKCentral's registry; this server's own logo wins either way. */
+/** A team for a war: this server's team card, else the channel's remembered team, else MKCentral's registry; this server's own logo wins either way. */
 export async function teamRef(guildId: string, tag: string, game: WarGame, remembered: WarTeamRef | null): Promise<WarTeamRef> {
+  // A team card in this server wins: its shown tag, name and any of its tags' logos (vs:TZ finds Twilight Zone, Ω).
+  if (await teamFor(guildId, tag).catch(() => null)) return teamFromTag(guildId, tag, game);
   const [own, reg] = await Promise.all([
     serverLogo(guildId, tag),
     remembered && remembered.tag.toLowerCase() === tag.toLowerCase() ? Promise.resolve(null) : registryTeam(tag, game).catch(() => null),
@@ -118,7 +123,9 @@ export async function handleWarCommand(interaction: Record<string, unknown>): Pr
         return;
       }
       const how = entry === "taps" ? "Everyone taps the place they finished on the card." : "Press Add race on the card after each race.";
-      await editOriginal(appId, token, { content: `${warTitle(started.war)} is on, ${GAMES[game]}. ${how}`, components: [row(btn("Overlay link", `${WAR_PREFIX}link:${started.war.id}`))] });
+      // The first war against a tag MKCentral knows: which of its teams it is (asked once, kept on the team card).
+      const ask = await mkcQuestion(started.war).catch(() => ({ lines: [] as string[], rows: [] as unknown[] }));
+      await editOriginal(appId, token, { content: [`${warTitle(started.war)} is on, ${GAMES[game]}. ${how}`, ...ask.lines].join("\n"), components: [...ask.rows, row(btn("Overlay link", `${WAR_PREFIX}link:${started.war.id}`))] });
     } catch (err) {
       console.error("[wars] start failed:", err);
       await editOriginal(appId, token, { content: POST_TROUBLE.failed });
@@ -138,17 +145,26 @@ export async function warAutocomplete(interaction: Record<string, unknown>): Pro
   const game: WarGame = isGame(gameRaw) ? gameRaw : channel?.game ?? "mk8dx";
   const played = guildId && (await warsReady()) ? await playedTeams(guildId).catch(() => []) : [];
   const lower = q.toLowerCase();
+  // This server's team cards first: any of a team's tags finds it.
+  const cards = guildId ? await listTeams(guildId).catch(() => []) : [];
+  const fromCards = cards
+    .filter((t) => !q || t.tags.some((g) => g.toLowerCase().startsWith(lower)) || (t.name ?? "").toLowerCase().includes(lower))
+    .filter((t) => focused?.name !== "vs" || !t.tags.some((g) => g.toLowerCase() === channel?.team?.tag.toLowerCase()))
+    .slice(0, 10)
+    .map((t) => ({ name: `${t.tags[0]}${t.name ? ` · ${t.name}` : ""} · team card`, value: t.tags[0] }));
   const fromPlayed = played
     .filter((t) => !q || t.tag.toLowerCase().startsWith(lower) || (t.name ?? "").toLowerCase().includes(lower))
     .filter((t) => focused?.name !== "vs" || t.tag.toLowerCase() !== channel?.team?.tag.toLowerCase())
+    .filter((t) => !cards.some((c) => c.tags.some((g) => g.toLowerCase() === t.tag.toLowerCase())))
     .slice(0, 10)
     .map((t) => ({ name: `${t.tag}${t.name && t.name !== t.tag ? ` · ${t.name}` : ""} · played ${new Date(t.lastAt).toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "America/Los_Angeles" })}`, value: t.tag }));
-  const seen = new Set(fromPlayed.map((c) => c.value.toLowerCase()));
+  const seen = new Set([...fromCards, ...fromPlayed].map((c) => c.value.toLowerCase()));
+  for (const t of cards) for (const g of t.tags) seen.add(g.toLowerCase());
   const fromRegistry = q ? (await searchRegistry(q, game).catch(() => []))
     .filter((t) => !seen.has(t.tag.toLowerCase()) && (seen.add(t.tag.toLowerCase()), true))
-    .slice(0, 25 - fromPlayed.length)
+    .slice(0, Math.max(0, 25 - fromCards.length - fromPlayed.length))
     .map((t) => ({ name: `${t.tag}${t.name && t.name !== t.tag ? ` · ${t.name}` : ""} · on MKCentral`, value: t.tag })) : [];
-  const choices = [...fromPlayed, ...fromRegistry];
+  const choices = [...fromCards, ...fromPlayed, ...fromRegistry];
   if (q && !choices.some((c) => c.value.toLowerCase() === lower)) choices.unshift({ name: `${cleanTag(q)} (as typed)`, value: cleanTag(q) });
   return Response.json({ type: 8, data: { choices: choices.slice(0, 25).map((c) => ({ name: c.name.slice(0, 100), value: c.value })) } });
 }
@@ -281,6 +297,7 @@ export async function handleWarComponent(interaction: Record<string, unknown>, c
       if (v === "pen") return Response.json({ type: 9, data: penaltyForm(war) });
       if (v === "table") return tableForm(war.id);
       if (v === "link") return linkReply(war);
+      if (v === "typed") { const msg = await typedSettings(war.guildId, war.channelId); return say(msg.content, msg.components); }
       if (v === "entry") {
         const to: WarEntry = war.entry === "taps" ? "scorer" : "taps";
         const res = await setEntry(war.id, to);

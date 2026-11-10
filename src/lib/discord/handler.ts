@@ -49,6 +49,7 @@ import { CANS_PREFIX, cansAutocomplete, handleCansCommand, handleCansComponent }
 import { handleLogoCommand, handleLogoComponent, logoAutocomplete, LOGO_PREFIX } from "./commands/warLogos";
 import { handleFlagCommand, handleFlagComponent, flagAutocomplete, FLAG_PREFIX } from "./commands/warFlags";
 import { handleTableCommand, handleTableComponent, handleTableModal, TABLE_MODAL_PREFIX, TABLE_PREFIX } from "./commands/warTables";
+import { CARD_MODAL_PREFIX, CARD_PREFIX, handleCardComponent, handleCardModal, handleMeCommand, handleRaceCommand, handleTeamCommand, teamAutocomplete } from "./commands/warCards";
 import { handleLadderCommand, handleLadderComponent, handleLadderModal, ladderAutocomplete, LADDER_MODAL_PREFIX, LADDER_PREFIX } from "./commands/ladder";
 import { handleQueueComponent, handleRoomModal, QUEUE_PREFIX, ROOM_MODAL_PREFIX, ROOM_PREFIX } from "./commands/rankedQueue";
 
@@ -73,6 +74,9 @@ function handleCompCommand(interaction: Record<string, unknown>, name: string): 
     case "logo": return handleLogoCommand(interaction);
     case "flag": return handleFlagCommand(interaction);
     case "table": return handleTableCommand(interaction);
+    case "me": return handleMeCommand(interaction);
+    case "team": return handleTeamCommand(interaction);
+    case "race": return handleRaceCommand(interaction);
     case "ranked":
     case "ladder": return handleLadderCommand(interaction);
     default: return ephemeralMessage(`Unknown command: \`${name}\``);
@@ -156,6 +160,7 @@ export function handleInteraction(interaction: Record<string, unknown>, app: Dis
     if (customId.startsWith(LOGO_PREFIX)) return handleLogoComponent(interaction, customId);
     if (customId.startsWith(FLAG_PREFIX)) return handleFlagComponent(interaction, customId);
     if (customId.startsWith(TABLE_PREFIX)) return handleTableComponent(interaction, customId);
+    if (customId.startsWith(CARD_PREFIX)) return handleCardComponent(interaction, customId);
     if (customId.startsWith(LADDER_PREFIX)) return handleLadderComponent(interaction, customId);
     if (customId.startsWith(QUEUE_PREFIX) || customId.startsWith(ROOM_PREFIX)) return handleQueueComponent(interaction, customId);
 
@@ -216,6 +221,7 @@ export function handleInteraction(interaction: Record<string, unknown>, app: Dis
     if (customId.startsWith(TT_CLIP_MODAL_PREFIX)) return handleTtClipModal(interaction, customId);
     if (customId.startsWith(WAR_MODAL_PREFIX)) return handleWarModal(interaction, customId);
     if (customId.startsWith(TABLE_MODAL_PREFIX)) return handleTableModal(interaction, customId);
+    if (customId.startsWith(CARD_MODAL_PREFIX)) return handleCardModal(interaction, customId);
     if (customId.startsWith(LADDER_MODAL_PREFIX)) return handleLadderModal(interaction, customId);
     if (customId.startsWith(ROOM_MODAL_PREFIX)) return handleRoomModal(interaction, customId);
     if (TT_PANEL_MODALS.some((p) => customId.startsWith(p))) return handleTtPanelModal(interaction, customId);
@@ -239,6 +245,7 @@ export function handleInteraction(interaction: Record<string, unknown>, app: Dis
     if (acName === "war") return warAutocomplete(interaction);
     if (acName === "cans") return cansAutocomplete(interaction);
     if (acName === "logo") return logoAutocomplete(interaction);
+    if (acName === "team") return teamAutocomplete(interaction);
     if (acName === "flag") return flagAutocomplete(interaction);
     if (acName === "ranked" || acName === "ladder") return ladderAutocomplete(interaction);
     const focused = ((interaction.data as { options?: { name: string; value: string; focused?: boolean }[] }).options ?? [])

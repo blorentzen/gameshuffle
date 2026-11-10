@@ -61,7 +61,7 @@ let ready: boolean | null = null;
 /** Whether the tables exist (wars-m1.sql). */
 export async function warsReady(): Promise<boolean> {
   if (ready) return true;
-  const { error } = await createServiceClient().from("wars").select("id", { head: true, count: "exact" }).limit(1);
+  const { error } = await createServiceClient().from("wars").select("id").limit(1);
   ready = !error;
   return ready;
 }
@@ -169,7 +169,7 @@ export async function startWar(input: { guildId: string; channelId: string; game
   return { ok: true, war: toWar(data as Row) };
 }
 
-type Change = Partial<Pick<War, "races" | "penalties" | "taps" | "notes" | "status" | "entry" | "endedAt">>;
+type Change = Partial<Pick<War, "races" | "penalties" | "taps" | "notes" | "status" | "entry" | "endedAt" | "us" | "them">>;
 type Step<T> = { change: Change; result: T } | { error: string };
 
 /** Applies `plan` to the newest copy of the war; retried when someone else changed it in between. */
@@ -189,6 +189,8 @@ async function mutate<T>(id: string, plan: (w: War) => Step<T>): Promise<{ ok: t
     if (c.status) patch.status = c.status;
     if (c.entry) patch.entry = c.entry;
     if (c.endedAt !== undefined) patch.ended_at = c.endedAt;
+    if (c.us) { patch.us_tag = c.us.tag; patch.us_name = c.us.name; patch.us_logo = c.us.logo; }
+    if (c.them) { patch.them_tag = c.them.tag; patch.them_name = c.them.name; patch.them_logo = c.them.logo; }
     const { data, error } = await db.from("wars").update(patch).eq("id", id).eq("version", w.version).select(COLS).maybeSingle();
     if (error) {
       // Undoing the last race of a finished war reopens it, which can meet another live war in the channel.
@@ -254,6 +256,28 @@ export function addPenalty(id: string, input: { side: WarSide; points: number; r
     const p: WarPenalty = { side: input.side, points: input.points, reason: input.reason, by: input.by, at: nowIso() };
     const team = input.side === "us" ? w.us.tag : w.them.tag;
     return { change: { penalties: [...w.penalties, p], notes: [...w.notes, `${input.points} off ${team}${input.reason ? ` (${input.reason})` : ""}, from ${input.by}`] }, result: p };
+  });
+}
+
+/** Takes back a penalty: the newest one on that team (with that many points, when given). */
+export function removePenalty(id: string, input: { side: WarSide; points: number | null; by: string }) {
+  return mutate<WarPenalty>(id, (w) => {
+    if (w.status === "ended") return { error: "not_live" };
+    const at = w.penalties.map((p, i) => [p, i] as const).reverse().find(([p]) => p.side === input.side && (input.points == null || p.points === input.points))?.[1];
+    if (at == null) return { error: "no_penalty" };
+    const p = w.penalties[at];
+    const team = input.side === "us" ? w.us.tag : w.them.tag;
+    return { change: { penalties: w.penalties.filter((_, i) => i !== at), notes: [...w.notes, `${p.points} back to ${team}, from ${input.by}`] }, result: p };
+  });
+}
+
+/** A team's tag (and name and logo) mid-war, like Sokuji's %tag. */
+export function setSide(id: string, side: WarSide, team: WarTeamRef) {
+  return mutate<WarTeamRef>(id, (w) => {
+    if (w.status === "ended") return { error: "not_live" };
+    const other = side === "us" ? w.them : w.us;
+    if (other.tag.toLowerCase() === team.tag.toLowerCase()) return { error: "same_tag" };
+    return { change: side === "us" ? { us: team } : { them: team }, result: team };
   });
 }
 

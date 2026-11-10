@@ -497,6 +497,50 @@ const TABLE_COMMAND = {
   integration_types: [0],
   contexts: [0],
 };
+/** /me, /team and /race (GameShuffle Competitive only, overrides picks 2026-11-09): your war card, a server's team
+ *  cards and players, and a race or fix typed the way the other war bots take it. */
+const ME_COMMAND = {
+  name: "me",
+  description: "Your war card: the name and flag tables show for you, in every server",
+  integration_types: [0],
+  contexts: [0],
+};
+const TEAM_TAG = { name: "tag", description: "The team's tag, like KC", type: 3, required: true, autocomplete: true, max_length: 12 };
+const TEAM_COMMAND = {
+  name: "team",
+  description: "This server's teams: names, every tag they play under, colors and players",
+  integration_types: [0],
+  contexts: [0],
+  options: [
+    { name: "set", description: "Make or change a team card", type: 1, options: [
+      TEAM_TAG,
+      { name: "name", description: "The team's name", type: 3, required: false, max_length: 60 },
+      { name: "also", description: "Other tags it plays under, with spaces between", type: 3, required: false, max_length: 60 },
+      { name: "color", description: "Its color, like #6a35c9", type: 3, required: false, max_length: 7 },
+    ] },
+    { name: "players", description: "The team's players: in-game name, the name for tables, a flag", type: 1, options: [TEAM_TAG] },
+    { name: "link", description: "Link the team to its MKCentral team: name, tags, logo and players", type: 1, options: [
+      TEAM_TAG,
+      { name: "mkcentral", description: "Start typing its name or tag, or paste its MKCentral link", type: 3, required: true, autocomplete: true, max_length: 200 },
+    ] },
+    { name: "unlink", description: "Stop using the team's MKCentral team", type: 1, options: [TEAM_TAG] },
+    { name: "logo", description: "Where the team's logo comes from", type: 1, options: [
+      TEAM_TAG,
+      { name: "source", description: "Automatic finds it: your upload, then MKCentral", type: 3, required: true, choices: [
+        { name: "Automatic", value: "auto" }, { name: "Upload (this server's /logo)", value: "upload" }, { name: "From MKCentral", value: "mkcentral" },
+      ] },
+    ] },
+    { name: "show", description: "Show a team card", type: 1, options: [TEAM_TAG] },
+    { name: "remove", description: "Remove a team card and its players (logos stay)", type: 1, options: [TEAM_TAG] },
+  ],
+};
+const RACE_COMMAND = {
+  name: "race",
+  description: "Add or fix a race the way you'd type it: 12378, SSC 1-378, back, race 3 12378, pen 15 FRVR",
+  integration_types: [0],
+  contexts: [0],
+  options: [{ name: "line", description: "What you'd type in chat: 12378, SSC, back, race 3 1-378, pen 15 FRVR", type: 3, required: true, max_length: 60 }],
+};
 /** /ranked, GS Ranked (GameShuffle Competitive only, lounge plan step 1; was /ladder): a lounge's ranked board, results first. */
 const LADDER_OPT = { name: "lounge", description: "Which lounge (only when the server runs more than one)", type: 3, required: false, autocomplete: true, max_length: 60 };
 const LADDER_COMMAND = {
@@ -566,6 +610,9 @@ const compCommands = [
   LOGO_COMMAND,
   FLAG_COMMAND,
   TABLE_COMMAND,
+  ME_COMMAND,
+  TEAM_COMMAND,
+  RACE_COMMAND,
   LADDER_COMMAND,
 ];
 

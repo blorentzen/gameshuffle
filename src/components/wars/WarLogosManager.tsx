@@ -7,7 +7,7 @@
  * answer. Below: the server's logos, and teams from its wars that have none here.
  */
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type Dispatch, type SetStateAction } from "react";
 import { Button, Input, Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@empac/cascadeds";
 import { IconPhotoPlus, IconTrash, IconX } from "@tabler/icons-react";
 import { AdminSection, AdminTable } from "@/components/account/admin/AdminKit";
@@ -22,9 +22,11 @@ type Saved = LogoPageData["logos"][number];
 type State = "ready" | "saving" | "saved" | "held" | "failed";
 interface Item { key: string; file: File; preview: string; tag: string; name: string; state: State; message: string | null }
 
-const MAX_BYTES = 4 * 1024 * 1024;
-const TYPES = new Set(["image/png", "image/jpeg", "image/webp", "image/gif"]);
-const ERRORS: Record<string, string> = {
+export const LOGO_MAX_BYTES = 4 * 1024 * 1024;
+export const LOGO_TYPES = new Set(["image/png", "image/jpeg", "image/webp", "image/gif"]);
+const MAX_BYTES = LOGO_MAX_BYTES;
+const TYPES = LOGO_TYPES;
+export const LOGO_ERRORS: Record<string, string> = {
   refused: "The picture check turned it down.",
   bad_image: "That file couldn't be opened as a picture.",
   too_big: "Over 4 MB.",
@@ -35,13 +37,20 @@ const ERRORS: Record<string, string> = {
   not_yours: "Only the account that added the bot to this server can change its logos here.",
 };
 
+const ERRORS = LOGO_ERRORS;
 
 let seq = 0;
 
-export function WarLogosManager({ guild, serverName, initial }: { guild: string; serverName: string; initial: LogoPageData }) {
+/**
+ * `logos` + `onLogos` hand the list to the page around it (the Teams page shows each team's logo and changes them
+ * too); without them the list lives here.
+ */
+export function WarLogosManager({ guild, serverName, initial, logos: shared, onLogos }: { guild: string; serverName: string; initial: LogoPageData; logos?: Saved[]; onLogos?: Dispatch<SetStateAction<Saved[]>> }) {
   const toast = useToast();
   const confirm = useConfirm();
-  const [logos, setLogos] = useState<Saved[]>(initial.logos);
+  const [own, setOwn] = useState<Saved[]>(initial.logos);
+  const logos = shared ?? own;
+  const setLogos = onLogos ?? setOwn;
   const [teams, setTeams] = useState(initial.teams);
   const [items, setItems] = useState<Item[]>([]);
   const [dragging, setDragging] = useState(false);
@@ -132,6 +141,8 @@ export function WarLogosManager({ guild, serverName, initial }: { guild: string;
   };
 
   const done = items.some((i) => i.state === "saved" || i.state === "held");
+  // A logo added elsewhere on the page (a team's own Edit) takes its team off this list too.
+  const bare = teams.filter((t) => !logos.some((l) => l.tag.toLowerCase() === t.tag.toLowerCase()));
 
   return (
     <>
@@ -203,10 +214,10 @@ export function WarLogosManager({ guild, serverName, initial }: { guild: string;
         )}
       </AdminSection>
 
-      {teams.length > 0 && (
+      {bare.length > 0 && (
         <AdminSection title="Teams from your wars" intro="Teams this server has played that have no logo here. Drop a file named after the tag to give one its own.">
           <ul className="wl-grid">
-            {teams.map((t) => (
+            {bare.map((t) => (
               <li key={t.tag} className="wl-tile">
                 <WarTeamMark tag={t.tag} logo={t.logo} size="lg" />
                 <span className="wl-tile__tag">{t.tag}</span>
