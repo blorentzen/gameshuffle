@@ -25,6 +25,7 @@
 import "server-only";
 import { createServiceClient } from "@/lib/supabase/admin";
 import { credit, spend } from "../tokens";
+import { parimutuel } from "./parimutuel";
 import {
   pickEligibleTemplate,
   renderTemplate,
@@ -172,6 +173,61 @@ export async function openMarket(
     market,
     outcomes: (insertedOutcomes as MarketOutcomeRow[]) ?? [],
   };
+}
+
+/**
+ * Open a market the system words itself (no random template draw): the speedrun "PB this run" prediction. Same rows
+ * and the same one-active-per-(session, game) guard as `openMarket`; `templateId` must exist (the caller makes sure).
+ */
+export async function openFixedMarket(args: {
+  communityId: string;
+  streamId: string;
+  sessionId: string;
+  gameKey: string;
+  chapter: number;
+  templateId: string;
+  variableType: VariableType;
+  subject: string;
+  question: string;
+  outcomes: { option_key: string; label: string }[];
+  hostIdentityId: string;
+  lockAt?: string | null;
+  notifications?: Record<string, unknown>;
+}): Promise<OpenMarketResult> {
+  const admin = createServiceClient();
+  const cols = "id, community_id, stream_id, session_id, game_key, chapter, status, template_id, variable_type, subject, question, lock_at, opened_at, locked_at, resolved_at, cancelled_at, resolved_value, created_by";
+  const { data: inserted, error } = await admin
+    .from("gs_markets")
+    .insert({
+      community_id: args.communityId,
+      stream_id: args.streamId,
+      session_id: args.sessionId,
+      game_key: args.gameKey,
+      chapter: args.chapter,
+      template_id: args.templateId,
+      variable_type: args.variableType,
+      subject: args.subject,
+      question: args.question,
+      lock_at: args.lockAt ?? null,
+      created_by: args.hostIdentityId,
+      notifications: args.notifications ?? {},
+    })
+    .select(cols)
+    .single();
+  if (error) {
+    if ((error as { code?: string }).code === "23505") return { ok: false, reason: "active_market_exists" };
+    return { ok: false, reason: "insert_failed", detail: error.message };
+  }
+  const market = inserted as MarketRow;
+  const { data: outs, error: outErr } = await admin
+    .from("gs_market_outcomes")
+    .insert(args.outcomes.map((o) => ({ market_id: market.id, option_key: o.option_key, label: o.label })))
+    .select("id, market_id, option_key, label, is_winner");
+  if (outErr) {
+    await admin.from("gs_markets").delete().eq("id", market.id);
+    return { ok: false, reason: "insert_failed", detail: outErr.message };
+  }
+  return { ok: true, market, outcomes: (outs as MarketOutcomeRow[]) ?? [] };
 }
 
 // ===========================================================================
@@ -359,12 +415,17 @@ export async function placeBet(args: {
   const { data: marketRow } = await admin
     .from("gs_markets")
     .select(
-      "id, community_id, stream_id, session_id, chapter, status",
+      "id, community_id, stream_id, session_id, chapter, status, lock_at",
     )
     .eq("id", args.marketId)
     .maybeSingle();
   if (!marketRow) return { ok: false, reason: "market_not_found" };
   if ((marketRow as MarketRow).status !== "open") {
+    return { ok: false, reason: "market_not_open" };
+  }
+  // Past its lock time it's closed even before the sweep (or the speedrun prediction, after the stream delay) locks it.
+  const lockAt = (marketRow as MarketRow).lock_at;
+  if (lockAt && Date.parse(lockAt) <= Date.now()) {
     return { ok: false, reason: "market_not_open" };
   }
 
@@ -567,9 +628,45 @@ export async function resolveMarket(args: {
     .eq("market_id", market.id);
   const bets = (betsRaw as Array<Pick<BetRow, "id" | "market_id" | "outcome_id" | "identity_id" | "amount">> | null) ?? [];
 
-  // Per-outcome (pool) payout calculations.
+  // Binary, pickone and count markets are one pool: winners split every token put in (Spec 02 §6 step 5), and a
+  // one-sided market gives everyone their stake back (step 6). Placement thresholds keep their own pools below.
   const pools: ResolvedPool[] = [];
-  for (const outcome of outcomes) {
+  if (market.variable_type !== "placement") {
+    const plan = parimutuel(bets, winners);
+    for (const [identityId, amount] of plan.credits) {
+      if (amount <= 0) continue;
+      await credit({
+        identityId,
+        amount,
+        type: plan.kind === "payout" ? "payout" : "refund",
+        ctx: {
+          communityId: market.community_id,
+          streamId: market.stream_id,
+          sessionId: market.session_id,
+          chapter: market.chapter,
+          refId: market.id,
+          meta: plan.kind === "payout" ? { source: "market" } : { source: "market", reason: "single_sided_pool" },
+        },
+      });
+    }
+    const winStakeAll = bets.filter((b) => winners.has(b.outcome_id)).reduce((a, b) => a + Number(b.amount), 0);
+    for (const outcome of outcomes) {
+      const poolBets = bets.filter((b) => b.outcome_id === outcome.id);
+      const poolTotal = poolBets.reduce((acc, b) => acc + Number(b.amount), 0);
+      const isWinner = winners.has(outcome.id);
+      pools.push({
+        outcomeId: outcome.id,
+        optionKey: outcome.option_key,
+        isWinner,
+        poolTotal,
+        winningStake: isWinner ? poolTotal : 0,
+        winnerCount: isWinner ? new Set(poolBets.map((b) => b.identity_id)).size : 0,
+        payoutTotal: plan.kind === "refund"
+          ? poolTotal
+          : isWinner && winStakeAll > 0 ? Math.round((plan.pot * poolTotal) / winStakeAll) : 0,
+      });
+    }
+  } else for (const outcome of outcomes) {
     const poolBets = bets.filter((b) => b.outcome_id === outcome.id);
     const poolTotal = poolBets.reduce((acc, b) => acc + Number(b.amount), 0);
     const isWinningPool = outcome.is_winner === true || winners.has(outcome.id);
@@ -620,8 +717,9 @@ export async function resolveMarket(args: {
   // outcome. Already handled inside the loop above by checking
   // isWinningPool; the symmetric case (no winners) writes 0 payout
   // and the stakes stay escrowed. Spec calls for refund in BOTH
-  // edge cases; refunding the no-winners pool now:
-  for (const pool of pools) {
+  // edge cases; refunding the no-winners pool now (placement only:
+  // the one-pool markets above already settled every stake):
+  if (market.variable_type === "placement") for (const pool of pools) {
     if (pool.poolTotal > 0 && !pool.isWinner && pool.winnerCount === 0) {
       const refundedBets = bets.filter((b) => b.outcome_id === pool.outcomeId);
       pool.payoutTotal = await refundPool({ poolBets: refundedBets, market });
