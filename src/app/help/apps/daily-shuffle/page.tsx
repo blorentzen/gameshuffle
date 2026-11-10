@@ -20,7 +20,8 @@ export default function Page() {
       <h1>The Daily Shuffle</h1>
       <p>
         <Link href="/daily">The Daily Shuffle</Link>{" "}is a daily puzzle: guess today&apos;s character from 130 across Nintendo,
-        plus Smash&apos;s guests. Everyone gets the same character each day, and a new one arrives at midnight Pacific time.
+        plus Smash&apos;s guests, and from November 21, 2026, a Sonic character on Saturdays. Everyone gets the same character
+        each day, and a new one arrives at midnight Pacific time.
       </p>
 
       <h2>One big pool</h2>
@@ -30,6 +31,19 @@ export default function Page() {
         Kart World, Mario Party and Smash.) The days follow Pacific time (PT), so depending on where you live the new puzzle
         can arrive during your day rather than at your midnight.
       </p>
+
+      <h2>Sonic Saturdays</h2>
+      <p>
+        From Saturday, November 21, 2026, Saturdays are a Sonic character: one of 47, from Sonic to the Deadly Six. The other
+        six days stay on the big pool. There are no pictures on Sonic days, so you guess by name.
+      </p>
+      <ul>
+        <li>Each guess shows the character&apos;s species, team, debut year and whether they race in Sonic Racing: CrossWorlds. A related species, or a debut within three years, counts as close.</li>
+        <li>Before your first guess you get one of those for free: today&apos;s team, or whether they&apos;re in CrossWorlds.</li>
+        <li>A written clue arrives after your second miss, and the game they first appeared in after your fourth.</li>
+        <li>The last chance shows the name&apos;s first letter and how long it is, instead of a silhouette.</li>
+      </ul>
+      <p>Saturdays count toward your streak, stats and the leaderboards like any other day.</p>
 
       <h2>Starting the clock</h2>
       <p>
