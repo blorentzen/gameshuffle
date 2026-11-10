@@ -1,0 +1,56 @@
+/* Sonic Racing: CrossWorlds randomizer (SonicRandomizer). The cards, boards and intro come from randomizer.css;
+   this is only the Gadget Plate on each card and the Grand Prix list. */
+
+.sonic-options__plate { margin-bottom: var(--spacing-16); }
+
+/* The plate: one line per gadget, its slots as small squares on the right (a 3-slot kit fills half the plate). */
+.sonic-plate { width: 100%; }
+.sonic-plate__label {
+  margin: 0 0 var(--spacing-4);
+  font-size: var(--font-size-12);
+  font-weight: var(--font-weight-semibold, 600);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+}
+.sonic-plate__list { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--spacing-4); }
+.sonic-plate__gadget {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-8);
+  font-size: var(--font-size-14);
+  line-height: 1.35;
+}
+.sonic-plate__name { min-width: 0; font-weight: var(--font-weight-semibold, 600); }
+.sonic-plate__slots { display: inline-flex; gap: 3px; flex: none; }
+.sonic-plate__pip { width: 0.8rem; height: 0.8rem; border-radius: 2px; background: var(--primary-600, #2f66ec); }
+.sonic-plate__gadget--super { padding-top: var(--spacing-4); border-top: 1px solid var(--border-subtle, rgba(0, 0, 0, 0.12)); }
+.sonic-plate__super {
+  flex: none;
+  font-size: var(--font-size-12);
+  font-weight: var(--font-weight-semibold, 600);
+  color: #8a5a00;
+  background: #ffe8a3;
+  border-radius: 999px;
+  padding: 1px var(--spacing-8);
+}
+html.dark .sonic-plate__super { color: #ffe8a3; background: rgba(255, 212, 59, 0.18); }
+html.dark .sonic-plate__pip { background: var(--brand-ink, #8fb0ff); }
+
+/* Grand Prix: the three tracks and the final race. */
+.sonic-gp { margin-top: var(--spacing-16); }
+.sonic-gp__races { margin: var(--spacing-8) 0 0; padding-left: 2.2rem; font-size: var(--font-size-16); line-height: 1.5; }
+.party-board:has(.rolling-text.is-rolling) .sonic-gp__races { opacity: 0; }
+
+/* Races: the count picker keeps its own width and the two roll buttons sit together. */
+.sonic-races__row { gap: var(--spacing-12); }
+.sonic-races__row > .empac-select { flex: 0 1 22rem; min-width: 16rem; }
+
+/* Boards without track art yet: Sonic blue, sized to their words. */
+.party-board.sonic-board {
+  min-height: 0;
+  --party-board: #173a8a;
+  background: radial-gradient(120% 140% at 85% 10%, #2f6fe0, #0b2a6f 70%);
+}
+.sonic-board .party-board__body { background: none; padding: var(--spacing-20); }

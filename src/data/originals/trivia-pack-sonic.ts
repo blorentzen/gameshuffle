@@ -1,0 +1,246 @@
+/**
+ * The Sonic pack: 100 questions across the series, from Sonic the Hedgehog
+ * (1991) to Sonic Racing: CrossWorlds, plus the cartoons and the movies
+ * (approved 2026-11-09). Written like the main pack: one clear answer, an
+ * answer line, a source, US spelling; every word answer has three wrong
+ * answers for Fire Round (SONIC_WRONG). Facts checked Nov 9, 2026 on the Sonic
+ * Wiki (sonic.fandom.com) and Wikipedia. The main pack's "What colour is Sonic
+ * the Hedgehog?" and the Smash pack's Sonic fighter question are left out.
+ * Names only: no picture questions (Sega's characters).
+ *
+ * Tagged `sonic` (the Sonic family in src/lib/games/key.ts), so they play in
+ * Fire Round's Sonic category, fill the Sonic question page and play in break
+ * mode's Game Trivia while Sonic Racing: CrossWorlds is on stream (its slug
+ * starts with "sonic").
+ */
+
+import type { PackQuestion } from "@/data/originals/trivia-pack";
+
+const sw = (page: string) => ({ title: `Sonic Wiki: ${page}`, url: `https://sonic.fandom.com/wiki/${encodeURI(page.replace(/ /g, "_"))}` });
+const wp = (page: string) => ({ title: `Wikipedia: ${page}`, url: `https://en.wikipedia.org/wiki/${encodeURI(page.replace(/ /g, "_"))}` });
+type Extra = Partial<Omit<PackQuestion, "category" | "difficulty" | "prompt" | "answer">>;
+const s = (difficulty: PackQuestion["difficulty"], prompt: string, answer: string, source: string, extra: Extra = {}): PackQuestion => ({
+  category: "Video games", gameSlug: "sonic", difficulty, kind: "text", prompt, answer, sources: [sw(source)], ...extra,
+});
+const sn = (difficulty: PackQuestion["difficulty"], prompt: string, answer: string, source: string, extra: Extra = {}): PackQuestion =>
+  s(difficulty, prompt, answer, source, { kind: "number", ...extra });
+/** The movies and shows, checked on Wikipedia. */
+const sm = (difficulty: PackQuestion["difficulty"], prompt: string, answer: string, page: string, extra: Extra = {}): PackQuestion =>
+  s(difficulty, prompt, answer, page, { sources: [wp(page)], ...extra });
+
+const EGGMAN = ["Eggman", "Doctor Eggman", "Dr Eggman", "Dr. Robotnik", "Dr Robotnik", "Doctor Robotnik", "Robotnik", "Ivo Robotnik", "Dr. Ivo Robotnik"];
+
+export const SONIC_PACK: PackQuestion[] = [
+  // Sonic and friends
+  s("easy", "What do Sonic and his friends collect that keep them from losing a life when they get hit?", "Rings", "Ring", { accept: ["Ring", "Gold rings", "Golden rings"] }),
+  sn("easy", "How many Chaos Emeralds are there?", "7", "Chaos Emerald", { accept: ["seven"] }),
+  s("easy", "Which hedgehog likes to call himself the fastest thing alive?", "Sonic", "Sonic the Hedgehog", { accept: ["Sonic the Hedgehog"] }),
+  s("easy", "What is the name of Sonic's two-tailed fox friend?", "Tails", "Miles \"Tails\" Prower", { accept: ["Miles Prower", "Miles Tails Prower", "Miles 'Tails' Prower"] }),
+  s("easy", "Which red rival of Sonic can glide and climb walls?", "Knuckles", "Knuckles the Echidna", { accept: ["Knuckles the Echidna"] }),
+  s("easy", "What kind of animal is Knuckles?", "Echidna", "Knuckles the Echidna", { accept: ["An echidna"] }),
+  s("easy", "Who is Sonic's archenemy, a scientist with a huge mustache?", "Dr. Eggman", "Doctor Eggman", { accept: EGGMAN }),
+  s("easy", "What was Dr. Eggman's name in the West in the early games?", "Dr. Robotnik", "Doctor Eggman", { accept: ["Robotnik", "Dr Robotnik", "Doctor Robotnik", "Ivo Robotnik", "Dr. Ivo Robotnik", "Doctor Ivo Robotnik"] }),
+  s("easy", "Which black hedgehog was created as the Ultimate Life Form?", "Shadow", "Shadow the Hedgehog", { accept: ["Shadow the Hedgehog"] }),
+  s("easy", "Which bat is a treasure hunter who loves jewels?", "Rouge", "Rouge the Bat", { accept: ["Rouge the Bat"] }),
+  s("easy", "Who calls herself Sonic's girlfriend and chases him everywhere?", "Amy Rose", "Amy Rose", { accept: ["Amy"] }),
+  s("easy", "What kind of animal is Amy Rose?", "Hedgehog", "Amy Rose", { accept: ["A hedgehog"] }),
+  s("medium", "What is the name of Amy Rose's hammer?", "Piko Piko Hammer", "Piko Piko Hammer", { accept: ["Piko Piko", "Piko hammer", "Piko-Piko Hammer"] }),
+  s("easy", "Which young rabbit flies by flapping her big ears?", "Cream", "Cream the Rabbit", { accept: ["Cream the Rabbit"] }),
+  s("medium", "What is the name of Cream's Chao friend?", "Cheese", "Cheese"),
+  s("easy", "Which big cat goes fishing with his frog friend?", "Big", "Big the Cat", { accept: ["Big the Cat"] }),
+  s("easy", "Which crocodile runs a detective agency and always wears headphones?", "Vector", "Vector the Crocodile", { accept: ["Vector the Crocodile"] }),
+  s("easy", "Which ninja chameleon can turn invisible?", "Espio", "Espio the Chameleon", { accept: ["Espio the Chameleon"] }),
+  s("medium", "What is the name of the detective agency run by Vector, Espio and Charmy?", "Chaotix", "Team Chaotix", { accept: ["Team Chaotix", "The Chaotix", "Chaotix Detective Agency"] }),
+  s("medium", "Which hedgehog came back from 200 years in the future?", "Silver", "Silver the Hedgehog", { accept: ["Silver the Hedgehog"] }),
+  s("medium", "Which cat princess from another dimension can control fire?", "Blaze", "Blaze the Cat", { accept: ["Blaze the Cat"] }),
+  s("medium", "What are the seven emeralds from Blaze's world called?", "Sol Emeralds", "Sol Emeralds", { accept: ["Sol Emerald", "The Sol Emeralds"] }),
+  s("medium", "Which hawk leads the Babylon Rogues?", "Jet", "Jet the Hawk", { accept: ["Jet the Hawk"] }),
+  s("medium", "What are the hoverboards in Sonic Riders called?", "Extreme Gear", "Extreme Gear"),
+  s("medium", "Which raccoon from Southern Island dreams of captaining her own ship?", "Marine", "Marine the Raccoon", { accept: ["Marine the Raccoon"] }),
+  s("medium", "Which armadillo came back as a playable character in Sonic Mania Plus?", "Mighty", "Mighty the Armadillo", { accept: ["Mighty the Armadillo"] }),
+  s("medium", "Which of the Sonic Heroes teams is made up of Amy, Cream and Big?", "Team Rose", "Team Rose"),
+  s("medium", "In Sonic Heroes, every team has a Speed, a Fly and which third type?", "Power", "Sonic Heroes"),
+
+  // Eggman and the villains
+  s("medium", "Which robot copy of Sonic races him on Stardust Speedway in Sonic CD?", "Metal Sonic", "Metal Sonic"),
+  s("medium", "Which E-100 Series robot turns against Dr. Eggman in Sonic Adventure?", "E-102 Gamma", "E-102 Gamma", { accept: ["Gamma", "E102 Gamma", "E-102"] }),
+  s("medium", "Which robot of Team Dark is the last of Dr. Eggman's E-Series?", "E-123 Omega", "E-123 Omega", { accept: ["Omega", "E123 Omega", "E-123"] }),
+  s("medium", "Which water monster does Dr. Eggman set free from the Master Emerald in Sonic Adventure?", "Chaos", "Chaos"),
+  s("hard", "What is Sonic Adventure's final boss, a giant form of the water god, called?", "Perfect Chaos", "Perfect Chaos"),
+  s("medium", "What is the name of Dr. Eggman's giant flying battleship in Sonic Adventure?", "Egg Carrier", "Egg Carrier", { accept: ["The Egg Carrier"] }),
+  s("medium", "What is Dr. Eggman's giant space station that looks like his face called?", "Death Egg", "Death Egg", { accept: ["The Death Egg"] }),
+  s("medium", "On which space station was Shadow created?", "Space Colony ARK", "Space Colony ARK", { accept: ["ARK", "The ARK", "Colony ARK", "Space Colony Ark"] }),
+  s("medium", "Which scientist created Shadow?", "Gerald Robotnik", "Gerald Robotnik", { accept: ["Professor Gerald", "Gerald", "Professor Gerald Robotnik", "Dr. Gerald Robotnik", "Prof. Gerald Robotnik"] }),
+  s("medium", "What is the name of Gerald Robotnik's granddaughter, Shadow's closest friend?", "Maria", "Maria Robotnik", { accept: ["Maria Robotnik"] }),
+  s("medium", "What does Shadow call his move that stops time?", "Chaos Control", "Chaos Control"),
+  s("hard", "What is the final boss of Sonic Adventure 2 called?", "Finalhazard", "Finalhazard", { accept: ["Final Hazard", "The Finalhazard"] }),
+  s("medium", "Which leader of the alien Black Arms tricks Shadow in his own game?", "Black Doom", "Black Doom"),
+  s("medium", "Which villain of Sonic the Hedgehog (2006) takes on Shadow's shape?", "Mephiles", "Mephiles the Dark", { accept: ["Mephiles the Dark"] }),
+  s("hard", "Which sun god is split in two and sealed away in Sonic the Hedgehog (2006)?", "Solaris", "Solaris"),
+  s("medium", "What ancient dark god breaks free when Dr. Eggman splits the planet apart?", "Dark Gaia", "Dark Gaia"),
+  s("hard", "What is the name of Dr. Eggman's theme park city in Sonic Unleashed's final stage?", "Eggmanland", "Eggmanland", { accept: ["Eggman Land", "Eggman-land"] }),
+  s("medium", "What does Dr. Eggman build in Sonic Colors, claiming it makes up for his past misdeeds?", "An amusement park", "Eggman's Incredible Interstellar Amusement Park", { accept: ["Amusement park", "A theme park", "Theme park", "Interstellar Amusement Park", "Eggman's Incredible Interstellar Amusement Park"] }),
+  s("medium", "What are the six villains from the Lost Hex in Sonic Lost World called?", "Deadly Six", "Deadly Six", { accept: ["The Deadly Six"] }),
+  s("hard", "Who leads the Deadly Six?", "Zavok", "Zavok"),
+  s("medium", "Which masked jackal causes trouble with the Phantom Ruby in Sonic Forces?", "Infinite", "Infinite"),
+  s("medium", "What is the name of the AI girl Dr. Eggman creates, who comes to call him her father?", "Sage", "Sage"),
+  s("hard", "Which bounty hunter on a hover bike chases Sonic in Sonic Triple Trouble?", "Fang", "Fang the Hunter", { accept: ["Fang the Sniper", "Fang the Hunter", "Nack", "Nack the Weasel"] }),
+
+  // The games
+  s("easy", "Sonic is the mascot of which video game company?", "Sega", "Sega", { accept: ["SEGA", "Sega Corporation"] }),
+  s("easy", "Which team at Sega makes the Sonic games?", "Sonic Team", "Sonic Team"),
+  s("easy", "On which console did the first Sonic the Hedgehog game come out?", "Sega Genesis", "Sonic the Hedgehog (1991)", { accept: ["Genesis", "Mega Drive", "Sega Mega Drive", "Megadrive", "Sega Genesis / Mega Drive"] }),
+  sn("easy", "In what year did the first Sonic the Hedgehog game come out?", "1991", "Sonic the Hedgehog (1991)"),
+  s("easy", "What is the first zone of the very first Sonic the Hedgehog game?", "Green Hill Zone", "Green Hill Zone", { accept: ["Green Hill"] }),
+  s("medium", "What is the first zone of Sonic the Hedgehog 2?", "Emerald Hill Zone", "Emerald Hill Zone", { accept: ["Emerald Hill"] }),
+  s("medium", "Which Sonic 2 zone is a neon city full of pinball bumpers and slot machines?", "Casino Night Zone", "Casino Night Zone", { accept: ["Casino Night"] }),
+  s("medium", "Which Sonic 2 zone is famous for its rising pink chemicals?", "Chemical Plant Zone", "Chemical Plant Zone", { accept: ["Chemical Plant"] }),
+  s("medium", "On which world does Sonic CD take place?", "Little Planet", "Little Planet", { accept: ["The Little Planet"] }),
+  s("medium", "In which game did Knuckles first appear?", "Sonic the Hedgehog 3", "Knuckles the Echidna", { accept: ["Sonic 3", "Sonic the Hedgehog III"] }),
+  s("medium", "Which 1994 game came on a cartridge that other Sonic games could lock onto?", "Sonic & Knuckles", "Sonic & Knuckles", { accept: ["Sonic and Knuckles", "Sonic n Knuckles"] }),
+  s("hard", "Which 1993 arcade game, played with a trackball, introduced two of Sonic's friends?", "SegaSonic the Hedgehog", "SegaSonic the Hedgehog", { accept: ["SegaSonic", "Sega Sonic the Hedgehog", "Sega Sonic"] }),
+  s("hard", "Which pinball game puts Sonic inside Robotnik's Veg-O-Fortress?", "Sonic Spinball", "Sonic the Hedgehog Spinball", { accept: ["Sonic the Hedgehog Spinball", "Spinball"] }),
+  s("hard", "Which 1996 game showed Sonic's world from a three-quarter, isometric view?", "Sonic 3D Blast", "Sonic 3D Blast", { accept: ["Sonic 3D", "Sonic 3D: Flickies' Island", "Flickies' Island", "Sonic 3D Flickies' Island"] }),
+  s("hard", "In which racing game do Sonic and friends race on foot, with Tails Doll as a racer?", "Sonic R", "Sonic R"),
+  s("easy", "On which Sega console did Sonic Adventure first come out?", "Dreamcast", "Sonic Adventure", { accept: ["Sega Dreamcast"] }),
+  s("easy", "What are the little creatures you can raise in gardens in Sonic Adventure?", "Chao", "Chao", { accept: ["A Chao"] }),
+  s("medium", "In which Sonic Adventure 2 level does Sonic snowboard down the streets, chased by a giant truck?", "City Escape", "City Escape"),
+  s("medium", "Which band sings Live & Learn, the main theme of Sonic Adventure 2?", "Crush 40", "Crush 40", { accept: ["Crush40"] }),
+  s("hard", "What is the name of Tails' walking mech in Sonic Adventure 2?", "Cyclone", "Cyclone", { accept: ["Tails Cyclone", "The Cyclone"] }),
+  s("hard", "Which water city is the setting of Sonic the Hedgehog (2006)?", "Soleanna", "Soleanna"),
+  s("medium", "Which princess must Sonic rescue in Sonic the Hedgehog (2006)?", "Elise", "Elise the Third", { accept: ["Princess Elise", "Elise the Third"] }),
+  s("easy", "Which game has Sonic turn into a werehog at night?", "Sonic Unleashed", "Sonic Unleashed", { accept: ["Unleashed"] }),
+  s("medium", "What is Chip's favorite food?", "Chocolate", "Chip"),
+  s("easy", "What are the little aliens that give Sonic special powers in Sonic Colors?", "Wisps", "Wisp", { accept: ["Wisp"] }),
+  s("medium", "Which game teamed up Classic Sonic and Modern Sonic for Sonic's 20th anniversary?", "Sonic Generations", "Sonic Generations", { accept: ["Generations"] }),
+  s("medium", "Which 2017 game, made with fan developers, went back to Sonic's 16-bit style?", "Sonic Mania", "Sonic Mania", { accept: ["Mania", "Sonic Mania Plus"] }),
+  s("medium", "In which 2022 game does Sonic explore the open zones of the Starfall Islands?", "Sonic Frontiers", "Sonic Frontiers", { accept: ["Frontiers"] }),
+  s("medium", "Which 2019 kart game had racers work together in teams of three?", "Team Sonic Racing", "Team Sonic Racing"),
+  s("easy", "Which 2025 kart game has Sonic and friends warp between worlds through Travel Rings?", "Sonic Racing: CrossWorlds", "Sonic Racing: CrossWorlds", { accept: ["Sonic Racing CrossWorlds", "CrossWorlds", "Sonic Racing Crossworlds", "Crossworlds", "Sonic CrossWorlds"] }),
+
+  // Rings, moves and items
+  sn("easy", "How many rings earn you an extra life in the classic Sonic games?", "100", "Ring", { accept: ["one hundred", "a hundred"] }),
+  s("easy", "What does Sonic turn into when he has all seven Chaos Emeralds?", "Super Sonic", "Super Sonic", { accept: ["Super", "Super form", "Turns Super", "He turns Super", "Goes Super", "He goes Super", "Turns into Super Sonic", "Becomes Super Sonic"] }),
+  s("easy", "What is the giant gem that keeps Angel Island floating?", "Master Emerald", "Master Emerald", { accept: ["The Master Emerald"] }),
+  s("easy", "What is the move where Sonic curls up and revs in place before blasting off?", "Spin Dash", "Spin Dash", { accept: ["Spindash", "Spin-Dash"] }),
+  s("medium", "Which move lets Sonic lock onto an enemy in midair and dash straight into it?", "Homing Attack", "Homing Attack", { accept: ["Homing"] }),
+  s("medium", "Which shield in Sonic 3 lets Sonic breathe underwater and bounce off the ground?", "Bubble Shield", "Bubble Shield", { accept: ["Water Shield", "Aqua Shield", "Bubble"] }),
+  s("easy", "What do you touch in a classic Sonic level to save your place?", "Star Post", "Star Post", { accept: ["Starpost", "Star Posts", "Checkpoint", "Lamppost", "Lamp post"] }),
+  s("easy", "What is the name of Tails' biplane?", "Tornado", "Tornado", { accept: ["The Tornado", "Tornado 1", "Tornado 2"] }),
+  s("easy", "What is Sonic's favorite food?", "Chili dogs", "Chili dog", { accept: ["Chili dog", "Chilli dogs", "Chilli dog", "Chili hot dogs"] }),
+
+  // On screen
+  sm("easy", "Who plays Dr. Robotnik in the live-action Sonic movies?", "Jim Carrey", "Sonic the Hedgehog (film)"),
+  sm("medium", "Who voices Sonic in the Sonic movies?", "Ben Schwartz", "Sonic the Hedgehog (film)", { accept: ["Schwartz"] }),
+  sm("medium", "Who voices Knuckles in the Sonic movies?", "Idris Elba", "Sonic the Hedgehog 2 (film)", { accept: ["Elba"] }),
+  sm("medium", "Who voices Shadow in the 2024 movie Sonic the Hedgehog 3?", "Keanu Reeves", "Sonic the Hedgehog 3 (film)", { accept: ["Keanu"] }),
+  sm("medium", "In the first Sonic movie, near which small Montana town does Sonic secretly live?", "Green Hills", "Sonic the Hedgehog (film)", { accept: ["Green Hills, Montana", "Green Hill"] }),
+  sm("medium", "Which anime series has Sonic and friends stranded on Earth with a boy named Chris?", "Sonic X", "Sonic X"),
+  sm("hard", "In which 1999 cartoon is Sonic one of three royal siblings who play in a band?", "Sonic Underground", "Sonic Underground"),
+
+  // Behind the games
+  s("hard", "Who composed the music for the first Sonic the Hedgehog game?", "Masato Nakamura", "Masato Nakamura", { accept: ["Nakamura"] }),
+  s("hard", "Who designed the look of Sonic the Hedgehog?", "Naoto Ohshima", "Naoto Ohshima", { accept: ["Naoto Oshima", "Ohshima", "Oshima"] }),
+  s("hard", "Who was the lead programmer of the first Sonic the Hedgehog game?", "Yuji Naka", "Yuji Naka", { accept: ["Naka"] }),
+];
+
+/** Three plainly wrong answers per word-answer question, keyed by the exact prompt above. */
+export const SONIC_WRONG: Record<string, [string, string, string]> = {
+  "What do Sonic and his friends collect that keep them from losing a life when they get hit?": ["Coins", "Stars", "Gems"],
+  "Which hedgehog likes to call himself the fastest thing alive?": ["Shadow", "Silver", "Metal Sonic"],
+  "What is the name of Sonic's two-tailed fox friend?": ["Knuckles", "Ray", "Charmy"],
+  "Which red rival of Sonic can glide and climb walls?": ["Shadow", "Vector", "Mighty"],
+  "What kind of animal is Knuckles?": ["Hedgehog", "Armadillo", "Mole"],
+  "Who is Sonic's archenemy, a scientist with a huge mustache?": ["Dr. Wily", "Black Doom", "Mephiles"],
+  "What was Dr. Eggman's name in the West in the early games?": ["Dr. Wily", "Dr. Light", "Dr. Starline"],
+  "Which black hedgehog was created as the Ultimate Life Form?": ["Silver", "Mephiles", "Infinite"],
+  "Which bat is a treasure hunter who loves jewels?": ["Wave", "Blaze", "Amy"],
+  "Who calls herself Sonic's girlfriend and chases him everywhere?": ["Sally Acorn", "Blaze", "Rouge"],
+  "What kind of animal is Amy Rose?": ["Rabbit", "Cat", "Echidna"],
+  "What is the name of Amy Rose's hammer?": ["Thunder Hammer", "Rosy Mallet", "Mega Mallet"],
+  "Which young rabbit flies by flapping her big ears?": ["Vanilla", "Amy", "Charmy"],
+  "What is the name of Cream's Chao friend?": ["Chocola", "Froggy", "Omochao"],
+  "Which big cat goes fishing with his frog friend?": ["Blaze", "Bark", "Vector"],
+  "Which crocodile runs a detective agency and always wears headphones?": ["Espio", "Storm", "Big"],
+  "Which ninja chameleon can turn invisible?": ["Vector", "Charmy", "Jet"],
+  "What is the name of the detective agency run by Vector, Espio and Charmy?": ["Babylon Rogues", "Team Dark", "Freedom Fighters"],
+  "Which hedgehog came back from 200 years in the future?": ["Shadow", "Sonic", "Mephiles"],
+  "Which cat princess from another dimension can control fire?": ["Big", "Marine", "Honey"],
+  "What are the seven emeralds from Blaze's world called?": ["Chaos Emeralds", "Super Emeralds", "Time Stones"],
+  "Which hawk leads the Babylon Rogues?": ["Storm", "Wave", "Rouge"],
+  "What are the hoverboards in Sonic Riders called?": ["Air Boards", "Speed Gear", "Wisp Boards"],
+  "Which raccoon from Southern Island dreams of captaining her own ship?": ["Blaze", "Cream", "Ray"],
+  "Which armadillo came back as a playable character in Sonic Mania Plus?": ["Espio", "Vector", "Bark"],
+  "Which of the Sonic Heroes teams is made up of Amy, Cream and Big?": ["Team Dark", "Team Chaotix", "Team Sonic"],
+  "In Sonic Heroes, every team has a Speed, a Fly and which third type?": ["Skill", "Magic", "Stealth"],
+  "Which robot copy of Sonic races him on Stardust Speedway in Sonic CD?": ["Tails Doll", "E-123 Omega", "Emerl"],
+  "Which E-100 Series robot turns against Dr. Eggman in Sonic Adventure?": ["E-123 Omega", "E-101 Beta", "Metal Sonic"],
+  "Which robot of Team Dark is the last of Dr. Eggman's E-Series?": ["E-102 Gamma", "Metal Sonic", "Emerl"],
+  "Which water monster does Dr. Eggman set free from the Master Emerald in Sonic Adventure?": ["Solaris", "Dark Gaia", "Ifrit"],
+  "What is Sonic Adventure's final boss, a giant form of the water god, called?": ["Finalhazard", "Solaris", "Biolizard"],
+  "What is the name of Dr. Eggman's giant flying battleship in Sonic Adventure?": ["Death Egg", "Egg Fleet", "Final Fortress"],
+  "What is Dr. Eggman's giant space station that looks like his face called?": ["Egg Carrier", "Space Colony ARK", "Eggmanland"],
+  "On which space station was Shadow created?": ["Death Egg", "Egg Carrier", "Little Planet"],
+  "Which scientist created Shadow?": ["Dr. Eggman", "Eggman Nega", "Dr. Starline"],
+  "What is the name of Gerald Robotnik's granddaughter, Shadow's closest friend?": ["Elise", "Tikal", "Sally"],
+  "What does Shadow call his move that stops time?": ["Chaos Spear", "Chaos Blast", "Spin Dash"],
+  "What is the final boss of Sonic Adventure 2 called?": ["Perfect Chaos", "Biolizard", "Egg Emperor"],
+  "Which leader of the alien Black Arms tricks Shadow in his own game?": ["Mephiles", "Dark Gaia", "Erazor Djinn"],
+  "Which villain of Sonic the Hedgehog (2006) takes on Shadow's shape?": ["Iblis", "Black Doom", "Infinite"],
+  "Which sun god is split in two and sealed away in Sonic the Hedgehog (2006)?": ["Chaos", "Dark Gaia", "Ifrit"],
+  "What ancient dark god breaks free when Dr. Eggman splits the planet apart?": ["Solaris", "Black Doom", "Ifrit"],
+  "What is the name of Dr. Eggman's theme park city in Sonic Unleashed's final stage?": ["Twinkle Park", "Casino Park", "Egg Carrier"],
+  "What does Dr. Eggman build in Sonic Colors, claiming it makes up for his past misdeeds?": ["A space station", "A casino", "A prison"],
+  "What are the six villains from the Lost Hex in Sonic Lost World called?": ["Babylon Rogues", "Hard-Boiled Heavies", "Team Dark"],
+  "Who leads the Deadly Six?": ["Zazz", "Zeena", "Master Zik"],
+  "Which masked jackal causes trouble with the Phantom Ruby in Sonic Forces?": ["Zavok", "Mephiles", "Black Doom"],
+  "What is the name of the AI girl Dr. Eggman creates, who comes to call him her father?": ["Elise", "Maria", "Trip"],
+  "Which bounty hunter on a hover bike chases Sonic in Sonic Triple Trouble?": ["Jet", "Bean", "Bark"],
+  "Sonic is the mascot of which video game company?": ["Nintendo", "Sony", "Capcom"],
+  "Which team at Sega makes the Sonic games?": ["Team Sega", "Blue Sky Team", "Hedgehog Studio"],
+  "On which console did the first Sonic the Hedgehog game come out?": ["Super Nintendo", "Sega Saturn", "Dreamcast"],
+  "What is the first zone of the very first Sonic the Hedgehog game?": ["Emerald Hill Zone", "Chemical Plant Zone", "Angel Island Zone"],
+  "What is the first zone of Sonic the Hedgehog 2?": ["Green Hill Zone", "Mushroom Hill Zone", "Angel Island Zone"],
+  "Which Sonic 2 zone is a neon city full of pinball bumpers and slot machines?": ["Carnival Night Zone", "Studiopolis Zone", "Spring Yard Zone"],
+  "Which Sonic 2 zone is famous for its rising pink chemicals?": ["Oil Ocean Zone", "Hydrocity Zone", "Aquatic Ruin Zone"],
+  "On which world does Sonic CD take place?": ["Angel Island", "South Island", "Westside Island"],
+  "In which game did Knuckles first appear?": ["Sonic the Hedgehog 2", "Sonic CD", "Sonic Spinball"],
+  "Which 1994 game came on a cartridge that other Sonic games could lock onto?": ["Sonic 3D Blast", "Sonic Spinball", "Knuckles' Chaotix"],
+  "Which 1993 arcade game, played with a trackball, introduced two of Sonic's friends?": ["Sonic the Fighters", "Knuckles' Chaotix", "Sonic Spinball"],
+  "Which pinball game puts Sonic inside Robotnik's Veg-O-Fortress?": ["Sonic Blast", "Sonic Chaos", "Sonic Labyrinth"],
+  "Which 1996 game showed Sonic's world from a three-quarter, isometric view?": ["Sonic Spinball", "Sonic Labyrinth", "Sonic R"],
+  "In which racing game do Sonic and friends race on foot, with Tails Doll as a racer?": ["Sonic Drift", "Sonic Riders", "Sonic Rivals"],
+  "On which Sega console did Sonic Adventure first come out?": ["Sega Saturn", "GameCube", "PlayStation 2"],
+  "What are the little creatures you can raise in gardens in Sonic Adventure?": ["Wisps", "Flickies", "Puyos"],
+  "In which Sonic Adventure 2 level does Sonic snowboard down the streets, chased by a giant truck?": ["Speed Highway", "Radical Highway", "Metal Harbor"],
+  "Which band sings Live & Learn, the main theme of Sonic Adventure 2?": ["Zebrahead", "Hyper Potions", "Cash Cash"],
+  "What is the name of Tails' walking mech in Sonic Adventure 2?": ["Tornado", "Egg Walker", "Hurricane"],
+  "Which water city is the setting of Sonic the Hedgehog (2006)?": ["Station Square", "Spagonia", "Empire City"],
+  "Which princess must Sonic rescue in Sonic the Hedgehog (2006)?": ["Sally", "Blaze", "Maria"],
+  "Which game has Sonic turn into a werehog at night?": ["Sonic Frontiers", "Sonic Forces", "Sonic Colors"],
+  "What is Chip's favorite food?": ["Chili dogs", "Ice cream", "Apples"],
+  "What are the little aliens that give Sonic special powers in Sonic Colors?": ["Chao", "Flickies", "Gizoids"],
+  "Which game teamed up Classic Sonic and Modern Sonic for Sonic's 20th anniversary?": ["Sonic Mania", "Sonic Heroes", "Sonic Lost World"],
+  "Which 2017 game, made with fan developers, went back to Sonic's 16-bit style?": ["Sonic Superstars", "Sonic Origins", "Sonic Rush"],
+  "In which 2022 game does Sonic explore the open zones of the Starfall Islands?": ["Sonic Forces", "Sonic Lost World", "Sonic Superstars"],
+  "Which 2019 kart game had racers work together in teams of three?": ["Sonic Riders", "Sonic Drift", "Sonic R"],
+  "Which 2025 kart game has Sonic and friends warp between worlds through Travel Rings?": ["Team Sonic Racing", "Sonic Riders", "Sonic Drift"],
+  "What does Sonic turn into when he has all seven Chaos Emeralds?": ["Metal Sonic", "Werehog", "Dark Sonic"],
+  "What is the giant gem that keeps Angel Island floating?": ["Chaos Emerald", "Phantom Ruby", "Sol Emerald"],
+  "What is the move where Sonic curls up and revs in place before blasting off?": ["Homing Attack", "Light Speed Dash", "Stomp"],
+  "Which move lets Sonic lock onto an enemy in midair and dash straight into it?": ["Spin Dash", "Light Speed Dash", "Stomp"],
+  "Which shield in Sonic 3 lets Sonic breathe underwater and bounce off the ground?": ["Flame Shield", "Lightning Shield", "Insta-Shield"],
+  "What do you touch in a classic Sonic level to save your place?": ["Signpost", "Goal Ring", "Item Box"],
+  "What is the name of Tails' biplane?": ["Hurricane", "Blizzard", "Lightning"],
+  "What is Sonic's favorite food?": ["Pizza", "Tacos", "Chocolate"],
+  "Who plays Dr. Robotnik in the live-action Sonic movies?": ["Ben Schwartz", "James Marsden", "Keanu Reeves"],
+  "Who voices Sonic in the Sonic movies?": ["Jim Carrey", "Roger Craig Smith", "Idris Elba"],
+  "Who voices Knuckles in the Sonic movies?": ["Keanu Reeves", "Ben Schwartz", "Dave Bautista"],
+  "Who voices Shadow in the 2024 movie Sonic the Hedgehog 3?": ["Idris Elba", "Kirk Thornton", "Jim Carrey"],
+  "In the first Sonic movie, near which small Montana town does Sonic secretly live?": ["Station Square", "Spring Yard", "Emerald Coast"],
+  "Which anime series has Sonic and friends stranded on Earth with a boy named Chris?": ["Sonic Boom", "Sonic Prime", "Sonic Underground"],
+  "In which 1999 cartoon is Sonic one of three royal siblings who play in a band?": ["Sonic Boom", "Sonic X", "Sonic Prime"],
+  "Who composed the music for the first Sonic the Hedgehog game?": ["Jun Senoue", "Tomoya Ohtani", "Tee Lopes"],
+  "Who designed the look of Sonic the Hedgehog?": ["Yuji Naka", "Shigeru Miyamoto", "Takashi Iizuka"],
+  "Who was the lead programmer of the first Sonic the Hedgehog game?": ["Naoto Ohshima", "Hirokazu Yasuhara", "Takashi Iizuka"],
+};
