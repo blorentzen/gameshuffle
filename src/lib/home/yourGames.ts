@@ -8,7 +8,7 @@ import "server-only";
  */
 
 import { createServiceClient } from "@/lib/supabase/admin";
-import { GAME_SPACES, spaceOpen, spacePath, type GameSpace } from "@/lib/games/spaces";
+import { GAME_SPACES, ideasOnly, spaceOpen, spacePath, type GameSpace } from "@/lib/games/spaces";
 import { gameKey } from "@/lib/games/key";
 import { spaceCounts, spaceHappening } from "@/lib/games/spaceData";
 import { pickLine } from "@/lib/spaces/challenges";
@@ -25,6 +25,12 @@ export interface GameCard {
   pick: { label: string; name: string } | null;
   /** One line of what's new: posts since your last visit, a stream or event, else the member count. */
   news: { text: string; fresh: boolean } | null;
+  /** Just opened: the New badge on /games. */
+  isNew?: boolean;
+  /** An ideas space (no tools yet; it asks what to build). */
+  ideas?: boolean;
+  /** The sign-up sheet's line for Join. */
+  join?: string;
 }
 
 /** The spaces this account can open (all of them for staff while spaces are previewing). */
@@ -57,10 +63,29 @@ export async function yourGames(favorites: string[], role: string | null | undef
   return cardsFor(joinedSpaces(favorites, role), since);
 }
 
+/**
+ * The same for everyone for a minute: a space's pick and its news when there's no "since you were here" (the /games
+ * index reads one of each for every space, 21 of them since the first wave of 2026-11-09). Per server instance.
+ */
+const shared = new Map<string, { at: number; value: Promise<unknown> }>();
+function sharedFor<T>(key: string, fn: () => Promise<T>): Promise<T> {
+  const hit = shared.get(key);
+  if (hit && Date.now() - hit.at < 60_000) return hit.value as Promise<T>;
+  const value = fn().catch(() => null) as Promise<T>;
+  shared.set(key, { at: Date.now(), value });
+  return value;
+}
+
 /** Cards for any list of spaces (the /games index uses it for the ones you haven't joined). */
 export async function cardsFor(spaces: GameSpace[], since: number | null): Promise<GameCard[]> {
   return Promise.all(spaces.map(async (s) => {
-    const [pick, news] = await Promise.all([pickLine(s).catch(() => null), newsFor(s, since).catch(() => null)]);
-    return { id: s.id, name: s.name, href: spacePath(s), box: s.box, accent: s.accent, pick: pick ? { label: pick.label, name: pick.name } : null, news };
+    const [pick, news] = await Promise.all([
+      sharedFor(`pick:${s.id}`, () => pickLine(s)).catch(() => null),
+      (since ? newsFor(s, since) : sharedFor(`news:${s.id}`, () => newsFor(s, null))).catch(() => null),
+    ]);
+    return {
+      id: s.id, name: s.name, href: spacePath(s), box: s.box, accent: s.accent, pick: pick ? { label: pick.label, name: pick.name } : null, news,
+      isNew: !!s.isNew, ideas: ideasOnly(s), join: s.join,
+    };
   }));
 }

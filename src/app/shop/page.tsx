@@ -23,7 +23,7 @@ import { MerchShop } from "@/components/store/MerchShop";
 import { ShopUpdates } from "@/components/store/ShopUpdates";
 import { shopUpdatesConfigured } from "@/lib/store/updates";
 import { createClient } from "@/lib/supabase/server";
-import { listShopProducts, ShopNotReady, type ShopProduct } from "@/lib/store/products";
+import { cartSeed, listShopProducts, ShopNotReady, type ShopProduct } from "@/lib/store/products";
 import { devPreviewFromPrintful, listMerchListings, type MerchListing } from "@/lib/store/merchCatalog";
 import { MerchNotReady } from "@/lib/store/merchSync";
 import { merchCopy, shopCopy } from "@/lib/store/copy";
@@ -51,6 +51,15 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 const PAGE_BG = "color-mix(in srgb, var(--text-primary) 4%, var(--surface-default))";
+
+/**
+ * What the shelf needs from each product: names, colors, sizes and one picture. Every size and color with its price
+ * and print details only matters on the product's own page; sending them all made /shop 3.2 MB a visit
+ * (tap feedback picks, 2026-11-09). The first variant stays because phone cases show its picture.
+ */
+function shelfOf(listings: MerchListing[]): MerchListing[] {
+  return listings.map((l) => ({ ...l, description: null, facts: [], sizeGuide: null, photos: l.photos.slice(0, 1), variants: l.variants.slice(0, 1) }));
+}
 
 export default async function ShopPage({ searchParams }: { searchParams: Promise<{ checkout?: string; view?: string }> }) {
   const { checkout, view } = await searchParams;
@@ -150,7 +159,7 @@ export default async function ShopPage({ searchParams }: { searchParams: Promise
               <p>{copy.closed.body}</p>
             </section>
           )) : (
-            <MerchShop listings={listings} products={products} soon={soon} />
+            <MerchShop listings={shelfOf(listings)} products={cartSeed(products)} soon={soon} />
           )}
 
           {!soon && <section className="shop-section shop-shipping" aria-labelledby="shop-shipping">

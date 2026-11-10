@@ -28,8 +28,12 @@ export const EVENTS = {
   dailyBoardJoined: "Daily Board Joined",
   /** "Copy today's results": every daily played today in one post. {games: count, from} */
   dailiesShared: "Dailies Shared",
-  /** The today bar or Next up took someone to another daily. {to, from, via: bar|next} */
+  /** The today bar or Next up took someone to another daily. {to, from, via: bar|bar-more|next|week-line} */
   dailiesSwitched: "Dailies Switched",
+  /** The Choose sheet closed with a new list of your dailies. {count, picks: "shuffle,dex"} */
+  dailyPicksSaved: "Daily Picks Saved",
+  /** A row on /dailies opened a daily. {to, from: yours|more|today|week} */
+  allDailiesClicked: "All Dailies Clicked",
   /** "Copy link" on the dailies' Invite friends card or Account ▸ Invite friends. {from} */
   referralLinkCopied: "Referral Link Copied",
   /** Tokens spent on help at a daily's last chance. {game, kind: letter|guess} */
@@ -180,6 +184,10 @@ export const EVENTS = {
   pokemonRolled: "Pokemon Rolled",
   /** A generator roll's link was copied. */
   pokemonLinkCopied: "Pokemon Link Copied",
+  /** The Sonic Racing: CrossWorlds randomizer rolled racers (props: { players, slot: all | one }). */
+  sonicRacersRolled: "Sonic Racers Rolled",
+  /** The Sonic Racing: CrossWorlds randomizer rolled races or a Grand Prix (props: { kind: races | grand-prix, count }). */
+  sonicRacesRolled: "Sonic Races Rolled",
   /** A free bracket tool made a bracket, schedule or round 1 (props: { format: single | double | roundrobin | swiss, players }). */
   bracketMade: "Bracket Made",
   /** A bracket tool's link was copied (props: { format }). */
@@ -203,6 +211,10 @@ export const EVENTS = {
   mmrPictureSaved: "MMR Picture Saved",
   /** Tonight's goal set on the MMR card, GS Pro (props: { game }). */
   mmrGoalSet: "MMR Goal Set",
+  /** The speedrun overlay's look changed in its setup (props: { layout }). */
+  speedrunLookSaved: "Speedrun Look Saved",
+  /** A speedrun address copied from its setup: the timer's for LiveSplit One, or the OBS link (props: { kind }). */
+  speedrunAddressCopied: "Speedrun Address Copied",
   /** The weekly lounge report switched on or off in the MMR studio (props: { on }). */
   loungeWeeklySwitched: "Lounge Weekly Switched",
   /** A lounge name confirmed by Discord on /lounge ({games}: how many lounge games). */

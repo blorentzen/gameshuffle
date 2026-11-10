@@ -70,6 +70,64 @@ export function dailiesShown(current?: DailiesId, opts: { fire?: boolean; duel?:
   });
 }
 
+/**
+ * Your dailies (choose your dailies, 2026-11-09, all as recommended): a member picks the dailies they play, saved on
+ * the account (`users.daily_picks`, src/lib/originals/dailyPicks.ts) so it follows them to every device and the Discord
+ * Activity. Their picks show on Home and in the bar above every daily; the rest stay one tap away on /dailies. The
+ * Weekly isn't a pick: it always shows as its own line.
+ *
+ * No list stored (null) = these four, the dailies that existed when choosing arrived. Never add a new daily here: a
+ * daily added later is offered (under "More to try" on /dailies, and through the bar's More), never switched on for
+ * anyone, whether they chose or not.
+ */
+export const DEFAULT_DAILY_PICKS: readonly DailyGameId[] = ["shuffle", "dex", "fire", "duel"];
+
+/** Every daily someone can pick, in the dailies' order (a new daily joins here and in DAILIES). */
+export const DAILY_GAMES: readonly DailyGameId[] = ["shuffle", "dex", "fire", "duel"];
+
+/** The dailies shown here (the Discord Activity leaves out Fire Round and the Duel), without the Weekly. */
+export function availableDailies(opts: { fire?: boolean; duel?: boolean } = {}): DailyGameId[] {
+  return dailiesShown(undefined, opts).filter((id): id is DailyGameId => id !== "weekly");
+}
+
+/** A stored or sent list, cleaned: known dailies only, each once, in the dailies' order. null when nothing usable is left. */
+export function cleanDailyPicks(raw: unknown): DailyGameId[] | null {
+  if (!Array.isArray(raw)) return null;
+  const set = new Set(raw.filter((x): x is string => typeof x === "string"));
+  const out = DAILY_GAMES.filter((id) => set.has(id));
+  return out.length ? out : null;
+}
+
+/**
+ * The dailies someone plays here: their own list (or the default four when they never chose), kept to the ones shown
+ * here, in the dailies' order. Can be empty inside the Discord Activity (someone who picked only Fire Round); the bar
+ * then shows the daily you're on and More.
+ */
+export function picksOrDefault(raw: readonly string[] | null | undefined, available: readonly DailyGameId[] = availableDailies()): DailyGameId[] {
+  const own = cleanDailyPicks(raw) ?? DEFAULT_DAILY_PICKS;
+  return available.filter((id) => own.includes(id));
+}
+
+/** The games a page works with once picks are known: your picks, the one you're on (even unpicked), and the Weekly. */
+export function withPicks(shown: readonly DailiesId[], picks: readonly DailyGameId[], current?: DailiesId | null): DailiesId[] {
+  return shown.filter((id) => id === "weekly" || id === current || (picks as readonly DailiesId[]).includes(id));
+}
+
+/**
+ * The today bar's cells: your picks (up to `max` in a row), always with the daily you're on even if you didn't pick
+ * it, and the dailies left out (the bar's last cell, More, leads to them).
+ */
+export function barCells(available: readonly DailyGameId[], picks: readonly DailyGameId[], current: DailiesId, max = 4): { cells: DailyGameId[]; hidden: DailyGameId[] } {
+  let cells = available.filter((id) => picks.includes(id) || id === current);
+  if (cells.length > max) {
+    // More picks than fit: the one you're on stays, then your picks in order.
+    const keep = new Set<DailyGameId>(cells.filter((id) => id === current));
+    for (const id of cells) { if (keep.size >= max) break; keep.add(id); }
+    cells = cells.filter((id) => keep.has(id));
+  }
+  return { cells, hidden: available.filter((id) => !cells.includes(id)) };
+}
+
 /** `seconds`: the solve time, from Start to the final guess. */
 export interface DailyResult { guesses: number; main: number; solved: boolean; saved: boolean; seconds?: number | null }
 /** `fastest`: the best solve time in that game. `top`: Fire Round's best score on today's round. */

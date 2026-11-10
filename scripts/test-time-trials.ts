@@ -2,10 +2,11 @@
 import { trackCode, trackTitle, tracksByCode } from "../src/lib/timeTrials/codes";
 import { parseTime, formatTime, formatGap, rankRows, ordinal, videoProof, parseTtPlayer, MIN_MS, MAX_MS } from "../src/lib/timeTrials/rules";
 import { readLines, linesLookRight, bestPerTrack } from "../src/lib/timeTrials/importText";
-import { TT_GAMES, TT_GAME_ORDER, ttTracks, ttTrack, ttCups, trackKey, trackFromKey, searchTracks, matchTrack, trackPath, gameBySlug, isClassFor, trackBySegment, gamePath } from "../src/lib/timeTrials/tracks";
+import { TT_GAMES, TT_GAME_ORDER, ttTracks, ttTrack, ttCups, trackKey, trackFromKey, searchTracks, matchTrack, trackPath, gameBySlug, isClassFor, trackBySegment, gamePath, boardGameBySlug, isTtGame, isBoardGame, TT_BOARD_GAMES, TT_MIN_MS, lapsOf, cupLabel } from "../src/lib/timeTrials/tracks";
+import { existsSync } from "node:fs";
 import { abbreviationTable, readQuaxly, embedText, yourRows, newBests, readTitle, nameKey } from "../src/lib/timeTrials/quaxly";
 import { toCheckRows, checkSummary } from "../src/lib/timeTrials/importRows";
-import { readCategory, categoryQuery, categoryText, vehiclesFor, isItems, isVehicle, onBoard, boardsFor, vehicleFor, vehicleLabel } from "../src/lib/timeTrials/categories";
+import { readCategory, categoryQuery, categoryText, vehiclesFor, isItems, isVehicle, onBoard, boardsFor, vehicleFor, vehicleLabel, savableVehicles, isSavableVehicle, vehicleRequired, hasItems, boardLabel } from "../src/lib/timeTrials/categories";
 import { parseLap, formatLap, lapsAddUp, cleanLaps, LAP_SLACK_MS } from "../src/lib/timeTrials/rules";
 import { playerPagePath, readPlayerSlug } from "../src/lib/timeTrials/playerPath";
 import { isVerified, timeStatus, COMMUNITY_VOUCHES } from "../src/lib/timeTrials/rules";
@@ -368,6 +369,71 @@ eq(gamePath("mk8dx", 200), "/time-trials/mario-kart-8-deluxe?cc=200", "game page
   eq(timeStatus({ ...base, top: true, video: "waiting" as const, videoUrl: "https://youtu.be/x" }), "waiting", "a clip in review");
   eq(timeStatus({ ...base, top: true, video: "rejected" as const, you: true }), "rejected", "your own rejected clip");
   eq(timeStatus({ ...base, top: true, video: "rejected" as const }), "unverified", "someone else's rejected clip reads as Unverified");
+}
+
+// ── Kirby Air Riders (2026-11-09): Air Ride courses by machine, no classes or items ──
+{
+  const kar = ttTracks("kar");
+  eq(kar.length, 18, "Kirby: 18 Air Ride courses");
+  eq(new Set(kar.map((t) => t.slug)).size, 18, "Kirby: course addresses are unique");
+  ok(kar.every((t) => /^[a-z0-9-]{2,60}$/.test(t.id)), "Kirby: course ids fit the database's track check");
+  eq(ttCups("kar").map((c) => [c.cup, c.tracks.length]), [["New courses", 9], ["Returning courses", 9]], "Kirby: new courses, then the returning nine");
+  eq(kar.filter((t) => t.laps === 1).map((t) => t.name), ["Mount Amberfalls", "Galactic Nova"], "Kirby: the one-lap courses");
+  eq(kar.filter((t) => t.laps === 3).map((t) => t.name), ["Floria Fields", "Fantasy Meadows"], "Kirby: the three-lap courses");
+  eq(kar.filter((t) => t.laps === 2).length, 14, "Kirby: every other course is two laps");
+  eq(lapsOf(ttTrack("mk8dx", ttTracks("mk8dx")[0].id)), 3, "Mario Kart tracks stay three laps");
+  ok(kar.filter((t) => t.name !== "Checker Knights").every((t) => t.image && existsSync(`public${t.image}`)), "Kirby: every course but Checker Knights has its art on disk");
+  eq(ttTrack("kar", "floria-fields")?.name, "Floria Fields", "Kirby: a course by id");
+  eq(trackBySegment("kar", "nebula-belt")?.name, "Nebula Belt", "Kirby: a course by address");
+  eq(trackPath(ttTrack("kar", "floria-fields")!), "/time-trials/kirby-air-riders/floria-fields", "Kirby: course address");
+  eq(trackPath(ttTrack("kar", "floria-fields")!, 150, { vehicle: "kar_rocket_star" }), "/time-trials/kirby-air-riders/floria-fields?vehicle=kar_rocket_star", "Kirby: machine board address");
+  eq(trackPath(ttTrack("kar", "floria-fields")!, 150, { items: "none" }), "/time-trials/kirby-air-riders/floria-fields", "Kirby addresses never carry items");
+  eq(gamePath("kar", 150, { items: "none", vehicle: "kar_std" }), "/time-trials/kirby-air-riders?vehicle=kar_std", "Kirby game page address");
+  eq(readCategory("kar", { items: "none", vehicle: "kar_hydra" }), { items: "shrooms", vehicle: "kar_hydra" }, "Kirby: no items setting, the machine kept");
+  eq(readCategory("kar", { vehicle: "inside_drift" }).vehicle, "any", "Kirby: a Mario Kart vehicle isn't a Kirby board");
+  eq(readCategory("mk8dx", { vehicle: "kar_hydra" }).vehicle, "any", "Mario Kart: a Kirby machine isn't a Mario Kart board");
+  eq(boardGameBySlug("kirby-air-riders")?.id, "kar", "Kirby: the pages find it by address");
+  eq(gameBySlug("kirby-air-riders"), null, "Kirby: never a Mario Kart game (tournaments, Discord, imports)");
+  ok(!isTtGame("kar") && isBoardGame("kar") && isBoardGame("mk8dx"), "Kirby: a board game, not a Mario Kart one");
+  eq([...TT_GAME_ORDER], ["mk8dx", "mkworld"], "the Mario Kart list is unchanged");
+  eq(TT_BOARD_GAMES, ["mk8dx", "mkworld", "kar"], "every board game, Kirby last");
+  eq(searchTracks("Floria").map((t) => t.game), [], "a search without a game stays Mario Kart (Discord, imports)");
+  eq(matchTrack("floria fields", "kar")?.id, "floria-fields", "Kirby: matching a course by name");
+  ok(isClassFor("kar", 150) && !isClassFor("kar", 200), "Kirby: one stored class");
+  // Machines and boards.
+  const boards = vehiclesFor("kar");
+  eq(boards.slice(0, 2), ["any", "kar_std"], "Kirby boards: Any machine, then No Legendaries");
+  eq(boards.length, 2 + 26, "Kirby boards: plus one per Time Attack machine (no Gigantes)");
+  ok(!boards.includes("kar_gigantes" as never), "Gigantes isn't a Time Attack machine");
+  ok(boards.every((v) => /^any$|^kar_[a-z0-9_]{2,30}$/.test(v)), "Kirby machine ids fit the database's vehicle check");
+  eq(savableVehicles("kar").length, 26, "a Kirby time is saved with one of 26 machines");
+  ok(!isSavableVehicle("kar", "any") && !isSavableVehicle("kar", "kar_std") && isSavableVehicle("kar", "kar_rocket_star"), "Kirby: a machine is required, never a board");
+  eq(savableVehicles("mk8dx").map((v) => v.id), ["any", "inside_drift", "teddy", "biddybuggy", "scooty"], "Mario Kart 8 Deluxe: the same choices as before");
+  eq(savableVehicles("mkworld").map((v) => v.id), ["any", "rob_hog"], "Mario Kart World: the same choices as before");
+  ok(vehicleRequired("kar") && !vehicleRequired("mk8dx") && !hasItems("kar") && hasItems("mkworld"), "Kirby: machine required, no items");
+  ok(onBoard("kar_std", "kar_rocket_star") && onBoard("kar_std", "kar_wheelie_bike") && !onBoard("kar_std", "kar_hydra") && !onBoard("kar_std", "kar_dragoon") && !onBoard("kar_std", "kar_leo"), "No Legendaries leaves out Dragoon, Hydra and Leo");
+  ok(!onBoard("kar_std", "inside_drift") && !onBoard("kar_std", "any"), "No Legendaries holds only Kirby machines");
+  ok(onBoard("any", "kar_hydra") && onBoard("kar_hydra", "kar_hydra") && !onBoard("kar_rocket_star", "kar_hydra"), "Any machine and the machine's own board");
+  eq(boardsFor("kar", "kar_rocket_star"), ["any", "kar_std", "kar_rocket_star"], "a Rocket Star time sits on three boards");
+  eq(boardsFor("kar", "kar_hydra"), ["any", "kar_hydra"], "a Hydra time sits on two");
+  eq(boardsFor("mk8dx", "scooty"), ["any", "scooty"], "Mario Kart boards unchanged");
+  eq(categoryText("kar", 150, "shrooms", "any", false), "any machine", "Kirby text: any machine");
+  eq(categoryText("kar", 150, "shrooms", "kar_std", false), "No Legendaries", "Kirby text: No Legendaries");
+  eq(categoryText("kar", 150, "none", "kar_rocket_star", false), "Rocket Star", "Kirby text: the machine, never items");
+  eq(categoryText("mk8dx", 200, "none", "scooty", true), "200cc, no mushrooms, Mr. Scooty", "Mario Kart text unchanged");
+  eq(boardLabel("kar", "any"), "Any machine", "Kirby picker: Any machine");
+  eq(boardLabel("mk8dx", "any"), "Any vehicle", "Mario Kart picker: Any vehicle");
+  // Times: Kirby's floor is 10 seconds (a Legendary machine on a short course), Mario Kart's stays 30.
+  eq(TT_GAMES.kar.minMs, 10_000, "Kirby floor");
+  eq(parseTime("29.512"), null, "Mario Kart: under 30 seconds is still refused");
+  eq(parseTime("29.512", TT_GAMES.kar.minMs), 29512, "Kirby: under 30 seconds reads");
+  eq(parseTime("9.999", TT_GAMES.kar.minMs), null, "Kirby: under 10 seconds is refused");
+  eq(TT_MIN_MS, 10_000, "the lowest floor of any game");
+  eq(recordFor("kar", "floria-fields", 150), null, "Kirby has no record floor");
+  ok(!fasterThanRecord("kar", "floria-fields", 150, 20_000), "so no Kirby time is refused as faster than a record");
+  eq(cupLabel("Mushroom"), "Mushroom Cup", "cup label: Mario Kart cup");
+  eq(cupLabel("Super Mario Kart"), "Super Mario Kart courses", "cup label: World's SNES courses");
+  eq(cupLabel("New courses"), "New courses", "cup label: Kirby");
 }
 
 console.log(`${pass} passed, ${fail} failed`);

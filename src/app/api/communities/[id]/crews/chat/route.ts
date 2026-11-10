@@ -4,10 +4,12 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { openCrewChat } from "@/lib/communities/crews";
+import { MESSAGING_ON } from "@/lib/social/messagingOn";
 
 export const runtime = "nodejs";
 
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  if (!MESSAGING_ON) return NextResponse.json({ error: "messaging_off" }, { status: 404 });
   const { id } = await params;
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();

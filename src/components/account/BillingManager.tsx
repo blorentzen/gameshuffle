@@ -4,8 +4,9 @@
  * In-app plan-change manager (gs-circuit-pro-addendum Phase C).
  *
  * Shows the account's current Pro source + renewals and the available plan
- * changes (upgrade / downgrade / add or remove the Pro add-on / switch interval
- * / cancel). Each change previews through `/api/billing/preview` (the pure
+ * changes (upgrade / downgrade / add or remove the Pro add-on / switch interval;
+ * cancelling is the plan cards' Cancel buttons, through Before you go and
+ * Stripe's cancel page). Each change previews through `/api/billing/preview` (the pure
  * resolver) and shows a confirm screen with price/credit/offer copy before
  * applying via `/api/billing/change`.
  *
@@ -42,23 +43,24 @@ function fmt(iso: string | null): string {
 
 interface Action { label: string; target: PlanTarget; destructive?: boolean }
 
-/** The plan changes available from a given state. */
+/**
+ * The plan changes available from a given state. Cancelling isn't here: it's the "Cancel GS Pro" and
+ * "Cancel GS Circuit" buttons on the plan cards above, which ask why (Before you go) and then open
+ * Stripe's cancel page, the one cancel path that works today (this card's changes wait on the executor).
+ */
 function actionsFor(state: PlanStateLite): Action[] {
   const out: Action[] = [];
   const c = state.circuit;
   if (c?.tier === "circuit_256") {
     out.push({ label: "Downgrade to Circuit 64", target: { kind: "downgrade_to_circuit_64" } });
     out.push({ label: `Switch to ${c.interval === "monthly" ? "annual" : "monthly"} billing`, target: { kind: "switch_interval", interval: c.interval === "monthly" ? "annual" : "monthly" } });
-    out.push({ label: "Cancel Circuit", target: { kind: "cancel_circuit" }, destructive: true });
   } else if (c?.tier === "circuit_64") {
     out.push({ label: "Upgrade to Circuit 256", target: { kind: "subscribe_circuit", tier: "circuit_256", interval: c.interval } });
     if (c.proAddon) out.push({ label: "Remove the Pro add-on", target: { kind: "remove_pro_addon" }, destructive: true });
     else out.push({ label: "Add GameShuffle Pro ($5/mo)", target: { kind: "add_pro_addon" } });
     out.push({ label: `Switch to ${c.interval === "monthly" ? "annual" : "monthly"} billing`, target: { kind: "switch_interval", interval: c.interval === "monthly" ? "annual" : "monthly" } });
-    out.push({ label: "Cancel Circuit", target: { kind: "cancel_circuit" }, destructive: true });
   } else if (state.proStandalone) {
     out.push({ label: `Switch to ${state.proStandalone.interval === "monthly" ? "annual" : "monthly"} billing`, target: { kind: "switch_interval", interval: state.proStandalone.interval === "monthly" ? "annual" : "monthly" } });
-    out.push({ label: "Cancel Pro", target: { kind: "cancel_pro" }, destructive: true });
   }
   return out;
 }
@@ -141,7 +143,7 @@ export function BillingManager() {
         <div>
           <h3 style={{ fontSize: "var(--font-size-18)", fontWeight: 700, margin: 0 }}>Manage your plan</h3>
           <p style={{ fontSize: "var(--font-size-14)", color: "var(--text-secondary)", margin: "var(--spacing-4) 0 0" }}>
-            Change your plan right here. Upgrades apply right away, downgrades and cancellations at the end of your period.
+            Change your plan right here. Upgrades apply right away, downgrades at the end of your period.
           </p>
         </div>
       </div>

@@ -38,6 +38,9 @@ import { SPLATOON3 } from "@/data/splatoon/splatoon3";
 import { drawWeapons, weaponPool } from "@/lib/splatoon/roll";
 import { AIR_RIDERS } from "@/data/kirby/air-riders";
 import { drawCombos, machinePool, riderPool } from "@/lib/kirby/roll";
+import { CROSSWORLDS_GAME } from "@/data/sonic/crossworlds";
+import { machinePool as sonicMachines, racerPool as sonicRacers, statColor as sonicColor, statLabel as sonicLabel } from "@/lib/sonic/roll";
+import type { SonicStat } from "@/lib/sonic/types";
 import { rollCharacters as rollGoldenEye } from "@/lib/goldeneye/roll";
 import { rollCharacters as rollPerfectDark } from "@/lib/perfectdark/roll";
 import { perfectDarkTile } from "@/data/game-art";
@@ -235,6 +238,35 @@ const kirby: ChatGame = {
   },
 };
 
+// ── Sonic Racing: CrossWorlds ─────────────────────────────────────────────────
+
+const SONIC_TYPES: SonicStat[] = ["speed", "acceleration", "handling", "power", "boost"];
+
+/** A racer and machine (names only, no art yet). Free racers and machines only: chat can't know who owns which pack.
+ *  `!gs-shuffle speed` keeps the racer to one type. The site's randomizer adds the Gadget Plate. */
+const sonic: ChatGame = {
+  slug: CROSSWORLDS_GAME.slug,
+  title: "Sonic Racing: CrossWorlds",
+  lobbyCap: 12,
+  argHint: "speed, acceleration, handling, power or boost",
+  noun: "racer and machine",
+  roll: ({ arg }) => {
+    const word = arg.trim().toLowerCase().split(/\s+/)[0] ?? "";
+    const type = SONIC_TYPES.find((t) => word && t.startsWith(word));
+    const g = CROSSWORLDS_GAME;
+    const racer = pick(sonicRacers(g, { racerTypes: type ? [type] : [] }))!;
+    const machine = pick(sonicMachines(g))!;
+    return done(
+      g.slug,
+      [
+        { label: "Racer", name: racer.name, kind: "text", color: sonicColor(g, racer.type), detail: `${sonicLabel(g, racer.type)} type` },
+        { label: "Machine", name: machine.name, kind: "text", color: sonicColor(g, machine.type), detail: `${sonicLabel(g, machine.type)} type` },
+      ],
+      `💨 ${racer.name} on the ${machine.name}`,
+    );
+  },
+};
+
 // ── N64 shooters ─────────────────────────────────────────────────────────────
 
 const goldeneye: ChatGame = {
@@ -314,6 +346,7 @@ export const CHAT_GAMES: Record<string, ChatGame> = Object.fromEntries(
     heroGame(MARVEL_RIVALS, "Marvel Rivals", 12),
     splatoon,
     kirby,
+    sonic,
     goldeneye,
     perfectDark,
     stadium("pokemon-stadium", "Pokémon Stadium"),

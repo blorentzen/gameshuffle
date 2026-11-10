@@ -6,6 +6,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { getMessages, sendMessage } from "@/lib/social/messaging";
+import { MESSAGING_ON } from "@/lib/social/messagingOn";
 
 export const runtime = "nodejs";
 
@@ -21,6 +22,7 @@ export async function GET(
   _req: NextRequest,
   { params }: { params: Promise<{ conversationId: string }> },
 ) {
+  if (!MESSAGING_ON) return NextResponse.json({ error: "messaging_off" }, { status: 404 });
   const userId = await authUserId();
   if (!userId) return NextResponse.json({ error: "unauthenticated" }, { status: 401 });
   const { conversationId } = await params;
@@ -33,6 +35,7 @@ export async function POST(
   req: NextRequest,
   { params }: { params: Promise<{ conversationId: string }> },
 ) {
+  if (!MESSAGING_ON) return NextResponse.json({ error: "messaging_off" }, { status: 404 });
   const userId = await authUserId();
   if (!userId) return NextResponse.json({ error: "unauthenticated" }, { status: 401 });
   const { conversationId } = await params;

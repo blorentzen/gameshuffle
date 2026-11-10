@@ -33,6 +33,10 @@ export const BOX_ART: Record<string, { twitchId: string; twitchName: string }> =
     "twitchId": "1672324422",
     "twitchName": "Call of Duty: Black Ops 6"
   },
+  "call-of-duty-warzone": {
+    "twitchId": "512710",
+    "twitchName": "Call of Duty: Warzone"
+  },
   "counter-strike-2": {
     "twitchId": "32399",
     "twitchName": "Counter-Strike"
@@ -76,6 +80,10 @@ export const BOX_ART: Record<string, { twitchId: string; twitchName: string }> =
   "golf-with-your-friends": {
     "twitchId": "491381",
     "twitchName": "Golf With Your Friends"
+  },
+  "gran-turismo-7": {
+    "twitchId": "518014",
+    "twitchName": "Gran Turismo 7"
   },
   "guilty-gear-strive": {
     "twitchId": "517159",

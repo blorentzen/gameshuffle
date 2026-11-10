@@ -29,6 +29,8 @@ export const CHAT_GAME_CATEGORIES: ChatGameCategory[] = [
   { id: "1264310518", name: "Marvel Rivals", slug: "marvel-rivals" },
   { id: "1158884259", name: "Splatoon 3", slug: "splatoon-3" },
   { id: "2086806174", name: "Kirby Air Riders", slug: "kirby-air-riders" },
+  // Helix id from the box art pull (src/data/box-art.generated.ts).
+  { id: "1135492840", name: "Sonic Racing: CrossWorlds", slug: "sonic-racing-crossworlds" },
   { id: "829248383", name: "GoldenEye 007", slug: "goldeneye-007" },
   { id: "2686", name: "Perfect Dark", slug: "perfect-dark" },
   { id: "6657", name: "Pokémon Stadium", slug: "pokemon-stadium" },

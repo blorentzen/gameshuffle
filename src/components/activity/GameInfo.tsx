@@ -23,7 +23,7 @@ import { useEffect, useId, useRef, useState, type RefObject } from "react";
 import { IconButton, Popover } from "@empac/cascadeds";
 import { IconInfoCircle } from "@tabler/icons-react";
 import { PARTY_GAMES, QUICKFIRE_SETS, type PartyRoomView, type QuickfireSetId } from "@/lib/activity/roomRules";
-import { dayKey, guessLimits, puzzleFor } from "@/lib/originals/daily";
+import { dayKey, guessLimits, lastChanceLetters, puzzleFor } from "@/lib/originals/daily";
 
 export type GameInfoId =
   | "daily" | "dex" | "together" | "weekly" | "brain" | "trivia"
@@ -44,6 +44,18 @@ const party = (slug: PartyRoomView["slug"]) => PARTY_GAMES.find((g) => g.slug ==
 function dailyInfo(): GameInfo {
   const p = puzzleFor(dayKey());
   const { main } = guessLimits(p);
+  // A game's own day inside the week (Sonic on Saturdays): its own roster, hints after a few misses, names only.
+  if (p.lastChance && !p.hideGame) {
+    return {
+      name: "The Daily Shuffle",
+      lines: [
+        `Today is a ${p.game} day: guess today's character from ${p.characters.length} ${p.game} characters.`,
+        "Each guess shows which facts match the answer or come close, and hints arrive after a couple of misses.",
+        `Miss all ${main} and you get a last chance with ${lastChanceLetters(p) ? "the first letter of their name" : "their silhouette"}: it keeps your streak, but isn't a win. A new puzzle every midnight Pacific.`,
+      ],
+      meta: ["Solo", `${main} guesses and a last chance`, "One puzzle a day"],
+    };
+  }
   if (p.lastChance) {
     return {
       name: "The Daily Shuffle",

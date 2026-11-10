@@ -16,6 +16,7 @@ import { useMessenger } from "@/components/social/MessengerProvider";
 import { LivePresenceDot } from "@/components/social/LivePresenceDot";
 import { BlockProfileButton } from "./BlockProfileButton";
 import { ReportProfileButton } from "./ReportProfileButton";
+import { MESSAGING_ON } from "@/lib/social/messagingOn";
 
 export function ProfileCard({ userId, onClose }: { userId: string; onClose?: () => void }) {
   const { data: card, loading } = useProfileCard(userId, true);
@@ -123,7 +124,7 @@ export function ProfileCard({ userId, onClose }: { userId: string; onClose?: () 
             </Button>
           </Link>
         )}
-        {!card.isSelf && card.canMessage && (
+        {MESSAGING_ON && !card.isSelf && card.canMessage && (
           <Button variant="primary" size="small" loading={messaging} onClick={() => void handleMessage()}>
             Message
           </Button>

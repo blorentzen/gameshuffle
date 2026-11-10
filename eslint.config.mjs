@@ -14,6 +14,8 @@ const eslintConfig = defineConfig([
     "next-env.d.ts",
     // Separate always-on service with its own package (deployed on Railway).
     "discord-worker/**",
+    // The speedrunning relay: its own package and types (Cloudflare Workers).
+    "speedrun-relay/**",
   ]),
 ]);
 

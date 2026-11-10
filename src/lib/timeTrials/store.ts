@@ -9,15 +9,15 @@ import "server-only";
 
 import { createServiceClient } from "@/lib/supabase/admin";
 import { describePlayers } from "@/lib/daily/boards";
-import { formatTime, lapsAddUp, MAX_MS, MIN_MS, rankRows, type ProofKind, type TtPlayer, type VideoState } from "./rules";
-import { boardsFor, categoryText, TOP_TEN, vehicleFor, type TtItems, type TtVehicle } from "./categories";
+import { formatTime, lapsAddUp, MAX_MS, rankRows, type ProofKind, type TtPlayer, type VideoState } from "./rules";
+import { boardsFor, categoryText, hasItems, isSavableVehicle, TOP_TEN, vehicleFor, vehicleRequired, type TtItems, type TtVehicle } from "./categories";
 import { countriesFor, round3Ready, round4Ready, trustedPlayers, underReview, vouchCounts } from "./status";
 import { countryPlayers } from "./countries";
 import type { TtParts } from "./parts";
 import { isProofLink } from "./sheets";
 import { checkProof, flagUnread, hashOfProof } from "./proof";
 import { playerPagePath } from "./playerPath";
-import { isClassFor, trackPath, ttTrack, TT_GAMES, type TtClass, type TtGame } from "./tracks";
+import { isClassFor, trackPath, ttTrack, TT_BOARD_GAMES, TT_GAMES, type TtClass, type TtGame } from "./tracks";
 import { createNotification } from "@/lib/social/notifications";
 import { fasterThanRecord } from "./records";
 
@@ -109,7 +109,7 @@ export type AddTimeResult =
       needsVideo: boolean;
       /** A top-ten time from a Trusted player: no clip needed (round 3 pick 7A). */
       trusted: boolean }
-  | { ok: false; error: "not_ready" | "bad_track" | "bad_class" | "faster_than_record" | "failed" };
+  | { ok: false; error: "not_ready" | "bad_track" | "bad_class" | "bad_time" | "machine_required" | "faster_than_record" | "failed" };
 
 let ready: boolean | null = null;
 /** Whether time-trials-m1.sql has run (kept once it has). */
@@ -119,6 +119,30 @@ export async function ttReady(): Promise<boolean> {
   const { error } = await createServiceClient().from("tt_times").select("id").limit(1);
   ready = !error;
   return ready;
+}
+
+let kirbyReady = false;
+let kirbyAskedAt = 0;
+/**
+ * Whether a game's boards are open: Mario Kart once time-trials-m1.sql has run, Kirby Air Riders once
+ * supabase/tt-kirby-m1.sql has too (it lets the database take Kirby times and machines, and adds the No Legendaries
+ * board). Until then Kirby's pages are not found and it isn't offered anywhere. A yes is kept; a no is asked again
+ * after a minute, so Kirby opens without a redeploy once the migration runs.
+ */
+export async function ttGameReady(game: TtGame): Promise<boolean> {
+  if (!(await ttReady())) return false;
+  if (game !== "kar") return true;
+  if (kirbyReady || Date.now() - kirbyAskedAt < 60_000) return kirbyReady;
+  kirbyAskedAt = Date.now();
+  const { data, error } = await createServiceClient().rpc("tt_kirby_ready");
+  kirbyReady = !error && data === true;
+  return kirbyReady;
+}
+/** The games with boards open right now, in order. */
+export async function readyBoardGames(): Promise<TtGame[]> {
+  const out: TtGame[] = [];
+  for (const g of TT_BOARD_GAMES) if (await ttGameReady(g)) out.push(g);
+  return out;
 }
 
 async function previousBest(player: string, game: TtGame, track: string, cc: TtClass, items: TtItems, vehicle: TtVehicle): Promise<number | null> {
@@ -138,13 +162,16 @@ export async function placeOf(game: TtGame, track: string, cc: TtClass, timeMs: 
 
 /** Saves a time. The same time on the same track within ten minutes is the first one again (a double tap or a retried command). */
 export async function addTime(input: AddTimeInput): Promise<AddTimeResult> {
-  if (!(await ttReady())) return { ok: false, error: "not_ready" };
+  if (!(await ttGameReady(input.game))) return { ok: false, error: "not_ready" };
   if (!ttTrack(input.game, input.track)) return { ok: false, error: "bad_track" };
   if (!isClassFor(input.game, input.cc)) return { ok: false, error: "bad_class" };
+  if (!(input.timeMs >= TT_GAMES[input.game].minMs && input.timeMs <= MAX_MS)) return { ok: false, error: "bad_time" };
   if (fasterThanRecord(input.game, input.track, input.cc, input.timeMs)) return { ok: false, error: "faster_than_record" };
-  const items: TtItems = input.items ?? "shrooms";
-  // A vehicle only counts where its game has that board.
+  // Kirby Air Riders has no items: its times always sit on the one setting.
+  const items: TtItems = hasItems(input.game) ? input.items ?? "shrooms" : "shrooms";
+  // A vehicle only counts where its game has that board; a Kirby time names its machine (records are per machine).
   const vehicle: TtVehicle = vehicleFor(input.game, input.vehicle ?? "any");
+  if (vehicleRequired(input.game) && !isSavableVehicle(input.game, vehicle)) return { ok: false, error: "machine_required" };
   const db = createServiceClient();
   const since = new Date(Date.now() - 10 * 60_000).toISOString();
   const { data: dupe } = await db.from("tt_times").select("id").eq("player", input.player).eq("game", input.game)
@@ -188,13 +215,15 @@ export async function addTime(input: AddTimeInput): Promise<AddTimeResult> {
   }
   const best = previousMs == null || input.timeMs < previousMs || (again && previousMs === input.timeMs);
   const bestMs = previousMs == null ? input.timeMs : Math.min(previousMs, input.timeMs);
-  // Places on the board the time was set for (a vehicle board when there is one), and the open board for the video check.
-  const [place, open, server] = await Promise.all([
+  // Places on the board the time was set for (a vehicle board when there is one), and every other board it counts on
+  // (the open board; Kirby's No Legendaries too) for the video check.
+  const others = boardsFor(input.game, vehicle).filter((b) => b !== vehicle);
+  const [place, elsewhere, server] = await Promise.all([
     placeOf(input.game, input.track, input.cc, bestMs, input.player, null, items, vehicle),
-    vehicle === "any" ? Promise.resolve(null) : placeOf(input.game, input.track, input.cc, input.timeMs, input.player, null, items, "any"),
+    Promise.all(others.map((b) => placeOf(input.game, input.track, input.cc, input.timeMs, input.player, null, items, b))),
     input.guildId ? guildPlayers(input.guildId).then((ps) => placeOf(input.game, input.track, input.cc, bestMs, input.player, ps, items, vehicle)) : Promise.resolve(null),
   ]);
-  const top = best && (place.place <= TOP_TEN || (open?.place ?? Infinity) <= TOP_TEN);
+  const top = best && (place.place <= TOP_TEN || elsewhere.some((p) => p.place <= TOP_TEN));
   const trusted = top && (await trustedPlayers([input.player])).has(input.player);
   return { ok: true, timeId, best, previousMs: again ? null : previousMs, place: place.place, total: place.total, server, again, items, vehicle, needsVideo: top && !trusted, trusted };
 }
@@ -543,12 +572,14 @@ export async function fixTime(player: TtPlayer | null, timeId: string, input: Fi
     if (t.source !== "site" && t.source !== "discord") return { ok: false, error: "imported" };
   }
   if (!isClassFor(t.game, input.cc)) return { ok: false, error: "bad_class" };
-  if (!Number.isFinite(input.timeMs) || input.timeMs < MIN_MS || input.timeMs > MAX_MS) return { ok: false, error: "bad_time" };
+  if (!Number.isFinite(input.timeMs) || input.timeMs < TT_GAMES[t.game].minMs || input.timeMs > MAX_MS) return { ok: false, error: "bad_time" };
   if (fasterThanRecord(t.game, t.track, input.cc, input.timeMs)) return { ok: false, error: "faster_than_record" };
   if (input.laps && !lapsAddUp(input.laps, input.timeMs)) return { ok: false, error: "bad_laps" };
   const vehicle = vehicleFor(t.game, input.vehicle);
+  // Kirby Air Riders: no items, and the time keeps a machine.
+  if (vehicleRequired(t.game) && !isSavableVehicle(t.game, vehicle)) return { ok: false, error: "bad_class" };
   const from = { timeMs: t.timeMs, cc: t.cc, items: t.items, vehicle: t.vehicle, laps: raw.laps ?? null };
-  const to = { timeMs: input.timeMs, cc: input.cc, items: input.items, vehicle, laps: input.laps };
+  const to = { timeMs: input.timeMs, cc: input.cc, items: hasItems(t.game) ? input.items : t.items, vehicle, laps: input.laps };
   const parts: string[] = [];
   if (from.timeMs !== to.timeMs) parts.push(`the time from ${formatTime(from.timeMs)} to ${formatTime(to.timeMs)}`);
   if (from.cc !== to.cc || from.items !== to.items || from.vehicle !== to.vehicle) parts.push(`the category to ${categoryText(t.game, to.cc, to.items, to.vehicle, TT_GAMES[t.game].classes.length > 1)}`);

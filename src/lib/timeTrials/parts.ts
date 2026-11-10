@@ -26,7 +26,8 @@ const GLIDERS = named("gliders", mk8dx.gliders as Named[]);
 
 // World's data is from before Swoop arrived; it shares a board with the R.O.B.-HOG.
 const WORLD_BODIES: Named[] = [...(mkworld.vehicles as Named[]), { name: "Swoop" }];
-const BODIES: Record<TtGame, Named[]> = { mk8dx: mk8dx.vehicles as Named[], mkworld: WORLD_BODIES };
+// Kirby Air Riders' screenshots aren't read, so it has no parts to match.
+const BODIES: Record<TtGame, Named[]> = { mk8dx: mk8dx.vehicles as Named[], mkworld: WORLD_BODIES, kar: [] };
 
 function find(list: Named[], raw: string | null | undefined): Named | null {
   const n = raw ? norm(raw) : "";

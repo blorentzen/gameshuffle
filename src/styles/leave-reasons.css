@@ -1,0 +1,24 @@
+/*
+ * Why people leave: the delete form's reason + note, the Before you go window before cancelling GS Pro,
+ * GS Circuit or monthly support, and the staff tables on Growth and Revenue
+ * (src/components/account/leave/, src/components/account/admin/LeaveReasons.tsx).
+ */
+
+/* The fields, one under the other. */
+.leave-form { display: flex; flex-direction: column; gap: var(--spacing-20); min-width: 0; }
+.leave-form--page { max-width: 56rem; }
+.leave-form__ends { margin: 0; font-size: var(--font-size-16); line-height: var(--line-height-relaxed); color: var(--text-primary); }
+
+/* A plan's buttons: manage, then cancel. */
+.leave-actions { display: flex; flex-wrap: wrap; align-items: center; gap: var(--spacing-12); }
+
+/* Before you go: the two buttons wrap on narrow phones instead of squeezing. */
+.leave-modal .empac-modal__footer { flex-wrap: wrap; }
+@media (max-width: 30em) {
+  .leave-modal .empac-modal__footer > .empac-button { flex: 1 1 100%; }
+}
+
+/* Staff: comments are read in full, so they wrap and keep their line breaks. */
+.leave-comment { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; min-width: 24rem; max-width: 56rem; font-size: var(--font-size-14); line-height: var(--line-height-relaxed); }
+.leave-note { margin: var(--spacing-12) 0 0; font-size: var(--font-size-14); color: var(--text-secondary); }
+.leave-subhead { margin: var(--spacing-24) 0 var(--spacing-12); font-size: var(--font-size-16); font-weight: var(--font-weight-semibold); color: var(--text-primary); }

@@ -30,6 +30,18 @@ const VIDEO_LINKS: [code: string, page: string][] = [
   ["tcg", "/pokemon-tcg-companion"],
 ];
 
+// The speedrun relay (a Cloudflare Worker, speedrun-relay/): the OBS overlay at /run/<token> opens a WebSocket to
+// it. Its origin comes from NEXT_PUBLIC_SPEEDRUN_RELAY; in development any localhost port too (the `?relay=` override).
+const speedrunRelayOrigin = (() => {
+  try {
+    const u = new URL(process.env.NEXT_PUBLIC_SPEEDRUN_RELAY ?? "");
+    return /^wss?:$/.test(u.protocol) ? `${u.protocol}//${u.host}` : "";
+  } catch {
+    return "";
+  }
+})();
+const speedrunConnect = [speedrunRelayOrigin, process.env.NODE_ENV === "development" ? "ws://localhost:*" : ""].filter(Boolean).join(" ");
+
 // Base CSP directives (excluding frame-ancestors — set per-route)
 const baseCspDirectives = [
   "default-src 'self'",
@@ -44,7 +56,7 @@ const baseCspDirectives = [
   // Fonts: self + Google Maps' injected Roboto (fonts.gstatic.com)
   "font-src 'self' https://fonts.gstatic.com",
   // Connect: API calls to Supabase, analytics, Sentry, Turnstile, Google Maps (Places)
-  "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://plausible.io https://www.google-analytics.com https://*.sentry.io https://challenges.cloudflare.com https://discord.com https://maps.googleapis.com https://maps.gstatic.com https://places.googleapis.com",
+  "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://plausible.io https://www.google-analytics.com https://*.sentry.io https://challenges.cloudflare.com https://discord.com https://maps.googleapis.com https://maps.gstatic.com https://places.googleapis.com" + (speedrunConnect ? ` ${speedrunConnect}` : ""),
   // Frames: JotForm contact form, Turnstile widget, Twitch player/clips embeds, map embeds (OSM + Google Maps Embed)
   // 'self': our own pages may show our pages (the /social/clip stage films a tool inside one).
   "frame-src 'self' https://form.jotform.com https://challenges.cloudflare.com https://player.twitch.tv https://clips.twitch.tv https://embed.twitch.tv https://www.twitch.tv https://www.openstreetmap.org https://www.google.com https://www.youtube-nocookie.com https://www.youtube.com",

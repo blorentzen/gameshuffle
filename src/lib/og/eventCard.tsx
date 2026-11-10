@@ -126,13 +126,21 @@ const BACKDROP_W = 780;
  */
 export async function backdropArt(src: string | null | undefined, opts: { trimBottom?: number } = {}): Promise<CardArt | null> {
   if (!src) return null;
-  let url: URL;
-  try { url = new URL(src); } catch { return null; }
-  if (!allowedImageHost(url)) return null;
+  // Our own art in public/ (Kirby Air Riders' courses), read from disk; anything else from an allowed host.
+  const local = /^\/images\/[a-z0-9/_.-]+\.(webp|png|jpe?g)$/i.test(src) && !src.includes("..");
+  let url: URL | null = null;
+  if (!local) {
+    try { url = new URL(src); } catch { return null; }
+    if (!allowedImageHost(url)) return null;
+  }
   try {
-    const res = await fetch(url, { signal: AbortSignal.timeout(4000) });
-    if (!res.ok) return null;
-    const buf = Buffer.from(await res.arrayBuffer());
+    let buf: Buffer;
+    if (local) buf = await readFile(join(process.cwd(), "public", src));
+    else {
+      const res = await fetch(url!, { signal: AbortSignal.timeout(4000) });
+      if (!res.ok) return null;
+      buf = Buffer.from(await res.arrayBuffer());
+    }
     if (buf.length > 8 * 1024 * 1024) return null;
     let input: Buffer = buf;
     if (opts.trimBottom) {

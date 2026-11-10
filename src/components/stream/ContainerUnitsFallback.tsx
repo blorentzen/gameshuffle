@@ -11,7 +11,7 @@
 import { useEffect } from "react";
 
 /** Every element that's a size container in an OBS source. */
-const FRAMES = ".mmr, .war-obs__frame, .war-piece__frame";
+const FRAMES = ".mmr, .war-obs__frame, .war-piece__frame, .sr-stage";
 
 export function ContainerUnitsFallback() {
   useEffect(() => {

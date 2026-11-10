@@ -9,6 +9,11 @@ import { IdeaReportButton } from "@/components/ideas/IdeaReportButton";
 import { UserIdentity } from "@/components/profile/UserIdentity";
 import { IDEA_CATEGORY_LABELS, type IdeaStatus } from "@/lib/ideas/constants";
 import { STATUS_LABEL, statusBadgeVariant } from "@/lib/ideas/display";
+import { GameCover } from "@/components/games/GameCover";
+import { gameEntry } from "@/lib/games/key";
+import { spaceFor, spaceOpen, spacePath } from "@/lib/games/spaces";
+import { gsDay } from "@/lib/time/gsClock";
+import "@/styles/space-ideas.css";
 
 const INDEXABLE: IdeaStatus[] = ["public", "planned", "shipped", "declined"];
 
@@ -41,9 +46,13 @@ export default async function IdeaDetailPage({ params }: { params: Promise<{ id:
   const idea = await getIdea(id, user?.id ?? null);
   if (!idea) notFound();
   const isOwn = !!user && user.id === idea.author?.id;
+  // The game it's for: its space's Ideas tab when that's open, else the board's ideas for the game.
+  const game = idea.game ? gameEntry(idea.game) : null;
+  const space = game ? spaceFor(game.slug) : null;
+  const gameHref = game ? (space && spaceOpen(space, gsDay()) ? `${spacePath(space)}?tab=ideas` : `/ideas?game=${encodeURIComponent(game.slug)}`) : null;
 
   return (
-    <Container className="ideas-page">
+    <Container as="main" className="ideas-page">
       <p className="ideas-detail__back">
         <Link href="/ideas">← Idea Board</Link>
       </p>
@@ -61,6 +70,12 @@ export default async function IdeaDetailPage({ params }: { params: Promise<{ id:
               {STATUS_LABEL[idea.status]}
             </Badge>
             <Badge variant="default" size="small">{IDEA_CATEGORY_LABELS[idea.category]}</Badge>
+            {game && (
+              <Link href={gameHref!} className="idea-game-tag">
+                <GameCover slug={game.slug} name={game.name} />
+                {game.name}
+              </Link>
+            )}
           </div>
           <h1 className="ideas-page__title">{idea.title}</h1>
           {idea.author && (

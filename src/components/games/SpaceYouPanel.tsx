@@ -184,20 +184,37 @@ export function SpaceYouPanel({ s, data, rank, part, isPro }: {
     );
   }
 
+  const season = (
+    <section className="room-tile" style={{ "--span": 7 } as CSSProperties} aria-labelledby="you-season">
+      <div className="room-tile__head"><h2 id="you-season">Your {data.season?.month ?? "month"}</h2><ArrowLink href="?tab=boards" className="room-tile__more">The board</ArrowLink></div>
+      {data.season ? (
+        <div className="you-season">
+          <b className="you-streak__num">{data.season.place}<small> of {data.season.of}</small></b>
+          <span>{data.season.points.toLocaleString("en-US")} points from live nights this month</span>
+        </div>
+      ) : (
+        <GhostRows count={2} places notice={<p>Play {s.short} on a live night and your points this month show here.</p>} />
+      )}
+    </section>
+  );
+
+  // Spaces without a pick of the day (Splatoon 3, Kirby Air Riders; first wave 2026-11-09): your setups, and your month
+  // on the board where the game plays on live nights. No streak to show.
+  if (s.id !== "smash" && s.id !== "mario-party") {
+    const boards = s.tabs.includes("boards");
+    return (
+      <div className="you-tab room-grid">
+        {boards && season}
+        <Setups data={data} s={s} span={boards ? 5 : 12} />
+        {foot}
+      </div>
+    );
+  }
+
   return (
     <div className="you-tab room-grid">
       <Streak data={data} what={s.id === "smash" ? "Fighter of the day" : "Party of the day"} />
-      <section className="room-tile" style={{ "--span": 7 } as CSSProperties} aria-labelledby="you-season">
-        <div className="room-tile__head"><h2 id="you-season">Your {data.season?.month ?? "month"}</h2><ArrowLink href="?tab=boards" className="room-tile__more">The board</ArrowLink></div>
-        {data.season ? (
-          <div className="you-season">
-            <b className="you-streak__num">{data.season.place}<small> of {data.season.of}</small></b>
-            <span>{data.season.points.toLocaleString("en-US")} points from live nights this month</span>
-          </div>
-        ) : (
-          <GhostRows count={2} places notice={<p>Play {s.short} on a live night and your points this month show here.</p>} />
-        )}
-      </section>
+      {season}
       <Setups data={data} s={s} span={12} />
       {foot}
     </div>

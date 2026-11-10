@@ -1,0 +1,66 @@
+/* ── Your dailies (choose your dailies, 2026-11-09): the bar's More cell, the Choose sheet and /dailies.
+   The bar itself lives in randomizer.css (.dailies-bar); src/components/originals/{Dailies,DailyPicks,AllDailies}.tsx. ── */
+
+/* The bar's last cell, More: neutral (it isn't a daily), leading to All dailies. */
+.dailies-bar { --ink-more: var(--text-tertiary, #6b7280); }
+.dailies-bar--more .empac-subnav__item:last-child .empac-subnav__badge { color: var(--text-secondary); }
+
+/* Five cells (four dailies and More, once there are more than four): More takes only its own width. */
+.dailies-bar--5 .empac-subnav__container { grid-template-columns: repeat(4, minmax(0, 1fr)) auto; }
+@media (max-width: 40rem) {
+  .dailies-bar--5 .empac-subnav__container { gap: var(--spacing-6, 6px); }
+  .dailies-bar--5 .empac-subnav--pills .empac-subnav__item { padding: var(--spacing-8) var(--spacing-8); gap: 2px var(--spacing-6, 6px); }
+  .dailies-bar--5 .empac-subnav__item::before { display: none; }
+  .dailies-bar.dailies-bar--5 .empac-subnav--pills .empac-subnav__item { border-top: 3px solid var(--dailies-ink); }
+  .dailies-bar--5 .empac-subnav__badge, .dailies-bar--5 .empac-subnav--pills .empac-subnav__item--active .empac-subnav__badge { padding-left: 0; font-size: var(--font-size-12); }
+  .dailies-bar--5 .empac-subnav__item:last-child .empac-subnav__badge { display: none; }
+}
+
+/* ── The Choose sheet (DailyPicksSheet): a CDS Modal, a sheet from the bottom on phones like the app bar's Create. ── */
+@media (max-width: 767px) {
+  .empac-modal-overlay:has(.daily-picks-sheet) { align-items: flex-end; padding: 0; }
+  .empac-modal.daily-picks-sheet { width: 100%; max-width: none; margin: 0; border-radius: 2rem 2rem 0 0; padding-bottom: env(safe-area-inset-bottom, 0px); max-height: calc(100dvh - 4.8rem); }
+}
+.daily-picks-sheet .empac-modal__body { gap: var(--spacing-12); }
+.daily-picks-sheet .empac-modal__footer { justify-content: stretch; }
+.daily-picks__done { flex: 1; }
+@media (min-width: 768px) { .daily-picks-sheet .empac-modal__footer { justify-content: flex-end; } .daily-picks__done { flex: none; } }
+.daily-picks { display: grid; gap: var(--spacing-12); }
+.daily-picks__lead, .daily-picks__note { margin: 0; font-size: var(--font-size-16); line-height: var(--line-height-normal, 1.5); color: var(--text-secondary); }
+.daily-picks__note { font-size: var(--font-size-14); }
+.daily-picks__list { list-style: none; margin: 0; padding: 0; display: grid; }
+.daily-picks__row { display: flex; align-items: center; gap: var(--spacing-12); padding: var(--spacing-12) 0; border-top: 1px solid var(--border-subtle); }
+.daily-picks__row:first-child { border-top: 0; }
+.daily-picks__row .empac-switch-container { flex: 1; min-width: 0; }
+/* Words left, switch right. CDS draws labelPosition="left" in DOM order text-then-switch and then reverses the row,
+   so the switch lands on the left (on the CascadeDS fix list); a plain row puts it back. */
+.daily-picks__row .empac-switch-wrapper { flex-direction: row; width: 100%; justify-content: space-between; align-items: center; margin: 0; padding: var(--spacing-4) 0; }
+.daily-picks__row .empac-switch-wrapper:hover { background: none; }
+.daily-picks__row .empac-switch-text { min-width: 0; padding-top: 0; gap: 2px; }
+.daily-picks__row .empac-switch-label { font-size: var(--font-size-16); font-weight: var(--font-weight-semibold, 600); color: var(--text-primary); }
+.daily-picks__row .empac-switch-helper { font-size: var(--font-size-14); color: var(--text-secondary); }
+/* The last one on can't go off: its switch dims, its words stay readable. */
+.daily-picks__row .empac-switch-wrapper:has(.empac-switch:disabled) { opacity: 1; }
+.daily-picks__row .empac-switch:disabled + .empac-switch-track { opacity: 0.5; }
+.daily-picks__row .icon-tile { flex: none; }
+
+/* ── /dailies: All dailies ── */
+.all-dailies { display: flex; flex-direction: column; gap: var(--spacing-8); padding-block: var(--spacing-32) var(--spacing-48); max-width: 72rem; }
+.all-dailies__section + .all-dailies__section { margin-top: var(--spacing-16); padding-top: var(--spacing-24); border-top: 1px solid var(--border-default); }
+.all-dailies__head { display: flex; align-items: center; justify-content: space-between; gap: var(--spacing-12); margin-bottom: var(--spacing-4); }
+.all-dailies__title { margin: 0; font-size: var(--font-size-20); }
+.all-dailies__intro { margin: 0 0 var(--spacing-4); font-size: var(--font-size-16); color: var(--text-secondary); }
+.all-dailies__list { list-style: none; margin: 0; padding: 0; display: grid; }
+.all-dailies__row { display: flex; align-items: center; gap: var(--spacing-12); padding: var(--spacing-12) 0; border-top: 1px solid var(--border-subtle); }
+.all-dailies__row:first-child { border-top: 0; }
+.all-dailies__row .icon-tile { flex: none; }
+.all-dailies__text { flex: 1; min-width: 0; display: grid; gap: 2px; }
+.all-dailies__name { font-size: var(--font-size-16); font-weight: var(--font-weight-semibold, 600); color: var(--text-primary); text-decoration: none; }
+.all-dailies__name:hover { text-decoration: underline; }
+.all-dailies__status { display: flex; flex-wrap: wrap; align-items: center; gap: 2px var(--spacing-12); margin: 0; font-size: var(--font-size-14); color: var(--text-secondary); }
+.all-dailies__streak { display: inline-flex; align-items: center; gap: 4px; }
+.all-dailies__streak svg { color: var(--dailies-ink); }
+.all-dailies__go { flex: none; display: flex; align-items: center; }
+.all-dailies__go .empac-button { text-decoration: none; }
+.all-dailies__done { display: inline-flex; align-items: center; justify-content: center; width: 4rem; height: 4rem; color: var(--dailies-ink); }
+.all-dailies__account { margin: var(--spacing-8) 0 0; font-size: var(--font-size-16); color: var(--text-secondary); }

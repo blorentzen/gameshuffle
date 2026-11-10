@@ -12,6 +12,7 @@ import { Container, Button, Modal, Input, Textarea, Card, Badge } from "@empac/c
 import { useToast } from "@/components/toast/ToastProvider";
 import type { Idea, IdeaCycle } from "@/lib/ideas/types";
 import { IDEA_CATEGORY_LABELS } from "@/lib/ideas/constants";
+import { gameEntry } from "@/lib/games/key";
 
 interface PromptCfg {
   title: string;
@@ -153,6 +154,7 @@ export function IdeaReviewClient({
                 <Card variant="outlined" padding="medium" className="idea-card">
                 <div className="idea-card__top">
                   <Badge variant="default" size="small">{IDEA_CATEGORY_LABELS[i.category]}</Badge>
+                  {i.game && <Badge variant="outline" size="small">{gameEntry(i.game)?.name ?? i.game}</Badge>}
                   <span className="idea-card__votes">{i.author?.name}</span>
                 </div>
                 <h3 className="idea-card__title">{i.title}</h3>
@@ -198,6 +200,7 @@ export function IdeaReviewClient({
                 <Card variant="outlined" padding="medium" className="idea-card">
                 <div className="idea-card__top">
                   <Badge variant="default" size="small">{IDEA_CATEGORY_LABELS[i.category]}</Badge>
+                  {i.game && <Badge variant="outline" size="small">{gameEntry(i.game)?.name ?? i.game}</Badge>}
                   <span className="idea-card__votes">{i.voteCount} votes</span>
                 </div>
                 <h3 className="idea-card__title">{i.title}</h3>

@@ -14,6 +14,7 @@ import { CommsReminders } from "./CommsReminders";
 import { useNotifications } from "@/lib/social/useNotifications";
 import { useMessaging } from "@/lib/social/useMessaging";
 import { NewConversationModal } from "./NewConversationModal";
+import { MESSAGING_ON } from "@/lib/social/messagingOn";
 
 type Tab = "alerts" | "messages" | "reminders";
 
@@ -25,7 +26,7 @@ export function CommsCenter() {
   // change ?tab=) switch tabs even when we're already on /comms — a useState
   // initializer would only read the param once, on mount.
   const asked = searchParams.get("tab");
-  const tab: Tab = asked === "messages" ? "messages" : asked === "reminders" ? "reminders" : "alerts";
+  const tab: Tab = asked === "messages" && MESSAGING_ON ? "messages" : asked === "reminders" ? "reminders" : "alerts";
   const conversationParam = searchParams.get("c");
 
   const notifs = useNotifications();
@@ -137,7 +138,7 @@ export function CommsCenter() {
       </header>
       <Tabs
         className="comms-center__tabs"
-        tabs={tabs}
+        tabs={MESSAGING_ON ? tabs : tabs.filter((t) => t.id !== "messages")}
         activeTab={tab}
         onChange={(id) => switchTab(id as Tab)}
         variant="underline"

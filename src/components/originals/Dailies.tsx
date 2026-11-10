@@ -28,13 +28,20 @@ import type { ShareRequest } from "@/lib/share/types";
 import type { ReferralGame, ReferralInfo } from "@/lib/referrals/types";
 import { EVENTS, track } from "@/lib/analytics/events";
 import {
-  DAILIES, barStatus, combinedShareText, currentDay, dailiesShown, dailiesSnapshot, mergeDailies, nextUp, readDailiesStore, sharedToday, subscribeDailies, weeklyLine,
-  type DailiesEntries, type DailiesId,
+  DAILIES, barCells, barStatus, combinedShareText, currentDay, dailiesShown, dailiesSnapshot, mergeDailies, nextUp, picksOrDefault, readDailiesStore, sharedToday, subscribeDailies, weeklyLine, withPicks,
+  type DailiesEntries, type DailiesId, type DailyGameId,
 } from "@/lib/originals/dailies";
+import { primeDailyPicks, useDailyPicksSnapshot, type DailyPicksSeed } from "@/components/originals/DailyPicks";
+import "@/styles/dailies.css";
 
 interface DailiesState {
   current: DailiesId;
+  /** The games this page works with: your dailies (the one you're on even if you didn't pick it) and the Weekly. */
   shown: DailiesId[];
+  /** Every daily here (the Discord Activity leaves out Fire Round and the Duel), picked or not, for the bar's More. */
+  available: DailyGameId[];
+  /** Your dailies among them (the default four until you choose). */
+  picks: DailyGameId[];
   entries: DailiesEntries;
   /** null until the server answers. */
   signedIn: boolean | null;
@@ -51,6 +58,11 @@ const pickable = (id: DailiesId): ActivityGame | null => (id === "fire" || id ==
 const DailiesContext = createContext<DailiesState | null>(null);
 
 function useDailiesState(current: DailiesId, enabled: boolean, invite?: string | null): DailiesState {
+  return { current, ...useDailiesCore(current, enabled, invite) };
+}
+
+/** The shared state without a game of its own (the All dailies page has none). */
+function useDailiesCore(current: DailiesId | null, enabled: boolean, invite?: string | null): Omit<DailiesState, "current"> {
   const { api, activity } = useOriginalsHost();
   // A friend's ?r= link, noted once per page (and taken out of the address).
   const [invitedBy, setInvitedBy] = useState<StoredReferral | null>(null);
@@ -61,17 +73,25 @@ function useDailiesState(current: DailiesId, enabled: boolean, invite?: string |
   }, [enabled, activity, invite]);
   const raw = useSyncExternalStore(enabled ? subscribeDailies : noop, dailiesSnapshot, () => "");
   const store = useMemo(() => readDailiesStore(raw || "null"), [raw]);
-  // Fire Round isn't in the Discord Activity (it has only the puzzles).
-  const shown = useMemo(() => dailiesShown(current, { fire: !activity, duel: !activity }), [current, activity]);
+  // Fire Round and the Duel aren't in the Discord Activity (it has only the puzzles).
+  const all = useMemo(() => dailiesShown(current ?? undefined, { fire: !activity, duel: !activity }), [current, activity]);
+  const available = useMemo(() => all.filter((id): id is DailyGameId => id !== "weekly"), [all]);
+  // Your dailies (the account's list, else the default four); the server's answer below keeps it fresh.
+  const own = useDailyPicksSnapshot().own;
+  const picks = useMemo(() => picksOrDefault(own, available), [own, available]);
+  const shown = useMemo(() => withPicks(all, picks, current), [all, picks, current]);
   const [server, setServer] = useState<{ signedIn: boolean; entries: DailiesEntries | null; referral: ReferralInfo | null } | null>(null);
   // A game finishing here: ask the server again once its save has landed (streaks, the last two weeks).
-  const doneKey = shown.filter((id) => store.entries[id]?.state === "done" && store.entries[id]?.day === currentDay(id)).join(",");
+  const doneKey = all.filter((id) => store.entries[id]?.state === "done" && store.entries[id]?.day === currentDay(id)).join(",");
 
   useEffect(() => {
     if (!enabled) return;
     let alive = true;
-    const load = () => api("/api/dailies", { cache: "no-store" }).then((r) => (r.ok ? r.json() : null)).then((d: { signedIn?: boolean; entries?: DailiesEntries; referral?: ReferralInfo | null } | null) => {
-      if (alive && d) setServer({ signedIn: !!d.signedIn, entries: d.entries ?? null, referral: d.referral ?? null });
+    const load = () => api("/api/dailies", { cache: "no-store" }).then((r) => (r.ok ? r.json() : null)).then((d: { signedIn?: boolean; entries?: DailiesEntries; referral?: ReferralInfo | null; picks?: Omit<DailyPicksSeed, "signedIn"> | null } | null) => {
+      if (!alive || !d) return;
+      setServer({ signedIn: !!d.signedIn, entries: d.entries ?? null, referral: d.referral ?? null });
+      // Your dailies ride along (one request for the bar, not two).
+      if (d.picks) primeDailyPicks({ ...d.picks, signedIn: !!d.signedIn });
     }).catch(() => { /* the browser's own numbers still show */ });
     const t = window.setTimeout(load, doneKey ? 1500 : 0);
     return () => { alive = false; window.clearTimeout(t); };
@@ -88,7 +108,13 @@ function useDailiesState(current: DailiesId, enabled: boolean, invite?: string |
   }, [enabled, activity, signedIn, api]);
 
   const entries = useMemo(() => mergeDailies(store.entries, server?.entries ?? null, store.history), [store, server]);
-  return { current, shown, entries, signedIn, referral: activity ? null : server?.referral ?? null, invitedBy };
+  return { shown, available, picks, entries, signedIn, referral: activity ? null : server?.referral ?? null, invitedBy };
+}
+
+/** Today's dailies for a page without a game of its own (/dailies): each game's state, and whether you're signed in. */
+export function useDailiesToday(): { entries: DailiesEntries; signedIn: boolean | null } {
+  const { entries, signedIn } = useDailiesCore(null, true);
+  return { entries, signedIn };
 }
 
 /**
@@ -147,10 +173,11 @@ function InvitedNote({ current }: { current: DailiesId }) {
 }
 
 /**
- * The today bar: the dailies (Shuffle, Dex, Fire Round, Duel) with done / playing /
- * new, the one you're on outlined in its color, the Weekly on a plain line
- * under it (not on the Weekly's own page), and today's Duel challenger under that
- * on the other dailies' pages ("Larry challenged you to a duel"; the result once played).
+ * The today bar: your dailies (choose your dailies, 2026-11-09; up to four in a row, always with the one you're on)
+ * with done / playing / new, the one you're on outlined in its color, and a last More cell to All dailies when
+ * there are more dailies than shown. The Weekly sits on a plain line under it (not on the Weekly's own page), and
+ * today's Duel challenger under that on the other dailies' pages ("Larry challenged you to a duel"; the result once
+ * played). Inside the Discord Activity More switches to the daily left out (it never navigates).
  */
 export function DailiesBar({ current, onPick, afterPlayed }: {
   current: DailiesId;
@@ -158,30 +185,48 @@ export function DailiesBar({ current, onPick, afterPlayed }: {
   /** Only once today's game here is done (a shared result page keeps to one game until then). */
   afterPlayed?: boolean;
 }) {
-  const { shown, entries } = useDailies(current);
+  const { shown, available, picks, entries } = useDailies(current);
   if (afterPlayed && !(entries[current]?.state === "done" && entries[current]?.day === currentDay(current))) return null;
-  const cells = shown.filter((id) => id !== "weekly");
-  const vars: Record<string, string | number> = { "--dailies-n": cells.length };
+  const { cells, hidden } = barCells(available, picks, current);
+  // More: All dailies on the site; inside the Activity, the daily left out (it can't open a page).
+  const moreTo = onPick ? hidden.map(pickable).find(Boolean) ?? null : null;
+  const more = hidden.length > 0 && (!onPick || !!moreTo);
+  const n = cells.length + (more ? 1 : 0);
+  const vars: Record<string, string | number> = { "--dailies-n": n };
   cells.forEach((id, i) => { vars[`--dailies-c${i + 1}`] = `var(--ink-${id})`; });
+  if (more) vars[`--dailies-c${n}`] = "var(--ink-more)";
   return (
     <>
-    <div className={`dailies-bar dailies-bar--${cells.length}`} style={vars as React.CSSProperties}>
+    <div className={`dailies-bar dailies-bar--${n}${more ? " dailies-bar--more" : ""}`} style={vars as React.CSSProperties}>
       <SubNav
         variant="pills"
         className="dailies-bar__nav"
-        items={cells.map((id) => ({
-          label: DAILIES[id].tab,
-          href: onPick ? "#" : DAILIES[id].href,
-          active: id === current,
-          badge: barStatus(id, entries[id], id === current),
-          onClick: (e: React.MouseEvent<HTMLAnchorElement>) => {
-            if (onPick) e.preventDefault();
-            if (id === current) { e.preventDefault(); return; }
-            track(EVENTS.dailiesSwitched, { to: id, from: current, via: "bar" });
-            const to = pickable(id);
-            if (to) onPick?.(to);
-          },
-        }))}
+        items={[
+          ...cells.map((id) => ({
+            label: DAILIES[id].tab,
+            href: onPick ? "#" : DAILIES[id].href,
+            active: id === current,
+            badge: barStatus(id, entries[id], id === current),
+            onClick: (e: React.MouseEvent<HTMLAnchorElement>) => {
+              if (onPick) e.preventDefault();
+              if (id === current) { e.preventDefault(); return; }
+              track(EVENTS.dailiesSwitched, { to: id, from: current, via: "bar" });
+              const to = pickable(id);
+              if (to) onPick?.(to);
+            },
+          })),
+          ...(more ? [{
+            label: "More",
+            href: onPick ? "#" : "/dailies",
+            badge: onPick && moreTo ? DAILIES[moreTo].tab : "All dailies",
+            onClick: (e: React.MouseEvent<HTMLAnchorElement>) => {
+              track(EVENTS.dailiesSwitched, { to: onPick ? moreTo ?? "more" : "all", from: current, via: "bar-more" });
+              if (!onPick) return;
+              e.preventDefault();
+              if (moreTo) onPick(moreTo);
+            },
+          }] : []),
+        ]}
       />
       {shown.includes("weekly") && current !== "weekly" && <DailiesWeekLine current={current} onPick={onPick} />}
       {!onPick && shown.includes("duel") && current !== "duel" && current !== "weekly" && (

@@ -11,6 +11,7 @@ import { describePartySetup } from "@/data/party";
 import { describeSmashSetup } from "@/data/smash";
 import { describeSplatoonSetup } from "@/data/splatoon";
 import { describeKirbySetup } from "@/data/kirby";
+import { describeSonicSetup } from "@/data/sonic";
 import { describeStadiumSetup } from "@/data/pokemon/stadium-setup";
 
 interface SetupCardProps {
@@ -82,6 +83,14 @@ export function SetupCard({ config, onCopyLink, onDelete, onView, copied }: Setu
       {cfg?.type === "kirby-setup" && (
         <dl className="saved-build-card__party">
           {describeKirbySetup(cfg).map((r) => (
+            <div key={r.label}><dt>{r.label}</dt><dd>{r.value}</dd></div>
+          ))}
+        </dl>
+      )}
+
+      {cfg?.type === "sonic-setup" && (
+        <dl className="saved-build-card__party">
+          {describeSonicSetup(cfg).map((r) => (
             <div key={r.label}><dt>{r.label}</dt><dd>{r.value}</dd></div>
           ))}
         </dl>
@@ -240,7 +249,7 @@ export function SetupCard({ config, onCopyLink, onDelete, onView, copied }: Setu
       <div className="saved-build-card__actions saved-build-card__actions--row">
         <RowActions>
           {onView && <IconAction label={`View ${config.config_name}`} icon={IconEye} onClick={() => onView(config.id)} />}
-          {(cfg?.type === "game-night-setup" || cfg?.type === "item-set" || cfg?.type === "party-setup" || cfg?.type === "smash-setup" || cfg?.type === "splatoon-setup" || cfg?.type === "kirby-setup" || cfg?.type === "stadium-setup") && (
+          {(cfg?.type === "game-night-setup" || cfg?.type === "item-set" || cfg?.type === "party-setup" || cfg?.type === "smash-setup" || cfg?.type === "splatoon-setup" || cfg?.type === "kirby-setup" || cfg?.type === "stadium-setup" || cfg?.type === "sonic-setup") && (
             <IconAction
               label={`Open ${config.config_name} in the randomizer`}
               icon={IconExternalLink}

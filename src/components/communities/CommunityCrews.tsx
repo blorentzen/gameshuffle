@@ -19,6 +19,7 @@ import { useToast } from "@/components/toast/ToastProvider";
 import { FAVORITE_GAME_CATALOG } from "@/data/favorite-games";
 import type { GameCrew, CrewMember, CrewTier } from "@/lib/communities/crews";
 import { GameChipIcon } from "@/components/games/GameCover";
+import { MESSAGING_ON } from "@/lib/social/messagingOn";
 
 const TIER_LABEL: Record<CrewTier, string> = { captain: "Captain", representative: "Representative", prospect: "Prospect" };
 const TIER_ORDER: CrewTier[] = ["captain", "representative", "prospect"];
@@ -112,7 +113,7 @@ export function CommunityCrews({
               <div className="crew__head">
                 <span className="crew__game"><GameChipIcon name={crew.game} />{crew.game}</span>
                 <span className="crew__count">{crew.total} {crew.total === 1 ? "rep" : "reps"}</span>
-                {viewerTiers[crew.game] && (
+                {MESSAGING_ON && viewerTiers[crew.game] && (
                   <button type="button" className="crew__chat" disabled={busy} onClick={() => openChat(crew.game)}>
                     <Icon name="message-circle" size="14" /> Crew chat
                   </button>

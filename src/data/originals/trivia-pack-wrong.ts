@@ -19,6 +19,7 @@ import { MARIO_WRONG } from "@/data/originals/trivia-pack-mario";
 import { MARIO_KART_WRONG } from "@/data/originals/trivia-pack-mario-kart";
 import { POKEMON_WRONG } from "@/data/originals/trivia-pack-pokemon";
 import { SMASH_WRONG } from "@/data/originals/trivia-pack-smash";
+import { SONIC_WRONG } from "@/data/originals/trivia-pack-sonic";
 import { ZELDA_WRONG } from "@/data/originals/trivia-pack-zelda";
 
 export const PACK_WRONG: Record<string, [string, string, string]> = {
@@ -30,6 +31,7 @@ export const PACK_WRONG: Record<string, [string, string, string]> = {
   ...MARIO_WRONG,
   ...ZELDA_WRONG,
   ...KIRBY_WRONG,
+  ...SONIC_WRONG,
   // General knowledge
   "Which country gave the Statue of Liberty to the United States?": ["Spain", "Italy", "United Kingdom"],
   "Which artist painted the Mona Lisa?": ["Michelangelo", "Raphael", "Sandro Botticelli"],

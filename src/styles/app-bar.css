@@ -14,7 +14,16 @@
     display: grid; justify-items: center; gap: 2px; min-height: 48px; padding: 4px 2px; width: 100%;
     color: var(--text-secondary); text-decoration: none; background: none; border: 0; font: inherit; cursor: pointer; border-radius: 12px;
   }
-  .app-bar__tab[aria-current="page"] { color: var(--brand-ink, #2f5bea); }
+  /* Lit = the page you're on, or the tab you just tapped while its page loads (it answers at once). */
+  .app-bar__tab.is-lit { color: var(--brand-ink, #2f5bea); }
+  .app-bar__tab .app-bar__icon { transition: transform .12s ease; }
+  .app-bar__tab:active .app-bar__icon { transform: scale(.86); }
+  .app-bar__tab.is-going .app-bar__icon { animation: app-bar-press .32s ease-out; }
+  @keyframes app-bar-press { 0% { transform: scale(.84); } 60% { transform: scale(1.06); } 100% { transform: scale(1); } }
+  @media (prefers-reduced-motion: reduce) {
+    .app-bar__tab:active .app-bar__icon { transform: none; }
+    .app-bar__tab.is-going .app-bar__icon { animation: none; }
+  }
   .app-bar__tab:focus-visible { outline: 3px solid var(--brand-ink, #2f5bea); outline-offset: -3px; }
   .app-bar__icon { position: relative; display: grid; place-items: center; width: 28px; height: 28px; }
   .app-bar__plus { width: 36px; height: 28px; border-radius: 10px; background: var(--bg-primary, #2f5bea); color: #fff; }

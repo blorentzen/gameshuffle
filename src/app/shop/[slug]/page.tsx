@@ -15,7 +15,7 @@ import { MerchProduct } from "@/components/store/MerchProduct";
 import { MerchCard } from "@/components/store/MerchShelf";
 import { devPreviewFromPrintful, getMerchListing, listMerchListings, type MerchListing } from "@/lib/store/merchCatalog";
 import { MerchNotReady } from "@/lib/store/merchSync";
-import { listShopProducts, type ShopProduct } from "@/lib/store/products";
+import { cartSeed, listShopProducts, type ShopProduct } from "@/lib/store/products";
 import { collectionOf } from "@/lib/store/merch";
 import { pairsFor } from "@/lib/store/merchFilters";
 import { merchCopy } from "@/lib/store/copy";
@@ -110,7 +110,7 @@ export default async function MerchProductPage({ params, searchParams }: { param
           <p className="merch-page__eyebrow">{listing.series ?? collection.name}</p>
           <h1 className="merch-page__title">{listing.name}</h1>
         </div>
-        <MerchProduct listing={listing} products={products} pairs={pairs} preview={previewing} soon={soon} />
+        <MerchProduct listing={listing} products={cartSeed(products, listing.id)} pairs={pairs} preview={previewing} soon={soon} />
         {siblings.length > 0 && (
           <section className="shop-section merch-related" aria-labelledby="merch-related">
             <h2 id="merch-related" className="shop-h2">{copy.moreFrom(listing.series!)}</h2>

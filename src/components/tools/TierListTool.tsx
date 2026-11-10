@@ -9,9 +9,15 @@
  *   - tap it (or Enter on a keyboard) to pick it up, then tap a row, or use
  *     the Move to bar, which also removes a single item.
  * Items keep one ordered list; a row shows its items in that order.
+ *
+ * Dragging into another row moves the item there at once, which changes the rows' heights. With a nearest-centre
+ * target that could flip the item back and forth between two rows inside one render until React gave up ("Maximum
+ * update depth exceeded", Sentry GAMESHUFFLE-69/-75, mostly phones, where rows wrap). So the target is the row under
+ * the pointer or finger (`pointerWithin`, the nearest item inside it for the exact spot), and a row change is taken at
+ * most once per frame, as in dnd-kit's own multiple-containers example.
  */
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { IconSparkles, IconTrash, IconX } from "@tabler/icons-react";
 import { AiPackModal } from "@/components/ai/AiPackModal";
 import {
@@ -20,11 +26,16 @@ import {
   MouseSensor,
   TouchSensor,
   closestCenter,
+  getFirstCollision,
+  pointerWithin,
+  rectIntersection,
   useDroppable,
   useSensor,
   useSensors,
+  type CollisionDetection,
   type DragEndEvent,
   type DragOverEvent,
+  type UniqueIdentifier,
 } from "@dnd-kit/core";
 import { SortableContext, arrayMove, rectSortingStrategy, useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
@@ -208,6 +219,9 @@ export function TierListTool({
   // Skip the very first persist so mount doesn't overwrite storage with the
   // empty initial state before the load/seed effect runs. Reset per storageKey.
   const firstPersist = useRef(true);
+  // The drag's last target, and whether the item just changed rows (cleared on the next frame, once the layout settles).
+  const lastOverId = useRef<UniqueIdentifier | null>(null);
+  const recentlyMoved = useRef(false);
 
   // Mouse starts a drag after a small move; touch after a short press-and-hold,
   // so a finger can still scroll the page across the items.
@@ -299,29 +313,63 @@ export function TierListTool({
   const isRow = (id: string) => id === UNRANKED || tiers.some((t) => t.id === id);
   const rowOf = (id: string) => (isRow(id) ? id : items.find((i) => i.id === id)?.tier ?? null);
 
-  // Crossing into another row while dragging: move there now, so the row opens a gap where it'll land.
+  useEffect(() => {
+    if (!recentlyMoved.current) return;
+    const frame = requestAnimationFrame(() => { recentlyMoved.current = false; });
+    return () => cancelAnimationFrame(frame);
+  }, [items]);
+
+  // The row under the pointer, then the item in it nearest the pointer (so a drop lands between the right two items).
+  const collision: CollisionDetection = useCallback((args) => {
+    const under = pointerWithin(args);
+    const hits = under.length ? under : rectIntersection(args);
+    let overId = getFirstCollision(hits, "id");
+    if (overId != null) {
+      const row = String(overId);
+      if (row === UNRANKED || tiers.some((t) => t.id === row)) {
+        const inRow = new Set(items.filter((i) => i.tier === row && i.id !== String(args.active.id)).map((i) => i.id));
+        if (inRow.size) {
+          const near = closestCenter({ ...args, droppableContainers: args.droppableContainers.filter((c) => inRow.has(String(c.id))) });
+          overId = getFirstCollision(near, "id") ?? overId;
+        }
+      }
+      lastOverId.current = overId;
+      return [{ id: overId }];
+    }
+    // Just changed rows and the layout hasn't settled: stay on the item itself rather than the old target.
+    if (recentlyMoved.current) lastOverId.current = args.active.id;
+    return lastOverId.current != null ? [{ id: lastOverId.current }] : [];
+  }, [items, tiers]);
+
+  // Crossing into another row while dragging: move there now, so the row opens a gap where it'll land. One row change
+  // per frame at most, so a row that changes height under the pointer can't bounce the item back and forth.
   function onDragOver(e: DragOverEvent) {
     const over = e.over?.id;
-    if (over == null) return;
+    if (over == null || recentlyMoved.current) return;
     const from = rowOf(String(e.active.id));
     const to = rowOf(String(over));
     if (!from || !to || from === to) return;
+    recentlyMoved.current = true;
     setItems((a) => moveItem(a, String(e.active.id), to, isRow(String(over)) ? null : String(over)));
   }
 
-  // Dropping inside a row: settle the order where it was let go.
+  // Dropping: settle the order where it was let go (and the row, if a row change was held back for a frame).
   function onDragEnd(e: DragEndEvent) {
     setDragId(null);
+    recentlyMoved.current = false;
     const over = e.over?.id;
     if (over == null) return;
     used();
     const id = String(e.active.id);
-    if (isRow(String(over)) || over === id) return;
+    const target = String(over);
+    if (target === id) return;
     setItems((a) => {
-      const from = a.findIndex((i) => i.id === id);
-      const to = a.findIndex((i) => i.id === over);
-      if (from < 0 || to < 0 || a[from].tier !== a[to].tier) return a;
-      return arrayMove(a, from, to);
+      const item = a.find((i) => i.id === id);
+      const row = isRow(target) ? target : a.find((i) => i.id === target)?.tier;
+      if (!item || !row) return a;
+      if (item.tier !== row) return moveItem(a, id, row, isRow(target) ? null : target);
+      if (isRow(target)) return a;
+      return arrayMove(a, a.indexOf(item), a.findIndex((i) => i.id === target));
     });
   }
 
@@ -362,8 +410,8 @@ export function TierListTool({
 
       <DndContext
         sensors={sensors}
-        collisionDetection={closestCenter}
-        onDragStart={(e) => { setSelectedId(null); setDragId(String(e.active.id)); }}
+        collisionDetection={collision}
+        onDragStart={(e) => { setSelectedId(null); setDragId(String(e.active.id)); lastOverId.current = null; recentlyMoved.current = false; }}
         onDragOver={onDragOver}
         onDragEnd={onDragEnd}
         onDragCancel={() => setDragId(null)}

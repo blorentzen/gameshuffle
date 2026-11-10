@@ -9,7 +9,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Alert, Button, Input, Select, Switch } from "@empac/cascadeds";
+import { Alert, Button, Input, Select, Switch, Textarea } from "@empac/cascadeds";
 import { DailyBoardsSwitch } from "@/components/account/settings/DailyBoardsSwitch";
 import { IconCircleCheck } from "@tabler/icons-react";
 import { useAuth } from "@/components/auth/AuthProvider";
@@ -28,10 +28,11 @@ import { BlockedUsersManager } from "@/components/account/BlockedUsersManager";
 import { PlansTab } from "@/components/account/PlansTab";
 import { allTimeZones, currentZoneLabel, isValidTimeZone } from "@/lib/time/format";
 import { InterestSettingsLoader } from "@/components/interests/InterestPicker";
+import { LEAVE_COMMENT_MAX, LEAVE_NONE, LEAVE_REASON_OPTIONS } from "@/lib/account/leaveReasons";
+import "@/styles/leave-reasons.css";
 
 /** CDS Select hides its label for "", so a word stands in for an empty choice. */
 const AUTO = "auto";
-const NONE = "none";
 
 /** Tell the person by text that their own account changed (best effort). */
 function notifySecurity(kind: "password_changed"): void {
@@ -213,22 +214,14 @@ export function SettingsNotificationsScreen() {
   );
 }
 
-const DELETE_REASONS = [
-  { value: NONE, label: "Prefer not to say" },
-  { value: "not_using", label: "Not using it enough" },
-  { value: "missing_features", label: "Missing features I need" },
-  { value: "too_expensive", label: "Too expensive" },
-  { value: "found_alternative", label: "Found an alternative" },
-  { value: "just_testing", label: "Was just testing" },
-  { value: "other", label: "Other" },
-];
-
 export function SettingsPrivacyScreen() {
   const { signOut } = useAuth();
   const { loading, fields, set, status, setUsernameError } = useProfileStore();
   const [open, setOpen] = useState(false);
   const [typed, setTyped] = useState("");
-  const [reason, setReason] = useState(NONE);
+  // Why they're leaving: the shared list (src/lib/account/leaveReasons.ts) and an optional note.
+  const [reason, setReason] = useState(LEAVE_NONE);
+  const [details, setDetails] = useState("");
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
 
@@ -237,7 +230,7 @@ export function SettingsPrivacyScreen() {
     setDeleting(true);
     setDeleteError(null);
     try {
-      const res = await fetch("/api/account/delete", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ reason: reason === NONE ? null : reason }) });
+      const res = await fetch("/api/account/delete", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ reason: reason === LEAVE_NONE ? null : reason, details: details.trim() || null }) });
       if (!res.ok) { setDeleteError("Couldn't delete your account. Try again, or contact support."); setDeleting(false); return; }
       await signOut();
     } catch { setDeleteError("Couldn't reach the server. Check your connection and try again."); setDeleting(false); }
@@ -278,9 +271,23 @@ export function SettingsPrivacyScreen() {
           <div className="settings-delete">
             <p className="settings-delete__warn">This deletes your profile, saved setups, tournament history and everything else on your account.</p>
             {deleteError && <Alert variant="error" onClose={() => setDeleteError(null)}>{deleteError}</Alert>}
-            <div className="admin-form-grid">
+            <div className="leave-form leave-form--page">
               <AdminField label="Mind sharing why? (optional)">
-                {(id) => <Select id={id} fullWidth value={reason} onChange={(v) => setReason(String(v))} options={DELETE_REASONS} />}
+                {(id) => <Select id={id} fullWidth value={reason} onChange={(v) => setReason(String(v))} options={LEAVE_REASON_OPTIONS} />}
+              </AdminField>
+              <AdminField label="Anything else you'd like us to know? (optional)" helper="Only the team reads this.">
+                {(id, describedBy) => (
+                  <Textarea
+                    id={id}
+                    aria-describedby={describedBy}
+                    fullWidth
+                    rows={3}
+                    maxLength={LEAVE_COMMENT_MAX}
+                    placeholder="What would have made you stay?"
+                    value={details}
+                    onChange={(e) => setDetails(e.target.value)}
+                  />
+                )}
               </AdminField>
               <AdminField label="Type DELETE to confirm">
                 {(id) => <Input id={id} fullWidth value={typed} onChange={(e) => setTyped(e.target.value)} placeholder="DELETE" autoComplete="off" />}
@@ -288,7 +295,7 @@ export function SettingsPrivacyScreen() {
             </div>
             <div className="settings-delete__actions">
               <Button variant="danger" loading={deleting} disabled={typed !== "DELETE" || deleting} onClick={() => void remove()}>Delete my account for good</Button>
-              <Button variant="ghost" onClick={() => { setOpen(false); setTyped(""); setDeleteError(null); setReason(NONE); }}>Keep my account</Button>
+              <Button variant="ghost" onClick={() => { setOpen(false); setTyped(""); setDeleteError(null); setReason(LEAVE_NONE); setDetails(""); }}>Keep my account</Button>
             </div>
           </div>
         )}

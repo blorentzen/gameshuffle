@@ -5,16 +5,17 @@
  *   GET  ?me=1                                                  → the signed-in player's bests
  *   GET  ?q=                                                    → players by name (two letters or more)
  *   POST { game, track, cc, items, vehicle, time, proofUrl, video? } → add a time (signed in; the result
- *        screenshot is required, round 2 3A; a video link is the clip for the Unverified → Verified check)
+ *        screenshot is required, round 2 3A; a video link is the clip for the Unverified → Verified check).
+ *        Kirby Air Riders ("kar"): no cc or items, and `vehicle` is the machine (required).
  */
 import { NextResponse } from "next/server";
 import { rateLimit } from "@/lib/ratelimit";
 import { keyFromPublicUrl } from "@/lib/storage/r2";
 import { siteActor } from "@/lib/timeTrials/players";
-import { addTime, boardFor, findPlayers, playerBests, serversFor, setVideo, trackSummary, ttReady, type TtScope } from "@/lib/timeTrials/store";
+import { addTime, boardFor, findPlayers, playerBests, serversFor, setVideo, trackSummary, ttGameReady, ttReady, type TtScope } from "@/lib/timeTrials/store";
 import { cleanLaps, parseTime, videoProof } from "@/lib/timeTrials/rules";
 import { readFrom } from "@/lib/timeTrials/proof";
-import { isClassFor, isTtGame, ttTrack, TT_GAMES, type TtClass } from "@/lib/timeTrials/tracks";
+import { isBoardGame, isClassFor, ttTrack, TT_GAMES, type TtClass } from "@/lib/timeTrials/tracks";
 import { isItems, isVehicle, readCategory } from "@/lib/timeTrials/categories";
 import { isCountryCode } from "@/lib/timeTrials/countries";
 
@@ -35,7 +36,8 @@ export async function GET(req: Request) {
     return NextResponse.json({ ok: true, players: await findPlayers(q) }, { headers: NO_STORE });
   }
   const game = u.searchParams.get("game");
-  if (!isTtGame(game)) return NextResponse.json({ ok: false, error: "bad_game" }, { status: 400 });
+  // Kirby Air Riders only once its migration has run (tt-kirby-m1.sql).
+  if (!isBoardGame(game) || !(await ttGameReady(game))) return NextResponse.json({ ok: false, error: "bad_game" }, { status: 400 });
   const cat = readCategory(game, { items: u.searchParams.get("items"), vehicle: u.searchParams.get("vehicle") });
   if (u.searchParams.get("summary") === "1") {
     return NextResponse.json({ ok: true, summary: await trackSummary(game, cat.items, cat.vehicle) }, { headers: NO_STORE });
@@ -59,14 +61,14 @@ export async function POST(req: Request) {
   if (!actor) return NextResponse.json({ ok: false, error: "signin" }, { status: 401 });
   if (!(await rateLimit(`tt-add:${actor.player}`, { max: 30, windowMs: 10 * 60_000 })).ok) return NextResponse.json({ ok: false, error: "slow_down" }, { status: 429 });
   const body = (await req.json().catch(() => ({}))) as { game?: unknown; track?: unknown; cc?: unknown; items?: unknown; vehicle?: unknown; time?: unknown; proofUrl?: unknown; video?: unknown; read?: unknown; readToken?: unknown; laps?: unknown };
-  if (!isTtGame(body.game)) return NextResponse.json({ ok: false, error: "bad_game" }, { status: 400 });
+  if (!isBoardGame(body.game)) return NextResponse.json({ ok: false, error: "bad_game" }, { status: 400 });
   const game = body.game;
   const track = typeof body.track === "string" ? body.track : "";
   if (!ttTrack(game, track)) return NextResponse.json({ ok: false, error: "bad_track" }, { status: 400 });
   const cc = Number(body.cc ?? TT_GAMES[game].classes[0]);
   if (!isClassFor(game, cc)) return NextResponse.json({ ok: false, error: "bad_class" }, { status: 400 });
-  const timeMs = typeof body.time === "number" ? Math.round(body.time) : parseTime(String(body.time ?? ""));
-  if (!timeMs || timeMs < 30_000 || timeMs > 600_000) return NextResponse.json({ ok: false, error: "bad_time" }, { status: 400 });
+  const timeMs = typeof body.time === "number" ? Math.round(body.time) : parseTime(String(body.time ?? ""), TT_GAMES[game].minMs);
+  if (!timeMs || timeMs < TT_GAMES[game].minMs || timeMs > 600_000) return NextResponse.json({ ok: false, error: "bad_time" }, { status: 400 });
 
   if (body.items != null && !isItems(body.items)) return NextResponse.json({ ok: false, error: "bad_items" }, { status: 400 });
   if (body.vehicle != null && !isVehicle(body.vehicle)) return NextResponse.json({ ok: false, error: "bad_vehicle" }, { status: 400 });
@@ -92,6 +94,7 @@ export async function POST(req: Request) {
     readByAi: !!read?.timeMs && read.timeMs === timeMs, source: "site",
     laps, readMs: read?.timeMs ?? null, readLaps: read?.laps ?? null, parts: read?.parts ?? null,
   });
+  // machine_required: a Kirby Air Riders time names its machine (the game keeps records per machine).
   if (!res.ok) return NextResponse.json(res, { status: res.error === "not_ready" ? 503 : 400 });
   if (video) await setVideo(actor.player, res.timeId, video);
   return NextResponse.json({ ...res, videoAdded: !!video }, { headers: NO_STORE });

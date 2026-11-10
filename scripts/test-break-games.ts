@@ -48,7 +48,7 @@ check("a game already in the lineup isn't added twice", withNewGames(["kart-derb
 check("the default lineup leaves out Stream Bingo and Four in a Row (the long ones)", !DEFAULT_LINEUP.includes("stream-bingo") && !DEFAULT_LINEUP.includes("four-in-a-row"));
 
 const BAD_TEXT = /undefined|null|NaN|\[object|—|–/;
-const streams = [null, "mario-kart-8-deluxe", "mario-kart-world", "super-smash-bros-ultimate", "super-mario-party-jamboree", "overwatch", "marvel-rivals", "splatoon-3"];
+const streams = [null, "mario-kart-8-deluxe", "mario-kart-world", "super-smash-bros-ultimate", "super-mario-party-jamboree", "overwatch", "marvel-rivals", "splatoon-3", "sonic-racing-crossworlds"];
 
 // Games that load from the database get what their load would return.
 const PACK_ROWS = TRIVIA_PACK.filter((q) => q.kind !== "picture").map((q, i) => ({

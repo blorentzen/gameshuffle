@@ -24,7 +24,7 @@ import { blockAlias, communityAliasList } from "@/lib/timeTrials/aliases";
 import { isTtGame } from "@/lib/timeTrials/tracks";
 import { decideTicket, decideVideo, fixByReviewer, legacyProofQueue, rejectLegacyProof, reviewCounts, reviewQueue, verifyByReviewer } from "@/lib/timeTrials/review";
 import { isItems, isVehicle } from "@/lib/timeTrials/categories";
-import { isClassFor } from "@/lib/timeTrials/tracks";
+import { isClassFor, TT_MIN_MS } from "@/lib/timeTrials/tracks";
 import { cleanLaps, parseTime } from "@/lib/timeTrials/rules";
 import { timeById } from "@/lib/timeTrials/store";
 import { reviewScope, type Mode } from "@/lib/timeTrials/updaters";
@@ -78,7 +78,7 @@ export async function POST(req: Request) {
   const note = typeof b.note === "string" ? b.note : "";
   if (b.action === "fix" && typeof b.timeId === "string") {
     // A reviewer fixes the numbers themselves, and may verify in the same step (picks 2026-11-09).
-    const timeMs = typeof b.time === "string" ? parseTime(b.time) : null;
+    const timeMs = typeof b.time === "string" ? parseTime(b.time, TT_MIN_MS) : null;
     if (timeMs == null) return NextResponse.json({ ok: false, error: "bad_time" }, { status: 400 });
     const t = await timeById(b.timeId);
     if (!t) return NextResponse.json({ ok: false, error: "gone" }, { status: 404 });

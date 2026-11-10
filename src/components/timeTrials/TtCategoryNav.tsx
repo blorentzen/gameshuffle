@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import { LabeledSubNav } from "@/components/ui/LabeledSubNav";
 import { TtFilterSelect } from "./TtFilterSelect";
-import { ITEMS, VEHICLES, vehiclesFor, type TtItems, type TtVehicle } from "@/lib/timeTrials/categories";
+import { boardLabel, hasItems, ITEMS, KAR_MACHINE_TYPES, VEHICLES, vehiclesFor, vehicleWord, type TtItems, type TtVehicle } from "@/lib/timeTrials/categories";
 import { TT_GAMES, type TtClass, type TtGame } from "@/lib/timeTrials/tracks";
 
 /**
@@ -11,6 +11,7 @@ import { TT_GAMES, type TtClass, type TtGame } from "@/lib/timeTrials/tracks";
  * Every choice is a link, so each board has its own address. `href` builds the address for a
  * combination on the page it's used on. `bare` leaves out the row so a board can add its own
  * controls at the end (whose times, the player count); `end` does the same here.
+ * Kirby Air Riders has no items or speed: only the machine, grouped by type (Any machine and No Legendaries first).
  */
 export function TtCategoryNav({ game, cc, items, vehicle, href, games, bare = false, end }: {
   game: TtGame; cc: TtClass; items: TtItems; vehicle: TtVehicle;
@@ -22,12 +23,19 @@ export function TtCategoryNav({ game, cc, items, vehicle, href, games, bare = fa
 }) {
   const classes = TT_GAMES[game].classes;
   const vehicles = vehiclesFor(game);
+  const choice = (v: TtVehicle) => ({ value: v, label: boardLabel(game, v), href: href({ cc, items, vehicle: v }) });
+  const shown = VEHICLES.filter((v) => vehicles.includes(v.id));
+  // Kirby: the open boards, then the machines by type (Stars, Bikes, Chariots, Tanks, Legendary).
+  const groups = hasItems(game) ? undefined : [
+    { label: "All machines", options: shown.filter((v) => !v.type).map((v) => choice(v.id)) },
+    ...KAR_MACHINE_TYPES.map((t) => ({ label: t.label, options: shown.filter((v) => v.type === t.id).map((v) => choice(v.id)) })).filter((g) => g.options.length > 0),
+  ];
   const parts = (
     <>
       {games && games.length > 1 && (
-        <div className="tt-seg tt-seg--wide"><LabeledSubNav label="Game" variant="pills" items={games} /></div>
+        <div className="tt-seg tt-seg--wide tt-seg--game"><LabeledSubNav label="Game" variant="pills" items={games} /></div>
       )}
-      <div className="tt-seg tt-seg--wide"><LabeledSubNav label="Items" variant="pills" items={ITEMS.map((i) => ({ label: i.label, href: href({ cc, items: i.id, vehicle }), active: i.id === items }))} /></div>
+      {hasItems(game) && <div className="tt-seg tt-seg--wide"><LabeledSubNav label="Items" variant="pills" items={ITEMS.map((i) => ({ label: i.label, href: href({ cc, items: i.id, vehicle }), active: i.id === items }))} /></div>}
       {(classes.length > 1 || vehicles.length > 1) && (
         <div className="tt-filters__pair">
           {classes.length > 1 && (
@@ -36,10 +44,10 @@ export function TtCategoryNav({ game, cc, items, vehicle, href, games, bare = fa
           {vehicles.length > 1 && (
             <TtFilterSelect
               id="tt-vehicle"
-              label="Vehicle board"
+              label={vehicleWord(game).label}
               className="tt-filters__vehicle"
               value={vehicle}
-              options={VEHICLES.filter((v) => vehicles.includes(v.id)).map((v) => ({ value: v.id, label: v.id === "any" ? "Any vehicle" : v.label, href: href({ cc, items, vehicle: v.id }) }))}
+              {...(groups ? { groups } : { options: shown.map((v) => choice(v.id)) })}
             />
           )}
         </div>

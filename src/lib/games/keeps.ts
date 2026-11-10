@@ -3,7 +3,7 @@
  * 2A and 3A): on the game band under a search page's tool, and on the space itself. Client-safe.
  */
 
-import { IconBookmark, IconCalendarEvent, IconCards, IconChartBar, IconFlame, IconRoute, IconStopwatch, IconTrophy, type Icon } from "@tabler/icons-react";
+import { IconBookmark, IconCalendarEvent, IconCards, IconChartBar, IconFlame, IconMessage, IconRoute, IconStopwatch, IconTrophy, type Icon } from "@tabler/icons-react";
 
 export interface Keep { label: string; sub: string; icon: Icon }
 
@@ -32,5 +32,22 @@ export const KEEPS: Record<string, Keep[]> = {
     { label: "Your streaks", sub: "Dex and Duel", icon: IconFlame },
     { label: "Your Trainer Road", sub: "badges and stars", icon: IconRoute },
     { label: "Your cards", sub: "collection and decks", icon: IconCards },
+  ],
+  // First wave (2026-11-09). Spaces where nothing is yours yet (Overwatch, Rivals, the fighting games, ideas spaces)
+  // have no slots: visitors get the header's Join free.
+  "splatoon-3": [
+    { label: "Your setups", sub: "saved from a roll", icon: IconBookmark },
+    { label: "Your events", sub: "tournaments you join", icon: IconCalendarEvent },
+    { label: "Your posts", sub: "with Splatoon players", icon: IconMessage },
+  ],
+  "kirby-air-riders": [
+    { label: "Your setups", sub: "saved from a roll", icon: IconBookmark },
+    { label: "Your month", sub: "points from live nights", icon: IconTrophy },
+    { label: "Your events", sub: "cups and nights", icon: IconCalendarEvent },
+  ],
+  sonic: [
+    { label: "Your setups", sub: "saved from a roll", icon: IconBookmark },
+    { label: "Your events", sub: "tournaments you join", icon: IconCalendarEvent },
+    { label: "Your posts", sub: "with Sonic players", icon: IconMessage },
   ],
 };

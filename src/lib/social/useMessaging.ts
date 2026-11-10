@@ -17,6 +17,7 @@ import type { RealtimeChannel } from "@supabase/supabase-js";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { useToast } from "@/components/toast/ToastProvider";
 import { createClient } from "@/lib/supabase/client";
+import { MESSAGING_ON } from "./messagingOn";
 
 const TYPING_CLEAR_MS = 3000;
 const TYPING_THROTTLE_MS = 1500;
@@ -78,7 +79,7 @@ export function useMessaging() {
   }, []);
 
   useEffect(() => {
-    if (!user) return;
+    if (!user || !MESSAGING_ON) return;
     // eslint-disable-next-line react-hooks/set-state-in-effect
     void loadConvs();
   }, [user, loadConvs]);

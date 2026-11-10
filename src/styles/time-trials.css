@@ -190,6 +190,9 @@
 .tt-filters { display: flex; flex-wrap: wrap; align-items: center; gap: var(--spacing-12) var(--spacing-16); min-width: 0; }
 .tt-filters__pair { display: flex; flex-wrap: wrap; align-items: center; gap: var(--spacing-12) var(--spacing-16); min-width: 0; }
 .tt-filters__end { margin-left: auto; display: flex; align-items: center; gap: var(--spacing-12); min-width: 0; }
+/* The game switch picks the board rather than filtering it, so it gets its own line; the filters share the next one
+   (with Kirby a third game, the row had pushed "Every country" onto a line of its own). */
+.tt-filters > .tt-seg--game { flex-basis: 100%; }
 .tt-filter-select { min-width: 17rem; }
 .tt-filters__vehicle { width: 17rem; }
 .tt-filters__scope { width: 20rem; }

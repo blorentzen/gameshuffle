@@ -24,7 +24,7 @@ import { isEmailVerified } from "@/lib/auth-utils";
 import { useAnalytics } from "@/hooks/useAnalytics";
 import { detectBrowserTimeZone, currentZoneLabel } from "@/lib/time/format";
 import { IconSparkles, IconTournament, IconTrophy } from "@tabler/icons-react";
-import { KIRBY_PUBLIC, MARVEL_RIVALS_PUBLIC, OVERWATCH_PUBLIC, SMASH_PUBLIC, SPLATOON_PUBLIC } from "@/lib/games-visibility";
+import { KIRBY_PUBLIC, MARVEL_RIVALS_PUBLIC, OVERWATCH_PUBLIC, SMASH_PUBLIC, SONIC_PUBLIC, SPLATOON_PUBLIC } from "@/lib/games-visibility";
 import { GameCover } from "@/components/games/GameCover";
 import { LabeledCombobox } from "@/components/ui/LabeledCombobox";
 import { GAME_CATALOG, catalogGame } from "@/data/game-catalog";
@@ -62,6 +62,7 @@ const GAMES = [
   ...(MARVEL_RIVALS_PUBLIC ? [{ value: "marvel-rivals", label: "Marvel Rivals" }] : []),
   ...(SPLATOON_PUBLIC ? [{ value: "splatoon-3", label: "Splatoon 3" }] : []),
   ...(KIRBY_PUBLIC ? [{ value: "kirby-air-riders", label: "Kirby Air Riders" }] : []),
+  ...(SONIC_PUBLIC ? [{ value: "sonic-racing-crossworlds", label: "Sonic Racing: CrossWorlds" }] : []),
   { value: "other", label: "Another game" },
 ];
 
@@ -203,6 +204,24 @@ export default function CreateTournamentPage() {
       const rounds = h.swissRounds ?? "auto";
       setSwissSettings((s) => ({ ...s, rounds, topCut: h.from === "roundrobin" ? 0 : s.topCut }));
     }
+    /* eslint-enable react-hooks/set-state-in-effect */
+  }, []);
+  // A game space's "Run a tournament" (?game=<catalog key>): the form starts on that game; a game without its own
+  // tools comes in as "Another game" by its catalog name (spaces first wave, 2026-11-09).
+  useEffect(() => {
+    const g = new URLSearchParams(window.location.search).get("game");
+    if (!g) return;
+    /* eslint-disable react-hooks/set-state-in-effect -- read once from the address */
+    if (GAMES.some((x) => x.value === g && x.value !== "other")) {
+      setGameSlug(g);
+      if (isPartyGame(g) || isSmashGame(g)) {
+        setGkLobby(isSmashGame(g) ? 2 : PARTY_TABLE_SIZE);
+        setGkAdvance(isSmashGame(g) ? 1 : PARTY_TABLE_ADVANCE);
+      }
+      return;
+    }
+    const entry = GAME_CATALOG.find((x) => x.slug === g);
+    if (entry) { setGameSlug("other"); setCustomGame(entry.name); }
     /* eslint-enable react-hooks/set-state-in-effect */
   }, []);
   // "Run one" on the time trials pages: ?format=time_trial starts on Time trial once we know it's switched on.

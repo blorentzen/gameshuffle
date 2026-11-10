@@ -70,7 +70,7 @@ export const SWITCHES: SwitchDef[] = [
   },
   {
     key: "support_supporter_looks", group: "Support", name: "Supporter looks", defaultOn: true,
-    description: "On (the default): the $3 Supporter level also unlocks every look (MMR card looks, profile and community skins, brand themes, custom CSS, dice and coin looks), checkout collects sales tax and the Terms like Backer, and looks walls offer Supporter first. Off: new Supporter subscriptions are a thank-you only (a gift, no tax). Needs support-m4.sql.",
+    description: "On (the default): the $3 Supporter level also unlocks every look (MMR card looks, profile and community skins, brand themes, custom CSS, dice and coin looks), checkout collects sales tax and the Terms like Backer, and looks walls offer Supporter first. Off: new Supporter subscriptions are a thank-you only (a gift, no tax). Needs its database update first.",
     turnOn: "New Supporter subscriptions are sold with looks and taxed. Looks walls offer Supporter at $3 first. People who already give $3 a month as a thank-you keep that until they choose Supporter again.",
     turnOff: "New Supporter subscriptions go back to a thank-you with no looks, and looks walls offer GS Pro only. Anyone who bought Supporter with looks keeps them.",
   },
@@ -88,7 +88,7 @@ export const SWITCHES: SwitchDef[] = [
   },
   {
     key: "comp_ladders", group: "Discord", name: "GS Ranked",
-    description: "Opens /ranked on GameShuffle Competitive and the lounge pages at /ranked/<address>: a lounge's ranked board, where reporters submit tables, updaters verify and MMR moves. Turn on once the lounge you're starting with is ready (needs ladders-m1.sql and ladders-m2.sql).",
+    description: "Opens /ranked on GameShuffle Competitive and the lounge pages at /ranked/<address>: a lounge's ranked board, where reporters submit tables, updaters verify and MMR moves. Turn on once the lounge you're starting with is ready (needs its database updates first).",
     turnOn: "/ranked works in every server with GameShuffle Competitive, and the lounge pages open.",
     turnOff: "/ranked says GS Ranked isn't open yet, and the lounge pages show page not found. Nothing is deleted.",
   },

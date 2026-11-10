@@ -328,6 +328,38 @@ export const RANDOMIZER_LANDINGS: Record<string, RandomizerLanding> = {
       { q: "Does it pick City Trial events too?", a: "No. Events happen on their own during City Trial, so it rolls the Stadium you finish in." },
     ],
   },
+  "sonic-racing-crossworlds": {
+    slug: "sonic-racing-crossworlds",
+    path: "/randomizers/sonic-racing-crossworlds",
+    game: "Sonic Racing: CrossWorlds",
+    metaTitle: "Sonic Racing CrossWorlds Randomizer: Racers & Gadgets",
+    metaDescription:
+      "Free Sonic Racing: CrossWorlds randomizer. A random racer, machine and gadget loadout for up to 12 players, plus races with CrossWorlds and Grands Prix.",
+    // No game art yet, so the site's own share image.
+    ogImage: "https://www.gameshuffle.co/images/opengraph/gameshuffle-main-og.jpg",
+    h1: "Sonic Racing: CrossWorlds Randomizer",
+    lead: "A free Sonic Racing: CrossWorlds randomizer for up to 12 players. Put everyone on a random racer and machine with a full Gadget Plate, then roll the races or a Grand Prix.",
+    overview:
+      "Use it for a couch race where nobody plays their main, an online lobby where everyone gets a random build, or a challenge on a gadget loadout you would never pick yourself. Every Sonic character in the game is in the mix, from Sonic, Shadow and Amy to Zavok and Sage, along with the free guests like Hatsune Miku, Joker and Ichiban Kasuga.",
+    featuresHeading: "What the Sonic Racing: CrossWorlds randomizer does",
+    features: [
+      { icon: "users", title: "A racer for everyone", description: "Up to 12 players, each on a different racer, picked by type if you like." },
+      { icon: "car", title: "Machines by type", description: "Speed, Acceleration, Handling, Power or the Boost boards, or a new save's starting ten." },
+      { icon: "layout-grid", title: "A full Gadget Plate", description: "Gadgets fill every slot of your plate, and the Super Slot on a Grand Master Plate." },
+      { icon: "flag", title: "Races and CrossWorlds", description: "Up to 12 races with no repeated track, each with the CrossWorld for lap 2." },
+      { icon: "award", title: "Grands Prix", description: "One of the eight Grands Prix, or a CrossOver Grand Prix when you own its packs." },
+      { icon: "checks", title: "Only what you own", description: "Pick the paid packs you have and rolls leave the rest out." },
+    ],
+    faqHeading: "Frequently asked questions",
+    faq: [
+      { q: "Is the Sonic Racing: CrossWorlds randomizer free?", a: "Yes. It runs in any browser, phones included, with nothing to install and no account." },
+      { q: "Does it include the DLC racers?", a: "Racers from free updates are always in, from Hatsune Miku to Bayonetta. Racers, machines and tracks from paid packs (Minecraft, SpongeBob, PAC-MAN, Mega Man, TMNT, Avatar, Godzilla, the Sonic Prime racers and Werehog) stay out until you pick the packs you own under Options." },
+      { q: "How many gadgets does each player get?", a: "Enough to fill the Gadget Plate: six slots on a Master Plate, plus one gadget in the Super Slot on a Grand Master Plate. A gadget takes one to three slots, so a plate holds two to six. Haven't unlocked the bigger plates yet? Pick yours under Options." },
+      { q: "Does it pick the CrossWorld too?", a: "Yes. Each race comes with a CrossWorld for lap 2, to set in a Custom Match. Switch CrossWorlds off under Race options for three laps of each track. In a Grand Prix the game picks the CrossWorlds itself." },
+      { q: "Can it roll Super Sonic?", a: "Only when you switch on Super Sonic and Super Shadow under Options. They can only race in Grand Prix, so they're off to start." },
+      { q: "I just started. Can it stick to what I have?", a: "Yes. New save mode leaves out what you unlock by playing: Super Sonic, Bayonetta and every machine except the ten you start with. A smaller Gadget Plate fills fewer slots." },
+    ],
+  },
   pokemon: {
     slug: "pokemon",
     path: "/randomizers/pokemon",
@@ -577,6 +609,7 @@ export const RANDOMIZER_LINKS: { slug: string; label: string; href: string }[] =
   { slug: "super-smash-bros-ultimate", label: "Smash Ultimate Randomizer", href: "/randomizers/super-smash-bros-ultimate" },
   { slug: "splatoon-3", label: "Splatoon 3 Randomizer", href: "/randomizers/splatoon-3" },
   { slug: "kirby-air-riders", label: "Kirby Air Riders Randomizer", href: "/randomizers/kirby-air-riders" },
+  { slug: "sonic-racing-crossworlds", label: "Sonic Racing: CrossWorlds Randomizer", href: "/randomizers/sonic-racing-crossworlds" },
   { slug: "pokemon", label: "Random Pokémon Generator", href: "/randomizers/pokemon" },
   { slug: "pokemon-stadium", label: "Pokémon Stadium Randomizer", href: "/randomizers/pokemon-stadium" },
   { slug: "goldeneye-007", label: "GoldenEye 007 Randomizer", href: "/randomizers/goldeneye-007" },

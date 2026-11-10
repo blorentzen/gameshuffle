@@ -45,8 +45,10 @@ export const ALLOWED_REDIRECT_PREFIXES = [
   "/daily-dex",
   "/daily-trivia",
   "/daily-duel",
+  "/dailies",
   "/pokemon-trainers",
   "/mmr-card",
+  "/speedrun",          // the speedrun overlay's setup
   "/war-overlay/",      // a war overlay's setup page: sign up to keep its looks
   "/lounge",
   "/ranked",           // a lounge's staff page (sign in with Discord, the bot checks your roles)

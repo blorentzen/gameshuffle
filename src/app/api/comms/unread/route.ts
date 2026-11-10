@@ -7,6 +7,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { unreadCount } from "@/lib/social/notifications";
 import { listConversations } from "@/lib/social/messaging";
+import { MESSAGING_ON } from "@/lib/social/messagingOn";
 
 export const runtime = "nodejs";
 
@@ -19,7 +20,7 @@ export async function GET() {
 
   const [notifications, conversations] = await Promise.all([
     unreadCount(user.id),
-    listConversations(user.id),
+    MESSAGING_ON ? listConversations(user.id) : Promise.resolve([]),
   ]);
   const messages = conversations.reduce((n, c) => n + (c.unreadCount || 0), 0);
 

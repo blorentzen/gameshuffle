@@ -20,8 +20,8 @@ export default function Page() {
       <h1>Time trials</h1>
       <p>
         <Link href="/time-trials">Time trials</Link>{" "}keeps every player&apos;s best time on every Mario Kart 8
-        Deluxe and Mario Kart World track, fastest first. You add times on GameShuffle or in Discord, and
-        the community checks the fastest ones.
+        Deluxe and Mario Kart World track, and every Kirby Air Riders Air Ride course, fastest first. You add
+        times on GameShuffle or in Discord, and the community checks the fastest ones.
       </p>
 
       <h2>The boards</h2>
@@ -35,6 +35,26 @@ export default function Page() {
         Kart 8 Deluxe, and Swoop, R.O.B.-HOG in Mario Kart World. A time on a vehicle board also counts on
         the open board. Pick a board with the filters above the tracks: <strong>Items</strong>,{" "}
         <strong>Speed class</strong>{" "}and <strong>Vehicle board</strong>.
+      </p>
+
+      <h3>Kirby Air Riders</h3>
+      <p>
+        <Link href="/time-trials/kirby-air-riders">Kirby Air Riders</Link>{" "}has a board for each of its 18
+        Air Ride courses. The game keeps no online rankings for Time Attack, so these boards are where
+        players compare. A time is one Time Attack run of the course at its default number of laps: three on
+        Floria Fields and Fantasy Meadows, one on Mount Amberfalls and Galactic Nova, two on the rest. The
+        game keeps its records per machine, so every Kirby time names the machine it was set on.
+      </p>
+      <ul>
+        <li><strong>Any machine:</strong> every time on the course.</li>
+        <li><strong>No Legendaries:</strong> every machine except Dragoon, Hydra and Leo.</li>
+        <li><strong>One board per machine</strong>, from the Warp Star to the Bull Tank.</li>
+      </ul>
+      <p>
+        There are no speed classes or items. Time Attack always runs at the normal tempo (with Game Tempo on
+        Slow the game records nothing). Kirby times are added on the site only, not in Discord or by import,
+        and we don&apos;t read Kirby screenshots yet: add the result screenshot as proof, then type the
+        course, time and machine. Top Ride isn&apos;t on the boards.
       </p>
 
       <h3>Narrowing a board</h3>

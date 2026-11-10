@@ -15,6 +15,7 @@ import { cleanInterests, type Interest } from "@/lib/interests/rules";
 import { effectiveTier, isStaffRole, normalizeTier } from "@/lib/subscription";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { createClient } from "@/lib/supabase/client";
+import { MESSAGING_ON } from "@/lib/social/messagingOn";
 
 /**
  * Top-level site nav. This is the CDS `Navbar` (it still renders the logo,
@@ -40,6 +41,7 @@ const HERO_ROUTES = new Set([
   "/home",
   "/welcome",
   "/mmr-card",
+  "/speedrun",
   "/ranked",
   "/lounge",
   "/time-trials",
@@ -71,6 +73,7 @@ const HERO_ROUTES = new Set([
   "/randomizers/mario-party-3",
   "/randomizers/super-mario-party-jamboree",
   "/randomizers/kirby-air-riders",
+  "/randomizers/sonic-racing-crossworlds",
   "/randomizers/splatoon-3",
   "/randomizers/super-smash-bros-ultimate",
   "/randomizers/pokemon",
@@ -89,6 +92,7 @@ const HERO_ROUTES = new Set([
   "/daily-dex",
   "/daily-trivia",
   "/daily-duel",
+  "/dailies",
   "/weekly",
   "/chat-brain",
   "/trivia",
@@ -291,7 +295,7 @@ export function SiteNavbar({ shop = false, previewInterests = null }: { shop?: b
     ...(interests.includes("pokemon") ? [{ label: "My Cards", href: "/account/pokemon?tab=my-cards" }] : []),
     ...(interests.includes("home") || interests.includes("events") ? [{ label: "Your events", href: "/account/events" }] : []),
     ...(interests.includes("stream") ? [{ label: "Studio", href: "/hub" }] : []),
-    { label: "Messages", href: "/comms?tab=messages" },
+    ...(MESSAGING_ON ? [{ label: "Messages", href: "/comms?tab=messages" }] : []),
     { label: "Settings", href: "/settings" },
     // Staff reach Platform admin here too (picks 2026-11-08: the phone menu had no way in).
     ...(isStaff ? [{ label: "Admin", href: "/admin" }] : []),

@@ -14,8 +14,9 @@ import { Button, FormField, Input } from "@empac/cascadeds";
 import { IconCircleCheck } from "@tabler/icons-react";
 import { Select } from "@/components/ui/Select";
 import { useToast } from "@/components/toast/ToastProvider";
-import { ITEMS, vehicleOptions } from "@/lib/timeTrials/categories";
+import { hasItems, ITEMS, savableVehicles } from "@/lib/timeTrials/categories";
 import { formatLap, formatTime, parseLap, parseTime } from "@/lib/timeTrials/rules";
+import { TT_GAMES } from "@/lib/timeTrials/tracks";
 import type { TtTimeDetail } from "@/lib/timeTrials/detail";
 
 const ERRORS: Record<string, string> = {
@@ -52,14 +53,16 @@ export function TtFixTime({ time, onDone, onCancel, reviewer, bare = false }: {
   const [note, setNote] = useState("");
   const [busy, setBusy] = useState<"verify" | "save" | null>(null);
   const toast = useToast();
-  const vehicles = vehicleOptions(time.game);
+  // Kirby Air Riders: no items, and the machine the time was set on.
+  const kirby = !hasItems(time.game);
+  const vehicles = savableVehicles(time.game);
 
   const who = reviewer && reviewer.name !== "A player" ? reviewer.name : null;
   // Save and verify is the main button when there's proof to verify from (the form's Enter key does it too).
   const verifyFirst = !!reviewer?.canVerify;
 
   async function save(verify: boolean) {
-    if (parseTime(raw) == null) { toast.error(ERRORS.bad_time); return; }
+    if (parseTime(raw, TT_GAMES[time.game].minMs) == null) { toast.error(ERRORS.bad_time); return; }
     const lapMs = laps.map(parseLap);
     if (laps.length && lapMs.some((l) => l == null)) { toast.error("Type each lap like 32.105."); return; }
     setBusy(verify ? "verify" : "save");
@@ -89,11 +92,11 @@ export function TtFixTime({ time, onDone, onCancel, reviewer, bare = false }: {
             <Select id={`tt-fix-cc-${time.id}`} value={cc} onChange={(v) => setCc(String(v))} options={time.classes.map((c) => ({ value: String(c), label: `${c}cc` }))} fullWidth />
           </FormField>
         )}
-        <FormField label="Items" htmlFor={`tt-fix-items-${time.id}`}>
+        {!kirby && <FormField label="Items" htmlFor={`tt-fix-items-${time.id}`}>
           <Select id={`tt-fix-items-${time.id}`} value={items} onChange={(v) => setItems(String(v))} options={ITEMS.map((i) => ({ value: i.id, label: i.label }))} fullWidth />
-        </FormField>
+        </FormField>}
         {vehicles.length > 1 && (
-          <FormField label="Vehicle" htmlFor={`tt-fix-vehicle-${time.id}`}>
+          <FormField label={kirby ? "Machine" : "Vehicle"} htmlFor={`tt-fix-vehicle-${time.id}`}>
             <Select id={`tt-fix-vehicle-${time.id}`} value={vehicle} onChange={(v) => setVehicle(String(v))} options={vehicles.map((v) => ({ value: v.id, label: v.long }))} fullWidth />
           </FormField>
         )}

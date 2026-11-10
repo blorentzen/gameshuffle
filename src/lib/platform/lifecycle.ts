@@ -7,6 +7,8 @@
 
 import "server-only";
 import { createServiceClient } from "@/lib/supabase/admin";
+import { leaveReasonLabel } from "@/lib/account/leaveReasons";
+import { normalizeTier } from "@/lib/subscription";
 
 const DAY = 86_400_000;
 
@@ -21,14 +23,16 @@ export const SEGMENT_LABELS: Record<ActivitySegment, string> = {
   never_seen: "Never active",
 };
 
-const DELETION_REASON_LABELS: Record<string, string> = {
-  not_using: "Not using it enough",
-  missing_features: "Missing features",
-  too_expensive: "Too expensive",
-  found_alternative: "Found an alternative",
-  just_testing: "Was just testing",
-  other: "Other",
-};
+/** A deletion's reason in words: the shared list (src/lib/account/leaveReasons.ts), else as stored. */
+const deletionReasonLabel = (reason: string) => (reason === "unspecified" ? "Not specified" : leaveReasonLabel(reason));
+
+/** One of the latest deletion comments (the delete form's "Anything else you'd like us to know?"). */
+export interface DeletionComment {
+  at: string;
+  plan: string;
+  reason: string;
+  comment: string;
+}
 
 export interface LifecycleSummary {
   totalUsers: number;
@@ -38,6 +42,8 @@ export interface LifecycleSummary {
   churn30d: number;
   churnTotal: number;
   churnReasons: { reason: string; label: string; count: number }[];
+  /** The latest 20 deletions with a comment, newest first (empty before leave-reasons-m1.sql). */
+  deletionComments: DeletionComment[];
   marketingOptIns: number;
   generatedAt: string;
 }
@@ -93,13 +99,37 @@ export async function getLifecycleSummary(): Promise<LifecycleSummary> {
     for (const [reason, count] of reasonCounts) {
       churnReasons.push({
         reason,
-        label: DELETION_REASON_LABELS[reason] ?? (reason === "unspecified" ? "Not specified" : reason),
+        label: deletionReasonLabel(reason),
         count,
       });
     }
     churnReasons.sort((a, b) => b.count - a.count);
   } catch {
     /* table not migrated yet — churn stays 0 */
+  }
+
+  // The latest comments left when deleting (the details column; missing before leave-reasons-m1.sql).
+  const deletionComments: DeletionComment[] = [];
+  try {
+    const { data: notes, error } = await admin
+      .from("account_deletions")
+      .select("reason, details, subscription_tier, deleted_at")
+      .not("details", "is", null)
+      .order("deleted_at", { ascending: false })
+      .limit(20);
+    if (!error) {
+      for (const d of (notes ?? []) as { reason: string | null; details: string | null; subscription_tier: string | null; deleted_at: string }[]) {
+        if (!d.details) continue;
+        deletionComments.push({
+          at: d.deleted_at,
+          plan: normalizeTier(d.subscription_tier) === "pro" ? "GS Pro" : "Free",
+          reason: deletionReasonLabel(d.reason || "unspecified"),
+          comment: d.details,
+        });
+      }
+    }
+  } catch {
+    /* column not migrated yet */
   }
 
   // Marketing opt-ins — distinct emails with at least one active subscription.
@@ -122,6 +152,7 @@ export async function getLifecycleSummary(): Promise<LifecycleSummary> {
     churn30d,
     churnTotal,
     churnReasons,
+    deletionComments,
     marketingOptIns,
     generatedAt: new Date(now).toISOString(),
   };

@@ -2548,6 +2548,9 @@ html.dark .brain-ask__cat { background: rgba(39, 102, 236, 0.18); color: #a9c3ff
 .ai-admin__limits > .empac-input-wrapper, .ai-admin__limits > div:not(:last-child) { flex: 1 1 18rem; min-width: 0; }
 .ai-admin__chart { overflow-x: auto; }
 .ai-admin__chart > * { min-width: 52rem; }
+.ai-admin__legend { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: var(--spacing-8) var(--spacing-16); font-size: var(--font-size-14); color: var(--text-secondary); }
+.ai-admin__legend li { display: inline-flex; align-items: center; gap: var(--spacing-6, 6px); }
+.ai-admin__swatch { width: 12px; height: 12px; border-radius: 3px; flex: 0 0 auto; }
 .ai-admin__tool { display: inline-flex; align-items: center; gap: var(--spacing-8, 8px); white-space: nowrap; }
 .ai-admin__who { display: grid; gap: 2px; }
 .ai-admin .originals-admin__h4 { display: flex; align-items: center; gap: var(--spacing-6, 6px); }

@@ -3,8 +3,9 @@
 /**
  * Account ▸ Support GameShuffle (Britton's picks, 2026-10-19, VDh1QfETVjNTjjzeiKqLNg): give once
  * or monthly from the account, and for supporters, since when, how long the badge lasts, their
- * level and Founding number, monthly support (a new level from the form replaces the old one;
- * stopped or the card changed in the Stripe portal), every gift (one-time ones too), their place
+ * level and Founding number, monthly support (a new level from the form replaces the old one; the
+ * card changed in the Stripe portal; cancelled through Before you go, then Stripe's cancel page),
+ * every gift (one-time ones too), their place
  * on the wall (autosaved), and a card to share. Data from /api/account/support.
  */
 
@@ -17,6 +18,7 @@ import { LoadingLines } from "@/components/loading/LoadingLines";
 import { AdminField, AdminScreen, AdminSection, AdminTable, SaveStatus } from "@/components/account/admin/AdminKit";
 import { SupportForm } from "@/components/support/SupportForm";
 import { SupporterShare } from "@/components/support/SupporterShare";
+import { CancelPlanButton } from "@/components/account/leave/BeforeYouGo";
 import { WALL_NAME_MAX, WALL_NOTE_MAX, dollars, levelGrantsPro, supportLevel } from "@/lib/support/rules";
 import type { SupporterInfo } from "@/lib/support/store";
 import "@/styles/support.css";
@@ -91,7 +93,18 @@ function YourSupport({ info }: { info: SupporterInfo }) {
             {m.renewsAt ? (m.cancelAtPeriodEnd ? `· stops after ${day(m.renewsAt)}` : `· next payment ${day(m.renewsAt)}`) : ""}
             {m.status === "past_due" ? " · the last payment didn't go through: update your card to keep it going" : ""}
           </p>
-          <Button variant="secondary" size="small" onClick={() => void manage()} disabled={busy}>{busy ? "Opening…" : "Stop or update your card"}</Button>
+          <div className="leave-actions">
+            <Button variant="secondary" size="small" onClick={() => void manage()} disabled={busy}>{busy ? "Opening…" : "Update your card"}</Button>
+            {!m.cancelAtPeriodEnd && ["active", "trialing", "past_due"].includes(m.status) && (
+              <CancelPlanButton
+                product="support"
+                size="small"
+                label="Cancel monthly support"
+                keepLabel="Keep supporting"
+                endsLine={m.renewsAt ? `If you cancel, your support stops after ${day(m.renewsAt)}${levelGrantsPro(m.level) ? ", and GS Pro with it" : ""}. You won't be charged again.` : null}
+              />
+            )}
+          </div>
         </div>
       )}
       <div className="support-account__row">

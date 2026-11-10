@@ -16,19 +16,16 @@ export const metadata: Metadata = {
 export default function Page() {
   return (
     <HelpArticle href={HREF}>
-      <h1>Notifications &amp; Messages</h1>
+      <h1>Your inbox</h1>
       <p>
-        Your notifications and your messages live together in the <strong>Comms Center</strong> at
-        <code> /comms</code>. It has two tabs: <strong>Alerts</strong> for notifications and
-        <strong> Messages</strong> for direct and group chats.
+        Your notifications live in the <strong>Inbox</strong> at <code>/comms</code>. It has two tabs:
+        <strong> Alerts</strong> for what happened, and <strong>Reminders</strong>{" "}for what&apos;s coming up.
       </p>
 
       <h2>Getting there</h2>
       <p>
-        Use the icons in the navbar: the <strong>bell</strong> opens your Alerts, the
-        <strong> messages icon</strong> opens your Messages. Each shows an unread badge and deep-links
-        straight to the right tab. (The old <code>/messages</code> link now redirects into the
-        Messages tab.)
+        On a phone, tap <strong>Inbox</strong> in the bar along the bottom; on a computer, use the
+        <strong> bell</strong>{" "}in the navbar. Both show how many alerts you haven&apos;t seen.
       </p>
 
       <h2>Alerts</h2>
@@ -39,38 +36,14 @@ export default function Page() {
         alerts as read, and the bell badge clears.
       </p>
 
-      <h2>Messages</h2>
+      <h2>Choosing what reaches you</h2>
       <p>
-        The Messages tab holds your direct messages and group chats. Start a new one with
-        <strong> New message</strong>, and pick a conversation from the list to read and reply. Crew
-        chats and other group conversations appear here too.
-      </p>
-
-      <h3>How direct messages work</h3>
-      <p>
-        DMs are <strong>mutual-follow only</strong>: you and the other person must both follow each
-        other before you can message. This keeps inboxes free of spam. The new-message picker only
-        shows people you mutually follow. If you can&apos;t message someone, follow them and ask them
-        to follow back.
-      </p>
-      <p>
-        <strong>Crew and group chats are the exception</strong>, they don&apos;t require mutual
-        follows, so teammates can coordinate regardless of who follows whom.
-      </p>
-      <p>
-        A new DM sends the other person a single ping so they know to check Messages; it doesn&apos;t
-        spam their Alerts.
-      </p>
-
-      <h2>Starting a conversation from a profile</h2>
-      <p>
-        On someone&apos;s <a href="/help/community/public-profile">public profile</a>, use
-        <strong> Message</strong> to open a DM (again, only when you mutually follow). <strong>Follow</strong>
-        there to build that mutual connection.
+        <a href="/settings/notifications">Settings ▸ Notifications</a> lets you choose, for each kind of news,
+        whether it reaches you on GameShuffle, by email or on Discord.
       </p>
 
       <h2>Still need help?</h2>
-      <p>Email <a href="mailto:support@gameshuffle.co">support@gameshuffle.co</a> if messages or alerts aren&apos;t behaving.</p>
+      <p>Email <a href="mailto:support@gameshuffle.co">support@gameshuffle.co</a> if alerts aren&apos;t behaving.</p>
     </HelpArticle>
   );
 }

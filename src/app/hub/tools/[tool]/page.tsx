@@ -9,7 +9,10 @@ import { StudioScreen } from "@/components/studio/StudioScreen";
 import { OverlayLinkCopy } from "@/components/studio/OverlayLinkCopy";
 import { IconTile } from "@/components/ui/IconTile";
 import { studioTool } from "@/lib/studio/tools";
+import { SpeedrunSetup } from "@/components/speedrun/SpeedrunSetup";
+import { setupForPage } from "@/lib/speedrun/store";
 import "@/styles/studio.css";
+import "@/styles/speedrun.css";
 
 type Props = { params: Promise<{ tool: string }> };
 
@@ -27,6 +30,17 @@ export default async function StudioToolPage({ params }: Props) {
   if (!t) notFound();
   const { userId } = await requireHubAccess(`/hub/tools/${t.id}`);
   const owner = await studioOwner(userId);
+  // Speedrun has its own setup (the /speedrun page's): its OBS link, timer address and preview.
+  if (t.id === "speedrun") {
+    const { initial, blocked } = await setupForPage(userId);
+    return (
+      <div className="hub-page studio-page">
+        <StudioHeader userId={userId} liveSlug={owner.liveSlug} />
+        <Link href="/hub/tools" className="studio-back"><IconChevronLeft size={18} aria-hidden="true" />All tools</Link>
+        <SpeedrunSetup initial={initial} blocked={blocked} studio />
+      </div>
+    );
+  }
   return (
     <div className="hub-page studio-page">
       <StudioHeader userId={userId} liveSlug={owner.liveSlug} />

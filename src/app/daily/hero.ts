@@ -1,0 +1,12 @@
+import type { BrowseHeroProps } from "@/components/events/BrowseHero";
+
+/** The page's header, shared with its loading outline so the header never jumps when the page arrives. */
+export const DAILY_HERO: BrowseHeroProps = {
+  eyebrow: "A GameShuffle Original",
+  title: "The Daily Shuffle",
+  sub: "Guess today's character from 130 across Nintendo. The same one for everyone, new at midnight Pacific.",
+  subShort: "Guess today's character from 130 across Nintendo.",
+  accent: "daily",
+  field: "daily",
+  compact: true,
+};

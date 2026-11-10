@@ -1,4 +1,4 @@
-export type ConfigType = "kart-build" | "track-list" | "player-preset" | "ruleset" | "item-set" | "game-night-setup" | "party-setup" | "smash-setup" | "splatoon-setup" | "kirby-setup" | "stadium-setup";
+export type ConfigType = "kart-build" | "track-list" | "player-preset" | "ruleset" | "item-set" | "game-night-setup" | "party-setup" | "smash-setup" | "splatoon-setup" | "kirby-setup" | "stadium-setup" | "sonic-setup";
 
 export interface KartBuildConfig {
   type: "kart-build";
@@ -96,6 +96,16 @@ export interface KirbySetupConfig {
   stadium: string | null;
 }
 
+/** A Sonic Racing: CrossWorlds session: racer, machine and Gadget Plate per player, plus the races or a Grand Prix. */
+export interface SonicSetupConfig {
+  type: "sonic-setup";
+  gameSlug: string;
+  plate: string;
+  players: { name: string; racer: string; machine: string; gadgets: string[]; superSlot: string | null }[];
+  races: { track: string; crossWorld: string | null }[];
+  grandPrix: string | null;
+}
+
 /** A Pokémon Stadium rental session: a cup and a team of 6 rentals per player, with an optional pick of 3. */
 export interface StadiumSetupConfig {
   type: "stadium-setup";
@@ -146,7 +156,8 @@ export type SavedConfigData =
   | PartySetupConfig
   | SmashSetupConfig
   | SplatoonSetupConfig
-  | KirbySetupConfig;
+  | KirbySetupConfig
+  | SonicSetupConfig;
 
 export const CONFIG_TYPE_LABELS: Record<ConfigType, string> = {
   "kart-build": "Kart Builds",
@@ -160,4 +171,5 @@ export const CONFIG_TYPE_LABELS: Record<ConfigType, string> = {
   "splatoon-setup": "Splatoon Setups",
   "kirby-setup": "Kirby Air Riders Setups",
   "stadium-setup": "Pokémon Stadium Teams",
+  "sonic-setup": "Sonic Racing: CrossWorlds Setups",
 };

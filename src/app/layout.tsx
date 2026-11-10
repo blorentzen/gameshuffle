@@ -42,6 +42,8 @@ import { ImpersonationControlMount } from "@/components/staff/ImpersonationContr
 import { ImpersonationProviderMount } from "@/components/staff/ImpersonationProviderMount";
 import { RouteThemeSync } from "@/components/theme/RouteThemeSync";
 import { AuthHashErrorCatcher } from "@/components/auth/AuthHashErrorCatcher";
+import { TabsInView } from "@/components/ui/TabsInView";
+import { NavProgress } from "@/components/layout/NavProgress";
 import { LeadSourceTracker } from "@/components/analytics/LeadSourceTracker";
 import { isAppRoute } from "@/lib/theme/app-routes";
 import { isActivityPath } from "@/lib/activity/hosts";
@@ -211,6 +213,10 @@ export default async function RootLayout({
         <RouteThemeSync />
         {/* Sends a sign-in error that Supabase dropped on another page (after the #) to /login to be explained. */}
         <AuthHashErrorCatcher />
+        {/* Scrolls a CDS tab bar to its selected tab when the tabs don't fit (phones). */}
+        <TabsInView />
+        {/* The thin bar along the top while the next page loads (it reads the address, so it sits in Suspense). */}
+        <Suspense fallback={null}><NavProgress /></Suspense>
         {/* Staff impersonation banner — server-rendered, only emits for staff
             with active impersonation cookies. No flash of un-bannered content. */}
         <ImpersonationBanner />

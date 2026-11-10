@@ -68,8 +68,8 @@ button.room-head__status:focus-visible { outline: 2px solid #fff; outline-offset
   display: flex; flex-direction: column; gap: var(--spacing-20);
   padding: var(--spacing-28, 2.8rem);
   border-radius: 1.6rem;
-  border: 1px solid var(--border-subtle);
-  background: var(--background-primary, #fff);
+  border: 1px solid var(--border-default);
+  background: var(--background-elevated, #fff);
   box-shadow: 0 1px 2px rgba(20, 26, 58, 0.06), 0 10px 28px rgba(20, 26, 58, 0.08);
 }
 @media (max-width: 899px) {
@@ -136,7 +136,7 @@ button.room-head__status:focus-visible { outline: 2px solid #fff; outline-offset
 /* ── Since you were here: one line, over the header's foot. ── */
 .room-since {
   display: flex; align-items: center; gap: var(--spacing-12); padding: var(--spacing-14, 1.4rem) var(--spacing-16);
-  border-radius: 1.4rem; border: 1px solid var(--border-subtle); background: var(--background-primary, #fff);
+  border-radius: 1.4rem; border: 1px solid var(--border-default); background: var(--background-elevated, #fff);
   box-shadow: 0 10px 28px rgba(20, 26, 58, 0.1); position: relative;
 }
 .room-since__text { display: grid; gap: var(--spacing-2, 0.2rem); flex: 1; min-width: 0; }
@@ -333,7 +333,7 @@ a.room-art__text:focus-visible { outline: none; }
 /* ── You might like, with pictures: the room's last cell, no box of its own (each suggestion is a card). ── */
 .room-like {
   grid-column: span var(--span, 12); min-width: 0; padding: var(--spacing-28, 2.8rem);
-  border-radius: 1.6rem; border: 1px solid var(--border-subtle); background: var(--background-primary, #fff);
+  border-radius: 1.6rem; border: 1px solid var(--border-default); background: var(--background-elevated, #fff);
   box-shadow: 0 1px 2px rgba(20, 26, 58, 0.06), 0 10px 28px rgba(20, 26, 58, 0.08);
 }
 .room-like h2 { margin: 0 0 var(--spacing-8) !important; font-size: var(--font-size-20) !important; font-family: var(--font-display); font-weight: 800; }
@@ -430,11 +430,13 @@ a.room-art__text:focus-visible { outline: none; }
 .room-games__head { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--spacing-8) var(--spacing-12); }
 .room-games__head h2 { margin: 0; font-size: var(--font-size-20); font-family: var(--font-display); font-weight: 800; }
 .room-games__row { display: grid; gap: var(--spacing-20); grid-template-columns: repeat(auto-fill, minmax(22rem, 1fr)); }
+/* Cards on Home use the raised card color (--background-elevated) and the default border: on --background-primary
+   they were the page's own grey and disappeared (Britton, 2026-11-09). */
 /* A card per space: its color along the top, the box art, the pick of the day, what's new. */
 .room-game {
   position: relative; overflow: hidden; display: grid; grid-template-columns: 6.4rem minmax(0, 1fr); gap: var(--spacing-14, 1.4rem);
   align-items: start; padding: var(--spacing-16); border-radius: 1.6rem; text-decoration: none; color: var(--text-primary);
-  border: 1px solid var(--border-subtle); background: var(--background-primary, #fff);
+  border: 1px solid var(--border-default); background: var(--background-elevated, #fff);
   box-shadow: 0 1px 2px rgba(20, 26, 58, 0.06), 0 10px 28px rgba(20, 26, 58, 0.08);
   transition: transform .18s ease, box-shadow .18s ease;
 }
@@ -470,10 +472,29 @@ a.room-art__text:focus-visible { outline: none; }
 .gamespace-card > .room-game { flex: 1; }
 /* With a Join button the card is the box and the button sits inside it, at its foot (it sat under the card, apart). */
 .gamespace-card:has(> :not(.room-game)) {
-  gap: 0; overflow: hidden; border-radius: 1.6rem; border: 1px solid var(--border-subtle); background: var(--background-primary, #fff);
+  gap: 0; overflow: hidden; border-radius: 1.6rem; border: 1px solid var(--border-default); background: var(--background-elevated, #fff);
   box-shadow: 0 1px 2px rgba(20, 26, 58, 0.06), 0 10px 28px rgba(20, 26, 58, 0.08); padding-bottom: var(--spacing-16);
 }
 .gamespace-card:has(> :not(.room-game)) > .room-game { border: 0; border-radius: 0; box-shadow: none; background: transparent; }
 .gamespace-card:has(> :not(.room-game)) > .room-game:hover { transform: none; box-shadow: none; }
 .gamespace-card > :not(.room-game) { margin-inline: var(--spacing-16); }
 .games-index__more { display: flex; flex-wrap: wrap; gap: var(--spacing-12) var(--spacing-24); margin: 0; padding-top: var(--spacing-24); border-top: 1px solid var(--border-subtle); }
+
+/* ── Home in five blocks (picks 2026-11-09): Today, For you, Play next, Your games, One thing to try. ── */
+.room--five { gap: var(--spacing-32); }
+.room-head--short .room-head__inner { padding-bottom: var(--spacing-8); }
+.room-block { display: grid; gap: var(--spacing-12); min-width: 0; }
+.room-block__head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: var(--spacing-8) var(--spacing-12); }
+.room-block__head h2 { margin: 0; font-size: var(--font-size-20); font-family: var(--font-display); font-weight: 800; }
+/* Lines: one raised list (no box per line), a thin rule between them. */
+.room-lines { list-style: none; margin: 0; padding: 0; border: 1px solid var(--border-default); border-radius: 1.6rem; background: var(--background-elevated, #fff); overflow: hidden; }
+.room-lines li + li { border-top: 1px solid var(--border-default); }
+.room-line { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: var(--spacing-12); padding: var(--spacing-12) var(--spacing-16); color: var(--text-primary); text-decoration: none; min-height: 6.4rem; }
+.room-line:hover { background: var(--background-secondary); }
+.room-line:focus-visible { outline: 3px solid var(--brand-ink, #2f5bea); outline-offset: -3px; }
+.room-line__text { display: grid; gap: 2px; min-width: 0; }
+.room-line__text b { font-weight: 700; font-size: var(--font-size-16); line-height: 1.3; }
+.room-line__text span { color: var(--text-secondary); font-size: var(--font-size-14); line-height: 1.35; overflow-wrap: anywhere; }
+.room-line__kick { font-size: var(--font-size-12) !important; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; color: var(--brand-ink, #2f5bea) !important; }
+.room-line__go { color: var(--text-tertiary); }
+.room-line--one { border: 1px solid var(--border-default); border-radius: 1.6rem; background: var(--background-elevated, #fff); }

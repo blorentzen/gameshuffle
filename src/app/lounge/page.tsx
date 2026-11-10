@@ -6,6 +6,7 @@ import { Accordion, Button, Container, Table, TableBody, TableCell, TableHead, T
 import { IconCaretUpFilled } from "@tabler/icons-react";
 import { LabeledSubNav } from "@/components/ui/LabeledSubNav";
 import { BrowseHero } from "@/components/events/BrowseHero";
+import { LOUNGE_HERO } from "./hero";
 import { MmrEmblem } from "@/components/mmr/MmrEmblem";
 import { LoungeConfirm } from "@/components/lounge/LoungeConfirm";
 import { RoomCheck } from "@/components/lounge/RoomCheck";
@@ -251,15 +252,7 @@ export default async function LoungePage({ searchParams }: { searchParams: Promi
   return (
     <main className="lounge-page">
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(crumbs) }} />
-      <BrowseHero
-        eyebrow="Mario Kart lounge"
-        title="Lounge stats"
-        sub="Any lounge player's season, from MKCentral's lounge."
-        accent="blue"
-        field="compete"
-        compact
-        actions={<LoungeLookup compareGame={game} />}
-      />
+      <BrowseHero {...LOUNGE_HERO} actions={<LoungeLookup compareGame={game} />} />
       <Container className="lounge-body">
         <section className="lounge-sec lounge-sec--flat lounge-sofar" aria-labelledby="lounge-season-h">
           <h2 id="lounge-season-h">The season so far <small>{seasonWord}</small></h2>

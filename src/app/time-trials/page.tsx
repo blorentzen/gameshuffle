@@ -1,8 +1,9 @@
 import type { Metadata } from "next";
 import { permanentRedirect } from "next/navigation";
 import { MarketingJsonLd } from "@/components/marketing/MarketingJsonLd";
-import { TimeTrialsHub, TT_FAQ } from "@/components/timeTrials/TimeTrialsHub";
-import { gameBySlug, gamePath, isClassFor, type TtClass } from "@/lib/timeTrials/tracks";
+import { TimeTrialsHub, ttFaq } from "@/components/timeTrials/TimeTrialsHub";
+import { ttGameReady } from "@/lib/timeTrials/store";
+import { boardGameBySlug, gamePath, isClassFor, type TtClass } from "@/lib/timeTrials/tracks";
 import { isCountryCode } from "@/lib/timeTrials/countries";
 import "@/styles/time-trials.css";
 
@@ -24,14 +25,14 @@ export const metadata: Metadata = {
 
 export default async function TimeTrialsPage({ searchParams }: { searchParams: Promise<{ game?: string; cc?: string; country?: string }> }) {
   const sp = await searchParams;
-  const asked = sp.game ? gameBySlug(sp.game) : null;
+  const asked = sp.game ? boardGameBySlug(sp.game) : null;
   if (asked) {
     const c = Number(sp.cc);
     permanentRedirect(gamePath(asked.id, isClassFor(asked.id, c) ? (c as TtClass) : undefined));
   }
   return (
     <>
-      <MarketingJsonLd breadcrumb={{ label: "Time trials", path: "/time-trials" }} faq={TT_FAQ.map((f) => ({ q: f.q, a: f.a }))} />
+      <MarketingJsonLd breadcrumb={{ label: "Time trials", path: "/time-trials" }} faq={ttFaq(await ttGameReady("kar")).map((f) => ({ q: f.q, a: f.a }))} />
       <TimeTrialsHub game="mk8dx" cc={150} gamePage={false} country={isCountryCode(sp.country) ? sp.country : null} />
     </>
   );

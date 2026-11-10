@@ -19,6 +19,10 @@
  *                                    GS Pro / Circuit subscription sync (a
  *                                    Backer or Champion level gives GS Pro
  *                                    through syncSupportPro there)
+ *   customer.subscription.updated / .deleted also note why someone cancelled
+ *                                    (Stripe's cancellation_details merged with our
+ *                                    Before you go answer, src/lib/billing/cancellations.ts;
+ *                                    never fails the event)
  *   radar.early_fraud_warning.created → refund + stop any subscription + alert
  *   charge.dispute.created / .closed   → alert with the deadline / outcome
  *                                    (src/lib/stripe/fraud.ts)
@@ -39,6 +43,7 @@ import { intervalForPrice, periodEndOf, subscriptionIdOf } from "@/lib/stripe/pa
 import { fulfilShopSession, markShopRefund, releaseShopHolds } from "@/lib/store/orders";
 import { handleDisputeClosed, handleDisputeCreated, handleEarlyFraudWarning } from "@/lib/stripe/fraud";
 import { fulfilSupportSession, isSupportSubscription, markSupportRefund, recordSupportInvoice, recordSupportSubscription } from "@/lib/support/store";
+import { recordStripeCancellation } from "@/lib/billing/cancellations";
 import {
   sendTrialStartedEmail,
   sendTrialEndingEmail,
@@ -218,9 +223,15 @@ export async function POST(request: Request) {
 
       case "customer.subscription.updated": {
         const sub = event.data.object as Stripe.Subscription;
-        if (isSupportSubscription(sub)) { await recordSupportSubscription(sub); break; }
+        if (isSupportSubscription(sub)) {
+          await recordSupportSubscription(sub);
+          await recordStripeCancellation({ sub, product: "support", userId: sub.metadata?.gs_user_id || null });
+          break;
+        }
         const result = await syncFromSubscription(sub);
         if (!result) break;
+        // Why they're leaving (or clear it if they kept the plan). Never throws.
+        await recordStripeCancellation({ sub, product: result.product, userId: result.userId });
         // Circuit has no trial and its own lifecycle; skip the Pro-worded emails.
         const proEmails = result.product === "pro";
 
@@ -281,8 +292,13 @@ export async function POST(request: Request) {
 
       case "customer.subscription.deleted": {
         const sub = event.data.object as Stripe.Subscription;
-        if (isSupportSubscription(sub)) { await recordSupportSubscription(sub); break; }
-        await syncFromSubscription(sub);
+        if (isSupportSubscription(sub)) {
+          await recordSupportSubscription(sub);
+          await recordStripeCancellation({ sub, product: "support", userId: sub.metadata?.gs_user_id || null });
+          break;
+        }
+        const result = await syncFromSubscription(sub);
+        if (result) await recordStripeCancellation({ sub, product: result.product, userId: result.userId });
         break;
       }
 

@@ -27,6 +27,8 @@ import { seasonKey, seasonRange, rankFor } from "@/lib/seasons/ranks";
 import { listGameFeed } from "@/lib/social/feed";
 import { cleanRoll } from "@/lib/rolls/spaceRoll";
 import type { ChatRoll } from "@/lib/twitch/chatRoll";
+import { ideasGameReady, listMyIdeas, listPublicIdeas } from "@/lib/ideas/store";
+import type { Idea } from "@/lib/ideas/types";
 
 const ONLINE_MS = 5 * 60_000;
 const DAY_MS = 86_400_000;
@@ -227,12 +229,13 @@ export interface SpaceYou {
 export async function spaceYou(s: GameSpace, userId: string): Promise<SpaceYou> {
   const [links, bests, builds] = await Promise.all([
     s.lounge?.length ? linksFor(userId).catch(() => []) : Promise.resolve([]),
-    s.tt ? playerBests(ttPlayer("u", userId)).catch(() => []) : Promise.resolve([]),
+    // Kirby Air Riders' board (`ttBoard`) gives its best time a chip too.
+    s.tt ?? s.ttBoard ? playerBests(ttPlayer("u", userId)).catch(() => []) : Promise.resolve([]),
     createServiceClient().from("saved_configs").select("id, randomizer_slug, config_data").eq("user_id", userId).in("randomizer_slug", s.games).order("created_at", { ascending: false }).limit(10)
       .then((r) => (r.data ?? []) as { id: string; randomizer_slug: string; config_data: { type?: string; character?: { name?: string; img?: string }; vehicle?: { name?: string; img?: string } } | null }[], () => []),
   ]);
   const link = links.find((l) => s.lounge!.includes(l.game as never)) ?? null;
-  const b = bests.find((x) => x.game === s.tt && x.vehicle === "any") ?? null;
+  const b = bests.find((x) => x.game === (s.tt ?? s.ttBoard) && x.vehicle === "any") ?? null;
   const t = b ? ttTrack(b.game, b.track) : null;
   const build = builds.find((r) => r.config_data?.type === "kart-build" && r.config_data.character?.img && r.config_data.vehicle?.img);
   return {
@@ -340,4 +343,26 @@ export async function spaceRolls(s: GameSpace, viewerId: string | null, limit = 
     }
   }
   return items.sort((a, b) => (a.at < b.at ? 1 : -1)).slice(0, limit);
+}
+
+export interface SpaceIdeasData {
+  /** Whether ideas carry a game yet (supabase/ideas-game-m1.sql). The Ideas tab hides until they do. */
+  ready: boolean;
+  /** The public ideas for the space's games: open ones by votes, then planned, built and turned down. */
+  ideas: Idea[];
+  /** The viewer's own ideas for this game still waiting for review (only they see them here). */
+  waiting: Idea[];
+}
+
+const PLAN_ORDER: Record<string, number> = { public: 0, in_review: 0, planned: 1, shipped: 2, declined: 3 };
+
+/** A space's Ideas tab: Idea Board ideas tagged with one of its games (spaces first wave, 2026-11-09). */
+export async function spaceIdeas(s: GameSpace, viewerId: string | null, limit = 40): Promise<SpaceIdeasData> {
+  if (!(await ideasGameReady().catch(() => false))) return { ready: false, ideas: [], waiting: [] };
+  const [ideas, waiting] = await Promise.all([
+    listPublicIdeas({ viewerId, games: s.games, sort: "top", limit }).catch(() => [] as Idea[]),
+    viewerId ? listMyIdeas(viewerId, { games: s.games, status: "submitted" }).catch(() => [] as Idea[]) : Promise.resolve([] as Idea[]),
+  ]);
+  const sorted = [...ideas].sort((a, b) => (PLAN_ORDER[a.status] ?? 9) - (PLAN_ORDER[b.status] ?? 9) || b.voteCount - a.voteCount);
+  return { ready: true, ideas: sorted, waiting };
 }

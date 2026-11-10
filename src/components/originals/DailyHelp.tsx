@@ -52,13 +52,15 @@ export function HelpWord({ name, free, bought, note }: { name: string; free: num
   );
 }
 
-export function DailyHelpPanel({ game, info, help, onBought, signupPath }: {
+export function DailyHelpPanel({ game, info, help, onBought, signupPath, free }: {
   game: "shuffle" | "dex";
   info: HelpInfo | null;
   help: HelpCounts;
   onBought: (help: HelpCounts, balance: number) => void;
   /** Where a guest signs up and comes back to. */
   signupPath: string;
+  /** Letters the last chance already shows (default: the Dex 1, the Shuffle 0; a Sonic day's Shuffle 1). */
+  free?: number;
 }) {
   const toast = useToast();
   const confirm = useConfirm();
@@ -76,11 +78,13 @@ export function DailyHelpPanel({ game, info, help, onBought, signupPath }: {
   const prices = info.prices;
   const balance = info.balance ?? 0;
   const lettersLeft = info.lettersLeft ?? 0;
+  // The first purchase gives the first letter (and the length) only when the last chance shows none.
+  const firstLetter = (free ?? (game === "dex" ? 1 : 0)) === 0 && help.letters === 0;
   const guessesLeft = Math.max(0, prices.guesses - help.guesses);
 
   const buy = async (kind: "letter" | "guess") => {
     const price = kind === "letter" ? prices.letter : prices.guess;
-    const what = kind === "letter" ? (game === "shuffle" && help.letters === 0 ? "the first letter" : "the next letter") : "one more guess";
+    const what = kind === "letter" ? (firstLetter ? "the first letter" : "the next letter") : "one more guess";
     if (!(await confirm({ title: `Spend ${price} tokens on ${what}?`, body: "Tokens only go if it works. A solve with help counts as a save.", confirmLabel: `Spend ${price} tokens`, danger: false }))) return;
     setBusy(true);
     const res = await api("/api/daily/help", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ game, kind }) }).catch(() => null);
@@ -109,7 +113,7 @@ export function DailyHelpPanel({ game, info, help, onBought, signupPath }: {
       </div>
       <div className="daily-help__row">
         <span className="daily-help__what">
-          {game === "shuffle" && help.letters === 0 ? "First letter and length" : "The next letter"}
+          {firstLetter ? "First letter and length" : "The next letter"}
           <small>{lettersLeft ? `${lettersLeft} more you can buy` : "No more letters today"}</small>
         </span>
         <Button variant="primary" size="small" disabled={busy || !lettersLeft || balance < prices.letter} onClick={() => void buy("letter")}>{prices.letter} tokens</Button>

@@ -12,20 +12,21 @@ import { TimeTrialBoard } from "@/components/timeTrials/TimeTrialBoard";
 import { TtMovedToast } from "@/components/timeTrials/TtMovedToast";
 import { TtDiscordLine } from "@/components/timeTrials/TtDiscordLine";
 import { siteActor } from "@/lib/timeTrials/players";
-import { boardFor, serversFor } from "@/lib/timeTrials/store";
+import { boardFor, serversFor, ttGameReady } from "@/lib/timeTrials/store";
 import { countriesInUse, isCountryCode } from "@/lib/timeTrials/countries";
 import { nationalRecords } from "@/lib/timeTrials/detail";
 import { flagUrl } from "@/lib/lounge/flags";
 import { countryName } from "@/lib/lounge/countries";
 import { formatTime } from "@/lib/timeTrials/rules";
-import { gameBySlug, gamePath, gameTitleName, isClassFor, trackBySegment, trackPath, ttCups, type TtClass } from "@/lib/timeTrials/tracks";
-import { categoryText, readCategory, vehicleLabel } from "@/lib/timeTrials/categories";
+import { boardGameBySlug, cupLabel, gamePath, gameTitleName, isClassFor, trackBySegment, trackPath, ttCups, type TtClass } from "@/lib/timeTrials/tracks";
+import { categoryText, hasItems, readCategory, vehicleLabel } from "@/lib/timeTrials/categories";
 import "@/styles/time-trials.css";
 
 /**
  * A track's time trial board (picks 2026-10-29): every player's best, by everyone, friends, a
  * crew or a Discord server, with proof and Discord verification marked. Public and in search
- * once three players have a time (a thinner board is noindex).
+ * once three players have a time (a thinner board is noindex). Kirby Air Riders courses too, once their migration
+ * has run: no speed or items, a machine filter, no Discord line (Discord's /tt is Mario Kart only).
  */
 
 export const dynamic = "force-dynamic";
@@ -35,7 +36,7 @@ type Props = { params: Promise<{ game: string; track: string }>; searchParams: P
 const MIN_INDEXED = 3;
 
 function resolve(gameSlug: string, segment: string, ccParam?: string, sp: { items?: string; vehicle?: string } = {}) {
-  const info = gameBySlug(gameSlug);
+  const info = boardGameBySlug(gameSlug);
   const track = info ? trackBySegment(info.id, segment) : null;
   if (!info || !track) return null;
   const ccRaw = Number(ccParam);
@@ -48,17 +49,23 @@ function resolve(gameSlug: string, segment: string, ccParam?: string, sp: { item
 export async function generateMetadata({ params, searchParams }: Props): Promise<Metadata> {
   const [{ game, track }, sp] = await Promise.all([params, searchParams]);
   const r = resolve(game, track, sp.cc, sp);
-  if (!r) return { title: "Track not found", robots: { index: false } };
+  if (!r || !(await ttGameReady(r.info.id))) return { title: "Track not found", robots: { index: false } };
   const board = await boardFor({ game: r.info.id, track: r.track.id, cc: r.cc, items: r.items, vehicle: r.vehicle, scope: "everyone", viewer: null, limit: 1 });
+  const kirby = !hasItems(r.info.id);
   const cls = `${r.info.classes.length > 1 ? ` ${r.cc}cc` : ""}${r.items === "none" ? " no mushrooms" : ""}${r.vehicle !== "any" ? ` ${vehicleLabel(r.vehicle)}` : ""}`;
   // SEO pass 2026-11-05: the game spelled out (plus MK8DX), and the speed class always: "Toad Harbor 150cc Time Trial
-  // Leaderboard: Mario Kart World".
-  const titleCls = ` ${r.cc}cc${r.items === "none" ? " No Mushrooms" : ""}${r.vehicle !== "any" ? ` ${vehicleLabel(r.vehicle)}` : ""}`;
-  const title = `${r.track.name}${titleCls} Time Trial Leaderboard: ${gameTitleName(r.info.id)}`;
+  // Leaderboard: Mario Kart World". Kirby Air Riders has no speed class and calls the mode Time Attack:
+  // "Floria Fields Time Attack Leaderboard: Kirby Air Riders".
+  const titleCls = kirby ? (r.vehicle !== "any" ? ` ${vehicleLabel(r.vehicle)}` : "") : ` ${r.cc}cc${r.items === "none" ? " No Mushrooms" : ""}${r.vehicle !== "any" ? ` ${vehicleLabel(r.vehicle)}` : ""}`;
+  const title = `${r.track.name}${titleCls} ${kirby ? "Time Attack" : "Time Trial"} Leaderboard: ${gameTitleName(r.info.id)}`;
   const top = board.rows[0];
-  const description = top
-    ? `The fastest ${r.track.name}${cls} times in ${r.info.label}: ${board.total} ${board.total === 1 ? "player" : "players"}, record ${formatTime(top.timeMs)} by ${top.name}. Add your time from a screenshot.`
-    : `${r.track.name}${cls} time trial times in ${r.info.label}. Be the first to add one, from a screenshot or in Discord.`;
+  const description = kirby
+    ? (top
+      ? `The fastest ${r.track.name}${cls} Time Attack times in ${r.info.label}: ${board.total} ${board.total === 1 ? "player" : "players"}, record ${formatTime(top.timeMs)} by ${top.name}. Add your time with a screenshot.`
+      : `${r.track.name}${cls} Time Attack times in ${r.info.label}. Be the first to add one, with a screenshot of the result.`)
+    : top
+      ? `The fastest ${r.track.name}${cls} times in ${r.info.label}: ${board.total} ${board.total === 1 ? "player" : "players"}, record ${formatTime(top.timeMs)} by ${top.name}. Add your time from a screenshot.`
+      : `${r.track.name}${cls} time trial times in ${r.info.label}. Be the first to add one, from a screenshot or in Discord.`;
   const path = trackPath(r.track, r.cc, r);
   return {
     title,
@@ -72,7 +79,7 @@ export async function generateMetadata({ params, searchParams }: Props): Promise
 export default async function TrackBoardPage({ params, searchParams }: Props) {
   const [{ game, track }, sp] = await Promise.all([params, searchParams]);
   const r = resolve(game, track, sp.cc, sp);
-  if (!r) notFound();
+  if (!r || !(await ttGameReady(r.info.id))) notFound();
   if (!r.canonical) permanentRedirect(trackPath(r.track, r.cc, r));
   const { info, track: t, cc, items, vehicle } = r;
   const actor = await siteActor();
@@ -86,6 +93,8 @@ export default async function TrackBoardPage({ params, searchParams }: Props) {
   const cup = ttCups(info.id).find((c) => c.tracks.some((x) => x.id === t.id));
   const path = trackPath(t, cc, { items, vehicle });
   const what = categoryText(info.id, cc, items, vehicle, info.classes.length > 1);
+  const kirby = !hasItems(info.id);
+  const laps = t.laps ?? 3;
 
   return (
     <main className="tt-page">
@@ -94,7 +103,7 @@ export default async function TrackBoardPage({ params, searchParams }: Props) {
       <BrowseHero
         eyebrow={info.label}
         title={t.name}
-        sub={`Each player's best time (${what}), fastest first.`}
+        sub={kirby ? `Each player's best Time Attack run (${what}, ${laps} ${laps === 1 ? "lap" : "laps"}), fastest first.` : `Each player's best time (${what}), fastest first.`}
         subShort="Each player's best time, fastest first."
         accent="blue"
         field="compete"
@@ -132,10 +141,10 @@ export default async function TrackBoardPage({ params, searchParams }: Props) {
             <p className="tt-note">Each country&apos;s best on this board, from the country on each player&apos;s account.</p>
           </section>
         )}
-        <TtDiscordLine returnTo={path} needsLink={!!actor && !actor.discordLinked} />
+        {!kirby && <TtDiscordLine returnTo={path} needsLink={!!actor && !actor.discordLinked} />}
         {cup && cup.tracks.length > 1 && (
           <section className="tt-sec" aria-labelledby="tt-cup">
-            <h2 id="tt-cup">{/Mario Kart$/.test(cup.cup) ? "More Super Mario Kart courses" : `More in the ${cup.cup} Cup`}</h2>
+            <h2 id="tt-cup">{/courses$/.test(cupLabel(cup.cup)) ? `More ${cupLabel(cup.cup).replace(/^New/, "new").replace(/^Returning/, "returning")}` : `More in the ${cupLabel(cup.cup)}`}</h2>
             <ul className="tt-more">
               {cup.tracks.filter((x) => x.id !== t.id).map((x) => (
                 <li key={x.id}>
@@ -146,7 +155,7 @@ export default async function TrackBoardPage({ params, searchParams }: Props) {
                 </li>
               ))}
             </ul>
-            <ArrowLink href={gamePath(info.id, cc, { items, vehicle })}>Every {info.label} track</ArrowLink>
+            <ArrowLink href={gamePath(info.id, cc, { items, vehicle })}>Every {info.label} {info.trackWord}</ArrowLink>
           </section>
         )}
       </Container>

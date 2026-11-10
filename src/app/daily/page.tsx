@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Container } from "@empac/cascadeds";
 import { BrowseHero } from "@/components/events/BrowseHero";
+import { DAILY_HERO } from "./hero";
 import { DailiesBar, DailiesProvider } from "@/components/originals/Dailies";
 import { DiscordPlug } from "@/components/discord/DiscordPlug";
 import { DailyShuffle } from "@/components/originals/DailyShuffle";
@@ -16,15 +17,7 @@ export const metadata: Metadata = {
 export default function DailyPage() {
   return (
     <main>
-      <BrowseHero
-        eyebrow="A GameShuffle Original"
-        title="The Daily Shuffle"
-        sub="Guess today's character from 130 across Nintendo. The same one for everyone, new at midnight Pacific."
-        subShort="Guess today's character from 130 across Nintendo."
-        accent="daily"
-        field="daily"
-        compact
-      />
+      <BrowseHero {...DAILY_HERO} />
       <Container className="tool-page daily-page">
         <DailiesProvider current="shuffle">
           <DailiesBar current="shuffle" />

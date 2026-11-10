@@ -49,12 +49,20 @@ type Row = {
 };
 
 /** Every product in shelf order; `onlyOnSale` drops inactive and ended ones. */
-export async function listShopProducts(opts: { onlyOnSale?: boolean } = {}): Promise<ShopProduct[]> {
+export async function listShopProducts(opts: { onlyOnSale?: boolean; skus?: string[] } = {}): Promise<ShopProduct[]> {
   const svc = createServiceClient();
+  const skus = opts.skus;
   // Merch alone is thousands of rows (a size and color each), past the 1,000 a request returns: page both reads.
+  // `skus` reads only those (a cart's lines).
   const [{ data, error }, avail] = await Promise.all([
-    readAllPages<Row & { archived_at?: string | null }>((from, to) => svc.from("shop_products").select("*").order("sort_order").order("sku").range(from, to)),
-    readAllPages<{ sku: string; held: number; available: number }>((from, to) => svc.rpc("shop_availability").order("sku").range(from, to)),
+    readAllPages<Row & { archived_at?: string | null }>((from, to) => {
+      const q = svc.from("shop_products").select("*");
+      return (skus ? q.in("sku", skus) : q).order("sort_order").order("sku").range(from, to);
+    }),
+    readAllPages<{ sku: string; held: number; available: number }>((from, to) => {
+      const q = svc.rpc("shop_availability");
+      return (skus ? q.in("sku", skus) : q).order("sku").range(from, to);
+    }),
   ]);
   if (notReady(error) || notReady(avail.error)) throw new ShopNotReady();
   if (error) throw new Error(`shop products: ${error.message}`);
@@ -74,4 +82,13 @@ export async function listShopProducts(opts: { onlyOnSale?: boolean } = {}): Pro
       };
     })
     .filter((p) => !opts.onlyOnSale || p.onSale);
+}
+
+/**
+ * What a page hands its cart up front: the card packs (the cart suggests them), plus one product's own sizes and colors
+ * on its page. Every merch size and color was sent to every visitor before (3,910 of them, 2 MB of /shop, 2026-11-09);
+ * the cart now looks up merch already in it through /api/shop/products.
+ */
+export function cartSeed(products: ShopProduct[], listingId?: string | null): ShopProduct[] {
+  return products.filter((p) => p.category !== "merch" || (!!listingId && p.listingId === listingId));
 }

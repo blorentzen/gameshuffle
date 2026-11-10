@@ -143,8 +143,9 @@ export function PlatformOriginalsTab() {
       >
         <div className="admin-cols">
           <AdminPanel className="originals-admin__today">
+            {/* Sonic days have no art (names only). */}
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={d.today.img} alt="" />
+            {d.today.img ? <img src={d.today.img} alt="" /> : null}
             <div>
               <span className="home-play__eyebrow">Today · puzzle #{d.today.number}</span>
               <h3 className="originals-admin__answer">{d.today.answer}</h3>

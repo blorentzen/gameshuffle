@@ -28,6 +28,9 @@ const PAGE = 25;
 const DECKS = ["chaos", "random"] as const;
 
 /** Same filter values as before (exact deck match), in plain words. */
+/** An event's key in plain words for the screen ("treasure_chest" → "Treasure chest"); chat and saves keep the key. */
+const eventName = (key: string) => { const w = key.replace(/[_-]+/g, " ").trim(); return w.charAt(0).toUpperCase() + w.slice(1); };
+
 const FILTERS: Array<{ value: "all" | Surface; label: string }> = [
   { value: "all", label: "All events" },
   { value: "chaos", label: "Only in !chaos" },
@@ -137,9 +140,9 @@ export function PlatformEventsTab() {
       });
       if (!res.ok) {
         putBack();
-        toast.error(`Couldn't turn ${row.event_key} ${next ? "on" : "off"}. Try again.`);
+        toast.error(`Couldn't turn ${eventName(row.event_key)} ${next ? "on" : "off"}. Try again.`);
       } else {
-        toast.success(next ? `${row.event_key} is back in the deck` : `${row.event_key} is out of the deck`);
+        toast.success(next ? `${eventName(row.event_key)} is back in the deck` : `${eventName(row.event_key)} is out of the deck`);
       }
     } catch {
       putBack();
@@ -149,7 +152,7 @@ export function PlatformEventsTab() {
 
   const handleDelete = async (row: EventRow) => {
     const ok = await confirm({
-      title: `Delete the ${row.event_key} event?`,
+      title: `Delete the ${eventName(row.event_key)} event?`,
       body: "Its effects go with it, and this can't be undone. To take it out of the decks for now, turn it off instead.",
       confirmLabel: "Delete event",
     });
@@ -157,11 +160,11 @@ export function PlatformEventsTab() {
     try {
       const res = await fetch(`/api/admin/events/${row.id}`, { method: "DELETE" });
       if (!res.ok) {
-        toast.error(`Couldn't delete ${row.event_key}. Try again.`);
+        toast.error(`Couldn't delete ${eventName(row.event_key)}. Try again.`);
         return;
       }
       setEvents((cur) => cur?.filter((e) => e.id !== row.id) ?? null);
-      toast.success(`${row.event_key} deleted`);
+      toast.success(`${eventName(row.event_key)} deleted`);
     } catch {
       toast.error("Couldn't reach GameShuffle. Check your connection and try again.");
     }
@@ -271,7 +274,7 @@ export function PlatformEventsTab() {
                   ) : shown.map((row) => (
                     <TableRow key={row.id}>
                       <TableCell>
-                        <button type="button" className="admin-chatbot-open" onClick={() => setEditing(row)}>{row.event_key}</button>
+                        <button type="button" className="admin-chatbot-open" onClick={() => setEditing(row)}>{eventName(row.event_key)}</button>
                         <span className="admin-table__sub admin-chatbot-line">{row.flavor_tmpl}</span>
                       </TableCell>
                       <TableCell>{DECK_LABEL[row.surface]}</TableCell>
@@ -287,12 +290,12 @@ export function PlatformEventsTab() {
                         )}
                       </TableCell>
                       <TableCell>
-                        <Switch aria-label={`${row.event_key} in the decks`} checked={row.enabled} onChange={() => void toggleEnabled(row)} />
+                        <Switch aria-label={`${eventName(row.event_key)} in the decks`} checked={row.enabled} onChange={() => void toggleEnabled(row)} />
                       </TableCell>
                       <TableCell align="right">
                         <span className="admin-row-actions">
-                          <Button variant="ghost" size="small" onClick={() => setEditing(row)} aria-label={`Edit ${row.event_key}`}>Edit</Button>
-                          <AdminRowMenu label={`More for ${row.event_key}`} items={[{ label: "Delete", onClick: () => void handleDelete(row) }]} />
+                          <Button variant="ghost" size="small" onClick={() => setEditing(row)} aria-label={`Edit ${eventName(row.event_key)}`}>Edit</Button>
+                          <AdminRowMenu label={`More for ${eventName(row.event_key)}`} items={[{ label: "Delete", onClick: () => void handleDelete(row) }]} />
                         </span>
                       </TableCell>
                     </TableRow>

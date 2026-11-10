@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Container } from "@empac/cascadeds";
 import { BrowseHero } from "@/components/events/BrowseHero";
+import { FIRE_HERO } from "./hero";
 import { FireRound } from "@/components/fireRound/FireRound";
 import { DailiesBar, DailiesProvider } from "@/components/originals/Dailies";
 import { FaqList } from "@/components/marketing/FaqList";
@@ -58,15 +59,7 @@ export default function DailyTriviaPage() {
         breadcrumb={{ label: "Fire Round", path: "/daily-trivia", parent: { label: "Trivia", path: TRIVIA_PATH } }}
         faq={FAQ}
       />
-      <BrowseHero
-        eyebrow="Daily trivia"
-        title="Fire Round"
-        sub="Today's free trivia quiz: 60 seconds, the same questions for everyone."
-        subShort="Daily trivia against the clock."
-        accent="fire"
-        field="fire"
-        compact
-      />
+      <BrowseHero {...FIRE_HERO} />
       <Container className="tool-page fire-page">
         <DailiesProvider current="fire">
           <DailiesBar current="fire" />

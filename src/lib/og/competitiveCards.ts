@@ -13,7 +13,7 @@ import { describePlayers } from "@/lib/daily/boards";
 import { trackSummary } from "@/lib/timeTrials/store";
 import { formatTime } from "@/lib/timeTrials/rules";
 import { categoryText } from "@/lib/timeTrials/categories";
-import { gameBySlug, trackBySegment, TT_GAMES } from "@/lib/timeTrials/tracks";
+import { boardGameBySlug, trackBySegment, TT_GAMES } from "@/lib/timeTrials/tracks";
 import { suggestPlayers } from "@/lib/lounge/lookupServer";
 import { normName, fmtNum } from "@/lib/lounge/lookup";
 import { divisionLook } from "@/lib/mmr/look";
@@ -27,9 +27,21 @@ export function timeTrialsFallback(gameLabel?: string): EventCardInput {
   return { kicker: gameLabel ? `Time trials · ${gameLabel}` : "Mario Kart time trials", title: "Every track's best times", art: null, glyphs: TT_GLYPHS, accent: "#2766ec" };
 }
 
-/** A track's board on its default category (150cc or the game's only class, with mushrooms, any vehicle). */
+/** Kirby Air Riders' time trials page (2026-11-09): the key art behind "Every Air Ride course's best times". */
+export async function kirbyHubCard(): Promise<EventCardInput> {
+  return {
+    kicker: "Time trials · Kirby Air Riders",
+    title: "Every Air Ride course's best times",
+    when: "A board for every machine",
+    art: await backdropArt("/images/kirby-air-riders/kirby-air-riders-keyart.webp"),
+    glyphs: TT_GLYPHS,
+    accent: "#2766ec",
+  };
+}
+
+/** A track's board on its default category (150cc or the game's only class, with mushrooms, any vehicle; Kirby's any machine). */
 export async function trackCard(gameSlug: string, segment: string): Promise<EventCardInput> {
-  const info = gameBySlug(gameSlug);
+  const info = boardGameBySlug(gameSlug);
   const track = info ? trackBySegment(info.id, segment) : null;
   if (!info || !track) return timeTrialsFallback();
   const cc = info.classes[0];

@@ -19,13 +19,27 @@ import { LoadingLines } from "@/components/loading/LoadingLines";
 import type { AiUsageOverview } from "@/lib/ai/adminUsage";
 import { AdminHeader, AdminSection, AdminStats, AdminTable } from "@/components/account/admin/AdminKit";
 
-const FEATURE_COLORS: Record<string, string> = {
-  pack: "var(--primary-500)",
-  recap: "var(--accent-500)",
-  setup: "var(--gold-500)",
-  plan: "var(--success-500)",
-  tournament: "var(--warning-500)",
-};
+/**
+ * The daily chart stacks kinds of AI work, not single tools: thirteen tools in one stack were more colors than anyone
+ * can tell apart, and the eight newest had none (2026-11-09). By tool, below the chart, keeps each tool's count.
+ */
+const KINDS: { key: string; label: string; color: string; features: string[] }[] = [
+  { key: "host", label: "Hosting helpers", color: "#2766ec", features: ["setup", "plan", "tournament"] },
+  { key: "draft", label: "Drafting lists and questions", color: "#c949e9", features: ["pack", "trivia", "deck", "channel"] },
+  { key: "recap", label: "Recaps", color: "#d9465f", features: ["recap"] },
+  { key: "tt", label: "Time trial reads", color: "#169a85", features: ["tt_read", "tt_import"] },
+  { key: "comp", label: "War and lounge reads", color: "#e0861c", features: ["war_read", "ladder_read"] },
+  { key: "check", label: "Upload checks", color: "#8a8f9c", features: ["image_check"] },
+];
+const KIND_OF = new Map(KINDS.flatMap((k) => k.features.map((f) => [f, k.key] as const)));
+/** Each day's counts by kind; a tool added later without a kind counts as an upload check until it gets one. */
+function byKind(daily: Record<string, string | number>[]) {
+  return daily.map((row) => {
+    const out: Record<string, string | number> = { day: row.day, ...Object.fromEntries(KINDS.map((k) => [k.key, 0])) };
+    for (const [f, v] of Object.entries(row)) if (f !== "day") out[KIND_OF.get(f) ?? "check"] = Number(out[KIND_OF.get(f) ?? "check"]) + (Number(v) || 0);
+    return out;
+  });
+}
 const PLAN_LABEL = { free: "Free", pro: "GS Pro", staff: "Staff" } as const;
 const PLAN_ICON = { free: IconUser, pro: IconCrown, staff: IconShieldCheck } as const;
 const n = (x: number) => x.toLocaleString();
@@ -73,6 +87,9 @@ export function PlatformAiTab() {
   );
   if (failed && !data) return <div className="account-card admin-screen">{header}<Alert variant="error">Couldn&apos;t load AI usage. Try Refresh in a moment.</Alert></div>;
   if (!data) return <div className="account-card admin-screen">{header}<LoadingLines label="Loading AI usage" /></div>;
+  const dailyKinds = byKind(data.daily);
+  // Only kinds with any use in the window get a color and a legend entry.
+  const shownKinds = KINDS.filter((k) => dailyKinds.some((r) => Number(r[k.key]) > 0));
 
   const t = data.totals;
   const limitsChanged = pro !== String(data.limits.proPer30d) || free !== String(data.limits.freePerDay);
@@ -97,21 +114,27 @@ export function PlatformAiTab() {
         </Alert>
       )}
 
-      <AdminSection title="Generations per day, by tool">
-        <div className="admin-chart ai-admin__chart" role="region" aria-label="Generations per day, by tool (scrolls sideways)" tabIndex={0}>
+      <AdminSection title="Generations per day, by kind">
+        <div className="admin-chart ai-admin__chart" role="region" aria-label="Generations per day, by kind (scrolls sideways)" tabIndex={0}>
           <BarChart
-            data={data.daily}
+            data={dailyKinds}
             xAxisKey="day"
             height={220}
             showXAxis
             showYAxis
             stacked
             showGrid
-            showLegend
-            legendPosition="bottom"
-            series={data.byFeature.map((f) => ({ dataKey: f.feature, name: f.label, color: FEATURE_COLORS[f.feature] ?? "var(--gray-500)", stackId: "uses" }))}
+            showLegend={false}
+            series={shownKinds.map((k) => ({ dataKey: k.key, name: k.label, color: k.color, stackId: "uses" }))}
           />
         </div>
+        {/* The chart's own legend took the whole chart with eleven names (no bars drew, 2026-11-09), so the key sits
+            under it and wraps. */}
+        <ul className="ai-admin__legend" aria-label="Colors by kind">
+          {shownKinds.map((k) => (
+            <li key={k.key}><span className="ai-admin__swatch" style={{ background: k.color }} aria-hidden />{k.label}</li>
+          ))}
+        </ul>
       </AdminSection>
 
       <AdminSection title="By tool">

@@ -6,9 +6,9 @@
  */
 
 import { parseTime } from "./rules";
-import { plainName, ttTracks, type TtClass, type TtGame } from "./tracks";
+import { plainName, ttTracks, type KartGame, type TtClass, type TtGame } from "./tracks";
 
-export const MKWRS_PAGES: Record<TtGame, string> = {
+export const MKWRS_PAGES: Record<KartGame, string> = {
   mk8dx: "https://mkwrs.com/mk8dx/",
   mkworld: "https://mkwrs.com/mkworld/",
 };

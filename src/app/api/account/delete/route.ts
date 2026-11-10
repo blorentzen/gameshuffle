@@ -29,6 +29,7 @@ import { getStripe } from "@/lib/stripe/client";
 import { disconnectTwitchIntegration } from "@/lib/twitch/disconnect";
 import { sendAccountDeletedEmail } from "@/lib/email/account";
 import { suppressByEmail } from "@/lib/marketing/mailerlite";
+import { logAccountDeletion } from "@/lib/account/deletionLog";
 
 export const runtime = "nodejs";
 
@@ -42,10 +43,11 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
   }
 
-  // Optional self-reported churn reason (short, capped).
-  const body = (await req.json().catch(() => null)) as { reason?: unknown } | null;
-  const reason =
-    typeof body?.reason === "string" ? body.reason.trim().slice(0, 500) || null : null;
+  // Optional self-reported churn reason (one of the shared keys in src/lib/account/leaveReasons.ts) and
+  // details ("Anything else you'd like us to know?", trimmed and capped there). Cleaned when logged.
+  const body = (await req.json().catch(() => null)) as { reason?: unknown; details?: unknown } | null;
+  const reason = body?.reason ?? null;
+  const details = body?.details ?? null;
 
   const userId = user.id;
   const userEmail = user.email ?? null;
@@ -135,17 +137,14 @@ export async function POST(req: Request) {
 
   // 3b. Log the deletion for churn analytics + remarketing suppression BEFORE
   //     the cascade removes the account. Best-effort — never block the deletion.
-  try {
-    await admin.from("account_deletions").insert({
-      user_id: userId,
-      email: userEmail,
-      reason,
-      subscription_tier: deletedTier,
-      account_created_at: accountCreatedAt,
-    });
-  } catch (err) {
-    console.error("[account/delete] deletion-log insert failed (non-fatal):", err);
-  }
+  await logAccountDeletion(admin, {
+    userId,
+    email: userEmail,
+    reason,
+    details,
+    tier: deletedTier,
+    createdAt: accountCreatedAt,
+  });
 
   // 3c. Suppress in MailerLite (marketing) so a deleted account stops receiving
   //     remarketing. Best-effort, inert without MAILERLITE_API_KEY.

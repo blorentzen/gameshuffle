@@ -27,6 +27,7 @@ const CODES: Record<string, GameKey> = {
   mkw: "mario-kart-world",
   mk64: "mario-kart-64",
   ssbu: "super-smash-bros-ultimate",
+  kar: "kirby-air-riders",
 };
 
 /** The key for any way a game is named, or null for a game GameShuffle doesn't know (a custom name). */
@@ -58,6 +59,7 @@ const FAMILIES: Record<string, (g: CatalogEntry) => boolean> = {
   "mario-party": (g) => g.family === "Mario Party",
   "super-smash-bros": (g) => g.slug.startsWith("super-smash-bros"),
   smash: (g) => g.slug.startsWith("super-smash-bros"),
+  sonic: (g) => g.slug.startsWith("sonic-"),
 };
 
 export function familyKeys(family: string | null | undefined): GameKey[] {

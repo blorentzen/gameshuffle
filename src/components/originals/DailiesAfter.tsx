@@ -31,9 +31,10 @@ export function DailiesAfter({ current }: { current: Exclude<DailiesId, "weekly"
   const { activity } = useOriginalsHost();
   const { shown, entries, signedIn } = useDailies(current);
   // Waits for the server (signedIn null until it answers) so a half-loaded list never looks "all done".
-  // The four dailies (the Weekly isn't a daily, and signed out it can't be played).
+  // Your dailies (choose your dailies, 2026-11-09: your picks and the one you're on; the Weekly isn't a daily, and
+  // signed out it can't be played).
   const dailies = shown.filter((id) => id !== "weekly");
-  const allDone = signedIn !== null && dailies.length >= 2 && dailies.every((id) => entries[id]?.state === "done");
+  const allDone = signedIn !== null && dailies.length >= 1 && dailies.every((id) => entries[id]?.state === "done");
   const [data, setData] = useState<{ beat: string | null; picks: Pick[] } | null>(null);
   const [left, setLeft] = useState<string | null>(null);
   const { start, window: startWindow } = useQuickStart(`after-${current}`);

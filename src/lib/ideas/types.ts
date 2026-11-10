@@ -27,6 +27,8 @@ export interface Idea {
   verdict: "planned" | "declined" | null;
   verdictNote: string | null;
   shippedRef: string | null;
+  /** The catalog key of the game it's for ("fortnite"), or null (GameShuffle in general). Null too before ideas-game-m1. */
+  game: string | null;
   author: IdeaAuthor | null;
   /** Viewer-relative — set when a signed-in viewer is resolved. */
   hasVoted?: boolean;

@@ -18,7 +18,7 @@ import "@/styles/trivia-seo.css";
 export const revalidate = 86400;
 
 /** The Fire Round category a topic's questions play as (Fire Round falls back to Mixed until a category has enough questions). */
-const FIRE_CATEGORY: Record<string, string> = { "mario-kart": "mario-kart", pokemon: "pokemon", "mario-party": "mario-party", smash: "smash", overwatch: "overwatch", mario: "mario", zelda: "zelda", kirby: "kirby", halloween: "halloween", christmas: "christmas" };
+const FIRE_CATEGORY: Record<string, string> = { "mario-kart": "mario-kart", pokemon: "pokemon", "mario-party": "mario-party", smash: "smash", overwatch: "overwatch", mario: "mario", zelda: "zelda", kirby: "kirby", sonic: "sonic", halloween: "halloween", christmas: "christmas" };
 export const dynamicParams = false;
 
 export function generateStaticParams() {

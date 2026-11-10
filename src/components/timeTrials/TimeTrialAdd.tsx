@@ -12,6 +12,9 @@
  * your best there), and the day's top three or the week's top ten add a clip.
  * With `event` (a time trial tournament, picks 2026-11-05) the board and tracks are the event's, the time goes to the
  * event (and onto the boards when it's your best there), and the organizer's clip rule says who adds a clip.
+ * Kirby Air Riders (2026-11-09): the game is fixed (the Mario Kart chips stay Mario Kart), no items or speed, the
+ * machine is required (the game keeps records per machine), a lap field per lap of the course's default (none for a
+ * one-lap course), and the screenshot is proof only: the player types the time (we don't read Kirby screens yet).
  */
 
 import { useEffect, useId, useMemo, useRef, useState } from "react";
@@ -21,8 +24,8 @@ import { Select } from "@/components/ui/Select";
 import { useToast } from "@/components/toast/ToastProvider";
 import { track as trackEvent, EVENTS } from "@/lib/analytics/events";
 import { formatGap, formatLap, formatTime, LAP_SLACK_MS, ordinal, parseLap, parseTime } from "@/lib/timeTrials/rules";
-import { TT_GAMES, TT_GAME_ORDER, ttCups, ttTrack, type TtClass, type TtGame } from "@/lib/timeTrials/tracks";
-import { categoryText, ITEMS, vehicleFor, vehicleOptions, type TtItems, type TtVehicle } from "@/lib/timeTrials/categories";
+import { cupLabel, lapsOf, TT_GAMES, TT_GAME_ORDER, ttCups, ttTrack, type TtClass, type TtGame } from "@/lib/timeTrials/tracks";
+import { categoryText, hasItems, isSavableVehicle, ITEMS, KAR_MACHINE_TYPES, savableVehicles, vehicleFor, vehicleRequired, type TtItems, type TtVehicle } from "@/lib/timeTrials/categories";
 import { countryCodes } from "@/lib/lounge/flags";
 import { countryName } from "@/lib/lounge/countries";
 
@@ -44,6 +47,7 @@ const READ_ERRORS: Record<string, string> = {
 };
 const SAVE_ERRORS: Record<string, string> = {
   bad_time: "Type the time like 1:52.384.",
+  machine_required: "Pick the machine you raced on.",
   bad_track: "Pick a track.",
   bad_class: "Pick a speed class.",
   bad_video: "Use a link from YouTube, Twitch, Streamable, Medal, X, Bluesky, TikTok or Instagram.",
@@ -81,7 +85,8 @@ export function TimeTrialAdd({ game: startGame, track: startTrack, cc: startCc, 
   const [trackId, setTrackId] = useState<string>(startTrack && ttTrack(startGame, startTrack) ? startTrack : event?.tracks.length === 1 ? event.tracks[0] : "");
   const [cc, setCc] = useState<TtClass>(startCc && (TT_GAMES[startGame].classes as number[]).includes(startCc) ? startCc : TT_GAMES[startGame].classes[0]);
   const [items, setItems] = useState<TtItems>(startItems);
-  const [vehicle, setVehicle] = useState<TtVehicle>(vehicleFor(startGame, startVehicle));
+  // A board-only filter (Kirby's No Legendaries) or "any" where a machine is required starts unpicked.
+  const [vehicle, setVehicle] = useState<TtVehicle>(() => { const v = vehicleFor(startGame, startVehicle); return isSavableVehicle(startGame, v) ? v : "any"; });
   const [time, setTime] = useState("");
   const [clip, setClip] = useState("");
   const [clipNote, setClipNote] = useState<string | null>(null);
@@ -111,15 +116,23 @@ export function TimeTrialAdd({ game: startGame, track: startTrack, cc: startCc, 
   const countryOptions = useMemo(() => [{ value: "", label: "Not now" }, ...countryCodes().filter((c) => /^[a-z]{2}$/.test(c)).map((c) => ({ value: c, label: countryName(c) })).sort((a, b) => a.label.localeCompare(b.label))], []);
 
   const classes = TT_GAMES[game].classes;
+  const kirby = !hasItems(game);
+  const word = TT_GAMES[game].trackWord;
   const groups = useMemo(() => ttCups(game)
-    .map((c) => ({ label: `${c.cup}${/Cup$|Mario Kart$/.test(c.cup) ? "" : " Cup"}`, options: c.tracks.filter((t) => !only || only.includes(t.id)).map((t) => ({ value: t.id, label: t.name })) }))
+    .map((c) => ({ label: /Cup$/.test(c.cup) ? c.cup : cupLabel(c.cup), options: c.tracks.filter((t) => !only || only.includes(t.id)).map((t) => ({ value: t.id, label: t.name })) }))
     .filter((g) => g.options.length > 0), [game, only]);
-  const timeMs = parseTime(time);
-  const lapMs = laps.map((l) => (l.trim() ? parseLap(l) : null));
-  const lapsTyped = laps.some((l) => l.trim());
+  const timeMs = parseTime(time, TT_GAMES[game].minMs);
+  // Kirby: one field per lap of the course's default count (no fields for a one-lap course); Mario Kart keeps three,
+  // or however many sections the screenshot showed.
+  const lapCount = kirby ? lapsOf(ttTrack(game, trackId)) : laps.length;
+  const lapRow = kirby ? Array.from({ length: lapCount > 1 ? lapCount : 0 }, (_, i) => laps[i] ?? "") : laps;
+  const lapMs = lapRow.map((l) => (l.trim() ? parseLap(l) : null));
+  const lapsTyped = lapRow.some((l) => l.trim());
   const lapsOk = lapsTyped && lapMs.every((l) => l != null);
   const lapSum = lapsOk ? (lapMs as number[]).reduce((a, b) => a + b, 0) : null;
-  const vehicles = vehicleOptions(game);
+  const vehicles = savableVehicles(game);
+  // Kirby's machines by type, for the Machine picker.
+  const machineGroups = kirby ? KAR_MACHINE_TYPES.map((t) => ({ label: t.label, options: vehicles.filter((v) => v.type === t.id).map((v) => ({ value: v.id, label: v.long })) })).filter((g) => g.options.length > 0) : [];
 
   function pickGame(g: TtGame) {
     if (g === game) return;
@@ -140,6 +153,8 @@ export function TimeTrialAdd({ game: startGame, track: startTrack, cc: startCc, 
       const j = (await res.json().catch(() => ({}))) as { ok?: boolean; proofUrl?: string; read?: Read | null; readToken?: string; error?: string };
       if (!res.ok || !j.ok) { setError(READ_ERRORS[j.error ?? ""] ?? "That picture didn't upload. Try again."); return; }
       setProofUrl(j.proofUrl ?? null);
+      // Kirby's screenshots are proof only: the hint already says to type the time.
+      if (!j.read && j.error === "manual") return;
       if (!j.read) {
         setReadNote(READ_ERRORS[j.error ?? "failed"] ?? READ_ERRORS.failed);
         trackEvent(EVENTS.ttScreenshotRead, { game, result: j.error === "cap" ? "cap" : "unread" });
@@ -156,7 +171,7 @@ export function TimeTrialAdd({ game: startGame, track: startTrack, cc: startCc, 
       setLaps(r.laps?.length ? r.laps.map(formatLap) : BLANK_LAPS);
       // The vehicle the screen names starts the Vehicle field on its board (picks 2026-11-04); the player can change it.
       const g = r.game ?? game;
-      if (r.board && !fixed && vehicleOptions(g).some((v) => v.id === r.board)) setVehicle(r.board);
+      if (r.board && !fixed && savableVehicles(g).some((v) => v.id === r.board)) setVehicle(r.board);
       // A player without a country starts on the screenshot's flag.
       if (r.flag && needsCountry && !countryPicked.current) setCountry(r.flag);
       setRead(r);
@@ -173,6 +188,7 @@ export function TimeTrialAdd({ game: startGame, track: startTrack, cc: startCc, 
     if (!proofUrl) { setError(SAVE_ERRORS.screenshot_required); return; }
     if (!trackId) { setError(SAVE_ERRORS.bad_track); return; }
     if (!timeMs) { setError(SAVE_ERRORS.bad_time); return; }
+    if (vehicleRequired(game) && !isSavableVehicle(game, vehicle)) { setError(SAVE_ERRORS.machine_required); return; }
     if (lapsTyped && !lapsOk) { setError("Type each lap like 34.112, or leave the laps empty."); return; }
     setBusy("save");
     try {
@@ -258,6 +274,8 @@ export function TimeTrialAdd({ game: startGame, track: startTrack, cc: startCc, 
     <form className="tt-add" onSubmit={(e) => { e.preventDefault(); void save(); }}>
       {event ? (
         <p className="tt-add__fixed">{event.line}</p>
+      ) : kirby ? (
+        <p className="tt-add__fixed">{TT_GAMES[game].label} · Air Ride Time Attack</p>
       ) : challenge ? (
         <p className="tt-add__fixed">{TT_GAMES[game].label} · 150cc · Mushrooms · {challenge.combo}</p>
       ) : (
@@ -277,7 +295,7 @@ export function TimeTrialAdd({ game: startGame, track: startTrack, cc: startCc, 
         <Button type="button" variant={proofUrl ? "secondary" : "primary"} iconBefore={IconCamera} loading={busy === "read"} onClick={() => fileRef.current?.click()}>
           {proofUrl ? "Use a different screenshot" : "Add your screenshot"}
         </Button>
-        <p className="tt-add__hint">Needed for every time: it&apos;s your proof. We read the track and time from it for you to check.</p>
+        <p className="tt-add__hint">{kirby ? "Needed for every time: it's your proof. Type the course and time from it below." : "Needed for every time: it's your proof. We read the track and time from it for you to check."}</p>
         {proofUrl && (
           <p className="tt-add__proof"><IconCheck size={18} aria-hidden="true" /> Screenshot added as proof</p>
         )}
@@ -286,15 +304,15 @@ export function TimeTrialAdd({ game: startGame, track: startTrack, cc: startCc, 
       </div>
 
       <div className="tt-add__pair">
-        <FormField label="Track" htmlFor={`${id}-track`}>
-          <Select id={`${id}-track`} value={trackId} onChange={(v) => setTrackId(String(v))} groups={groups} placeholder="Pick a track" searchable fullWidth />
+        <FormField label={kirby ? "Course" : "Track"} htmlFor={`${id}-track`}>
+          <Select id={`${id}-track`} value={trackId} onChange={(v) => setTrackId(String(v))} groups={groups} placeholder={`Pick a ${word}`} searchable fullWidth />
         </FormField>
         <FormField label="Time" htmlFor={`${id}-time`} helperText="Like 1:52.384" errorText={time && !timeMs ? "Type the time like 1:52.384" : undefined}>
           <Input id={`${id}-time`} value={time} onChange={(e) => setTime(e.target.value)} inputMode="decimal" autoComplete="off" placeholder="1:52.384" className="tt-add__time" fullWidth />
         </FormField>
       </div>
 
-      {!fixed && <div className="tt-add__pair">
+      {!fixed && !kirby && <div className="tt-add__pair">
         <div className="tt-add__field" role="group" aria-labelledby={`${id}-items`}>
           <span id={`${id}-items`} className="tt-add__label">Items</span>
           <div className="tt-add__chips">
@@ -311,12 +329,12 @@ export function TimeTrialAdd({ game: startGame, track: startTrack, cc: startCc, 
         )}
       </div>}
 
-      <fieldset className="tt-add__laps">
+      {lapRow.length > 0 && <fieldset className="tt-add__laps">
         <legend className="tt-add__label">Laps <span className="tt-add__opt">(optional)</span></legend>
         <div className="tt-add__lap-row">
-          {laps.map((l, i) => (
+          {lapRow.map((l, i) => (
             <FormField key={i} label={`Lap ${i + 1}`} htmlFor={`${id}-lap-${i}`} errorText={l.trim() && lapMs[i] == null ? "Like 34.112" : undefined}>
-              <Input id={`${id}-lap-${i}`} value={l} onChange={(e) => setLaps(laps.map((x, j) => (j === i ? e.target.value : x)))} inputMode="decimal" autoComplete="off" placeholder="34.112" fullWidth />
+              <Input id={`${id}-lap-${i}`} value={l} onChange={(e) => setLaps(lapRow.map((x, j) => (j === i ? e.target.value : x)))} inputMode="decimal" autoComplete="off" placeholder="34.112" fullWidth />
             </FormField>
           ))}
         </div>
@@ -325,9 +343,15 @@ export function TimeTrialAdd({ game: startGame, track: startTrack, cc: startCc, 
             ? <p className="tt-add__hint tt-add__hint--ok"><IconCheck size={16} aria-hidden="true" /> The laps add up to the time.</p>
             : <Alert variant="warning">The laps add up to {formatTime(lapSum)}, not {formatTime(timeMs)}. Check them; laps that don&apos;t add up go to an updater to look at.</Alert>
         )}
-      </fieldset>
+      </fieldset>}
 
-      {vehicles.length > 1 && !fixed && (
+      {kirby && (
+        <FormField label="Machine" htmlFor={`${id}-machine`} helperText="The game keeps a record for each machine. Every time also counts on Any machine, and on No Legendaries unless it's Dragoon, Hydra or Leo." required>
+          <Select id={`${id}-machine`} value={vehicle === "any" ? "" : vehicle} onChange={(v) => setVehicle(String(v) as TtVehicle)} groups={machineGroups} placeholder="Pick a machine" searchable fullWidth />
+        </FormField>
+      )}
+
+      {vehicles.length > 1 && !fixed && !kirby && (
         <FormField label="Vehicle" htmlFor={`${id}-vehicle`} helperText={game === "mk8dx" ? "For a vehicle board. Every time also counts on the open board." : "For the Swoop, R.O.B.-HOG board. Every time also counts on the open board."}>
           <Select id={`${id}-vehicle`} value={vehicle} onChange={(v) => setVehicle(String(v) as TtVehicle)} options={vehicles.map((v) => ({ value: v.id, label: v.long }))} fullWidth />
           {read?.parts && <p className="tt-add__parts">Your screenshot shows the {read.parts.body}{read.board && read.board !== "any" ? `, so it starts on the ${vehicles.find((v) => v.id === read.board)?.label ?? "its"} board` : ""}.</p>}

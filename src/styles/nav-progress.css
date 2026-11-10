@@ -1,0 +1,22 @@
+/* The bar along the top while the next page loads (src/components/layout/NavProgress.tsx). It creeps toward 82% and
+   only finishes when the page arrives, then fades. Above the nav (1000) and drawers, below nothing that matters: it's
+   3px and takes no taps. */
+.nav-progress {
+  position: fixed; top: env(safe-area-inset-top, 0px); left: 0; right: 0; height: 3px; z-index: 2147483000;
+  pointer-events: none; opacity: 0; transform: scaleX(0); transform-origin: 0 50%;
+  background: linear-gradient(90deg, #2f5bea, #7c4dff);
+  box-shadow: 0 0 10px rgba(124, 77, 255, 0.55);
+  border-radius: 0 3px 3px 0;
+}
+.nav-progress[data-state="on"] { opacity: 1; transform: scaleX(0.82); transition: transform 8s cubic-bezier(0.08, 0.6, 0.2, 1), opacity 0.15s ease; }
+.nav-progress[data-state="done"] { opacity: 0; transform: scaleX(1); transition: transform 0.18s ease-out, opacity 0.25s ease 0.18s; }
+@media (prefers-reduced-motion: reduce) {
+  .nav-progress[data-state="on"] { transform: scaleX(0.7); transition: opacity 0.2s ease; }
+  .nav-progress[data-state="done"] { transition: opacity 0.2s ease; }
+}
+
+/* Touch screens: links and cards answer a press at once, like an app. Buttons have their own pressed look in CDS. */
+@media (hover: none) {
+  a[href] { -webkit-tap-highlight-color: rgba(47, 91, 234, 0.12); }
+  a[href]:active:not(.empac-button):not(.app-bar__tab) { opacity: 0.72; transition: opacity 0s; }
+}

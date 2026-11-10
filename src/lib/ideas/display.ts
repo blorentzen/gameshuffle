@@ -31,3 +31,18 @@ export function statusBadgeVariant(status: IdeaStatus): BadgeVariant {
       return "default"; // submitted, expired
   }
 }
+
+/**
+ * Where an idea stands, in plain words (game spaces' Ideas tab, 2026-11-09): the same statuses and verdicts as the
+ * board, said the way a player would ("Thinking about it" while staff review it, "Built" once it shipped).
+ */
+export const PLAN_WORDS: Record<IdeaStatus, string> = {
+  submitted: "Waiting for review",
+  rejected: "Not accepted",
+  public: "Taking votes",
+  expired: "Closed",
+  in_review: "Thinking about it",
+  planned: "Planned",
+  shipped: "Built",
+  declined: "Not for now",
+};

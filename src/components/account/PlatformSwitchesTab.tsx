@@ -68,7 +68,7 @@ export function PlatformSwitchesTab() {
                     <div className="switches__text">
                       <div className="switches__name">{s.name} <Badge variant={on ? "success" : "default"} size="small">{on ? "On" : "Off"}</Badge></div>
                       <p className="switches__desc">{s.description}</p>
-                      <p className="switches__meta">{row ? `Changed ${when(row.updated_at)}${by ? ` by ${by}` : ""}` : `Never changed (${s.defaultOn ? "on" : "off"} by default)`} · <span className="switches__key">{s.key}</span></p>
+                      <p className="switches__meta">{row ? `Changed ${when(row.updated_at)}${by ? ` by ${by}` : ""}` : `Never changed (${s.defaultOn ? "on" : "off"} by default)`}</p>
                       {s.key === "organizer_billing_enabled" && <CircuitNoticePanel on={on} />}
                     </div>
                     <Switch aria-label={s.name} checked={on} disabled={!canEdit || busy === s.key} onChange={(e) => void flip(s.key, e.target.checked)} />
@@ -79,7 +79,7 @@ export function PlatformSwitchesTab() {
           </section>
         ))
       )}
-      <p className="switches__code">Set in code (changes need a deploy): Guides, and the hidden-game switches in <span className="switches__key">src/lib/games-visibility.ts</span>.</p>
+      <p className="switches__code">Set in code, so a change needs a new release: Guides, and the switches that hide a game until it&apos;s ready.</p>
     </div>
   );
 }

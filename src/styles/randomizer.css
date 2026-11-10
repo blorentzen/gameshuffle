@@ -1841,7 +1841,7 @@ html.dark .daily__cell--close { color: var(--color-warning-300, #f2c96b); }
 
 /* Smash Ultimate and Splatoon 3 sit in a centred .tool-page flex column; without
    a full width their tab bar's min-content (400px+) pushed the page sideways on phones. */
-.smash-randomizer, .splatoon-randomizer, .kirby-randomizer { width: 100%; min-width: 0; }
+.smash-randomizer, .splatoon-randomizer, .kirby-randomizer, .sonic-randomizer { width: 100%; min-width: 0; }
 
 
 
@@ -1880,6 +1880,11 @@ html.dark .daily__cell--close { color: var(--color-warning-300, #f2c96b); }
   color: #fff;
   text-shadow: 3px 3px 0 #a3600a;
 }
+.kart-slot__tile > .random-tile--sonic {
+  background: radial-gradient(120% 90% at 50% 20%, #2f6fe0, #12358f);
+  color: #ffd43b;
+  text-shadow: 0 3px 0 rgba(8, 22, 70, 0.5);
+}
 
 /* Live night: the current game's cover beside the header (phone) and the title (TV). */
 .party-live__head-main { display: flex; align-items: flex-start; gap: var(--spacing-12); min-width: 0; }
@@ -1903,6 +1908,14 @@ html.dark .daily__cell--close { color: var(--color-warning-300, #f2c96b); }
 .dex-parade .daily-parade__lane--back .dex-parade__mon { opacity: 0.55; }
 .dex-parade .daily-parade__lane--back .dex-parade__name { font-size: var(--font-size-12); }
 @media (max-width: 40rem) { .dex-parade { min-height: 4.4rem; } }
+/* The Daily Shuffle's puzzles with no art (Sonic days: names only, never Sega's art): the name's first letter on a tile. */
+.daily__tile, .daily-parade__letter { display: inline-grid; place-items: center; flex: 0 0 auto; color: #fff; font-weight: var(--font-weight-bold, 700); line-height: 1;
+  background: var(--tile-shuffle); box-shadow: var(--tile-shadow); }
+.daily__tile--row { width: 4rem; height: 4rem; border-radius: 10px; font-size: var(--font-size-20); }
+.daily__tile--answer { width: 9.6rem; height: 9.6rem; border-radius: 22px; font-size: var(--font-size-48, 4.8rem); }
+.daily-parade__letter { width: 3.2rem; height: 3.2rem; border-radius: 9px; font-size: var(--font-size-16); }
+.daily-parade__lane--back .daily-parade__letter { width: 2.4rem; height: 2.4rem; border-radius: 7px; font-size: var(--font-size-12); }
+@media (max-width: 40rem) { .daily-result .daily__tile--answer { width: 8.8rem; height: 8.8rem; } }
 /* The last chance: the first letter, then a square per letter; spaces and punctuation as they are. */
 .dex-reveal { display: grid; gap: var(--spacing-8, 8px); justify-items: start; text-align: start; }
 .dex-reveal__word { display: flex; flex-wrap: wrap; gap: var(--spacing-4, 4px); }

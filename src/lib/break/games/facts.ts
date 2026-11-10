@@ -1,6 +1,6 @@
 /**
  * The knowledge games, built from the Daily's checked facts (src/lib/originals/
- * daily.ts PUZZLES: Mario Kart, Mario Party, Smash, Overwatch, Marvel Rivals).
+ * daily.ts PUZZLES: Mario Kart, Mario Party, Smash, Overwatch, Marvel Rivals, Sonic).
  * No AI and nothing to approve: every question is a fact we've already
  * checked, worded by a template for its column.
  *
@@ -29,6 +29,7 @@ export const PUZZLE_GAMES: Record<string, string[]> = {
   "smash-fighter": ["super-smash-bros-ultimate"],
   "overwatch-hero": ["overwatch"],
   "rivals-hero": ["marvel-rivals"],
+  "sonic-character": ["sonic-racing-crossworlds"],
 };
 
 const SMASH_NAMES: Record<string, string> = { "64": "the first Smash (64)", Melee: "Melee", Brawl: "Brawl", "Smash 4": "Smash 4", Ultimate: "Ultimate" };
@@ -39,7 +40,7 @@ const CREW_SAID: Record<string, string> = {
 };
 const kartName = (v: string | number) => KART_GAME_NAMES[String(v)] ?? String(v);
 /** Values that say nothing ("Other", "Unknown", MK8DX's "Any" weight for Miis). */
-const NOTHING = new Set(["Other", "Unknown", "Any", "Every role", "Solo"]);
+const NOTHING = new Set(["Other", "Unknown", "Any", "Every role", "Solo", "No team"]);
 
 export function publicPuzzles(): DailyPuzzle[] {
   return Object.values(PUZZLES).filter((p) => (PUZZLE_GAMES[p.id] ?? []).some((slug) => randomizerPublic(slug)));
@@ -165,7 +166,11 @@ function oddPrompt(p: DailyPuzzle, label: string, v: string): string | null {
     case "Role": return p.id === "overwatch-hero" ? `Three of these are ${v} heroes. Which one isn't?` : `Three of these are ${v}s. Which one isn't?`;
     case "Origin": return `Three of these are from ${the(v)}. Which one isn't?`;
     case "Affiliation": return `Three of these are with ${the(v)}. Which one isn't?`;
-    case "Team": return v === "Villains" ? "Three of these are villains. Which one isn't?" : `Three of these are part of the ${v}. Which one isn't?`;
+    case "Team":
+      if (p.id === "sonic-character") return v === "Babylon Rogues" ? "Three of these are Babylon Rogues. Which one isn't?" : `Three of these are on ${v}. Which one isn't?`;
+      return v === "Villains" ? "Three of these are villains. Which one isn't?" : `Three of these are part of the ${v}. Which one isn't?`;
+    case "In CrossWorlds": return v === "Yes" ? "Three of these race in Sonic Racing: CrossWorlds. Which one doesn't?" : null;
+    case "First game": return `Three of these first appeared in ${v}. Which one didn't?`;
     case "In Superstars": return v === "Yes" ? "Three of these are playable in Mario Party Superstars. Which one isn't?" : null;
     default: return null;
   }
@@ -243,7 +248,10 @@ function statement(p: DailyPuzzle, label: string, name: string, v: string | numb
     case "Origin": return `${name} is from ${the(s)}.`;
     case "Affiliation": return `${name} is with ${the(s)}.`;
     case "Released": return `${name} came to Overwatch in ${s}.`;
-    case "Team": return s === "Villains" ? `${name} is a villain in Marvel Rivals.` : `${name} is part of the ${s}.`;
+    case "Team":
+      if (p.id === "sonic-character") return s === "Babylon Rogues" || s === "Deadly Six" ? `${name} is one of the ${s}.` : `${name} is on ${s}.`;
+      return s === "Villains" ? `${name} is a villain in Marvel Rivals.` : `${name} is part of the ${s}.`;
+    case "First game": return `${name} first appeared in ${s}.`;
     case "Comic debut": return `${name} first appeared in comics in ${s}.`;
     case "Joined": return `${name} joined Marvel Rivals ${s === "Launch" ? "at launch" : `in ${s}`}.`;
     default: return null;
@@ -254,6 +262,7 @@ const YES_NO: Record<string, { says: (name: string) => string; not: (name: strin
   "Third party": { says: (name) => `${name} is a third-party fighter in Smash.`, not: (name) => `${name} isn't a third-party fighter.` },
   Variant: { says: (name) => `${name} is a version of another racer.`, not: (name) => `${name} isn't a version of another racer.` },
   "In Superstars": { says: (name) => `${name} is playable in Mario Party Superstars.`, not: (name) => `${name} isn't playable in Mario Party Superstars.` },
+  "In CrossWorlds": { says: (name) => `${name} is a racer in Sonic Racing: CrossWorlds.`, not: (name) => `${name} isn't a racer in Sonic Racing: CrossWorlds.` },
 };
 
 export const factOrFiction: BreakGame = {

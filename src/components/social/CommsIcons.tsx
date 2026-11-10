@@ -12,6 +12,7 @@ import { useAuth } from "@/components/auth/AuthProvider";
 import { useCommsUnread } from "@/lib/social/useCommsUnread";
 import { NotificationsPopover } from "@/components/social/NotificationsPopover";
 import { useMessenger } from "@/components/social/MessengerProvider";
+import { MESSAGING_ON } from "@/lib/social/messagingOn";
 
 const ChatIcon = () => (
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
@@ -42,10 +43,12 @@ export function CommsIcons() {
       <NotificationsPopover />
       {/* Toggle the floating Messenger panel (bottom-right card; a near-full
           bottom card on mobile) on every viewport. */}
-      <button type="button" className="comms-icon" aria-label={label} onClick={toggleMessenger}>
-        <ChatIcon />
-        <Badge count={messages} />
-      </button>
+      {MESSAGING_ON && (
+        <button type="button" className="comms-icon" aria-label={label} onClick={toggleMessenger}>
+          <ChatIcon />
+          <Badge count={messages} />
+        </button>
+      )}
     </>
   );
 }

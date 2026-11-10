@@ -197,3 +197,27 @@
 
 /* Posts tab, signed out: one line and Write a post (opens the sign-up sheet, journeys 4A). */
 .space-posts__in { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--spacing-12); padding-bottom: var(--spacing-16); border-bottom: 1px solid var(--border-subtle, var(--border-default)); font-size: var(--font-size-16); color: var(--text-secondary); }
+
+/* First wave of new spaces (2026-11-09). A space without key art (the ideas spaces, the fighting games): the box art,
+   blurred and darkened, is the band, the game's color glowing through (ideas space mockup, approved). */
+.space-cover--box .space-cover__img--box {
+  object-position: center; transform: scale(1.35); filter: blur(28px) saturate(1.25) brightness(0.72);
+}
+.space-cover--box::after {
+  content: ""; position: absolute; inset: 0; z-index: -1;
+  background: radial-gradient(70% 120% at 15% 100%, color-mix(in srgb, var(--space-accent, #2766ec) 45%, transparent) 0%, transparent 70%);
+}
+@media (prefers-reduced-transparency: reduce) { .space-cover--box .space-cover__img--box { filter: brightness(0.6); } }
+
+/* /games: a just-opened space carries the site's New badge on its box art (like a new randomizer's card). */
+.gamespace-card__art { position: relative; display: block; }
+.gamespace-card__new { position: absolute; top: calc(-1 * var(--spacing-6, 0.6rem)); left: calc(-1 * var(--spacing-6, 0.6rem)); border-radius: var(--radius-8, 8px); box-shadow: 0 1px 4px rgba(0, 0, 0, 0.28); }
+.games-index__sub { margin: 0; color: var(--text-secondary); font-size: var(--font-size-16); flex-basis: 100%; }
+
+/* "Don't see your game?": one line on the page under a thin rule, the field and its button side by side. */
+.space-ask-line { display: grid; gap: var(--spacing-12); padding-top: var(--spacing-24); border-top: 1px solid var(--border-subtle); }
+.space-ask-line__q { margin: 0; font-family: var(--font-display); font-size: var(--font-size-20); font-weight: 800; }
+.space-ask-line__form { display: flex; flex-wrap: wrap; align-items: center; gap: var(--spacing-8); max-width: 64rem; }
+.space-ask-line__form .labeled-combobox { flex: 1 1 28rem; min-width: 0; }
+.space-ask-line__note { margin: 0; color: var(--text-secondary); font-size: var(--font-size-14); }
+@media (max-width: 559px) { .space-ask-line__form > .empac-button { flex: 1 1 100%; justify-content: center; } }

@@ -13,7 +13,7 @@ import { notStaleOpenFilter } from "@/lib/events/lifecycle";
 import { FORMAT_LABEL } from "@/data/tournament-formats";
 import { placeOf, trackSummary, playerBests } from "@/lib/timeTrials/store";
 import { trackPath, ttTrack, TT_GAMES, TT_GAME_ORDER, type TtClass, type TtGame } from "@/lib/timeTrials/tracks";
-import { categoryText, TOP_TEN, type TtItems } from "@/lib/timeTrials/categories";
+import { categoryText, hasItems, TOP_TEN, type TtItems } from "@/lib/timeTrials/categories";
 import type { TtPlayer } from "@/lib/timeTrials/rules";
 import { weekClimbers } from "@/lib/lounge/lookupServer";
 import { linksFor } from "@/lib/lounge/store";
@@ -35,13 +35,14 @@ export async function recordsThisWeek(limit = 3, games?: TtGame[]): Promise<HubR
     let q = createServiceClient().from("tt_times")
       .select("game, track, cc, items, player, time_ms, created_at")
       .eq("status", "ok").neq("source", "import").gte("created_at", since);
-    // One game's space shows only its own (game spaces, 2026-11-06).
-    if (games?.length) q = q.in("game", games);
+    // One game's space shows only its own (game spaces, 2026-11-06); the competitive hub, Mario Kart's (Kirby Air Riders
+    // has boards too since 2026-11-09, shown in its own space).
+    q = q.in("game", games?.length ? games : TT_GAME_ORDER);
     const { data } = await q.order("created_at", { ascending: false }).limit(300);
     const recent = (data ?? []) as { game: TtGame; track: string; cc: number; items: TtItems; player: string; time_ms: number; created_at: string }[];
     if (!recent.length) return [];
     const boards = new Map<string, Awaited<ReturnType<typeof trackSummary>>>();
-    for (const g of TT_GAME_ORDER) for (const it of ["shrooms", "none"] as TtItems[]) {
+    for (const g of games?.length ? games : TT_GAME_ORDER) for (const it of (hasItems(g) ? ["shrooms", "none"] : ["shrooms"]) as TtItems[]) {
       if (recent.some((r) => r.game === g && r.items === it)) boards.set(`${g}|${it}`, await trackSummary(g, it, "any"));
     }
     const out: HubRecord[] = [];

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { Container } from "@empac/cascadeds";
 import { BrowseHero } from "@/components/events/BrowseHero";
+import { DEX_HERO } from "./hero";
 import { DailiesBar, DailiesProvider } from "@/components/originals/Dailies";
 import { DailyDex } from "@/components/originals/DailyDex";
 import { isStaffRequest } from "@/lib/auth/raw";
@@ -20,15 +21,7 @@ export default async function DailyDexPage() {
   if (!DAILY_DEX_PUBLIC && process.env.NODE_ENV === "production" && !(await isStaffRequest())) notFound();
   return (
     <main>
-      <BrowseHero
-        eyebrow="A GameShuffle Original"
-        title="The Daily Dex"
-        sub="Guess today's Pokémon from all 1,025, with a new hint after every miss. Same Pokémon for everyone, a new one every day."
-        subShort="Guess today's Pokémon from all 1,025."
-        accent="dex"
-        field="dex"
-        compact
-      />
+      <BrowseHero {...DEX_HERO} />
       <Container className="tool-page daily-page">
         <DailiesProvider current="dex">
           <DailiesBar current="dex" />

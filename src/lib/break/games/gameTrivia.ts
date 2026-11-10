@@ -19,7 +19,7 @@ import { triviaRounds } from "./trivia";
 const COLS = "id, prompt, answer, accept, ask_about, reject, kind, options, category";
 
 /** Series packs (tagged with the series, e.g. "mario-kart") also play while any game in that series is on stream. */
-const SERIES_PACKS = ["mario-kart", "mario-party", "super-smash-bros", "pokemon", "kirby", "zelda"];
+const SERIES_PACKS = ["mario-kart", "mario-party", "super-smash-bros", "pokemon", "kirby", "zelda", "sonic"];
 
 export const gameTrivia: BreakGame = {
   ...triviaRounds,

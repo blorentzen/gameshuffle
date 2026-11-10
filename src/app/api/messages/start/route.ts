@@ -3,10 +3,12 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { getOrCreateConversation } from "@/lib/social/messaging";
+import { MESSAGING_ON } from "@/lib/social/messagingOn";
 
 export const runtime = "nodejs";
 
 export async function POST(req: NextRequest) {
+  if (!MESSAGING_ON) return NextResponse.json({ error: "messaging_off" }, { status: 404 });
   const supabase = await createClient();
   const {
     data: { user },

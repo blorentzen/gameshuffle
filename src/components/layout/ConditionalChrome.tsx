@@ -21,6 +21,7 @@ import { Messenger } from "@/components/social/Messenger";
 import { PresenceProvider } from "@/components/social/PresenceProvider";
 import type { Interest } from "@/lib/interests/rules";
 import { RecentPlaces } from "./RecentPlaces";
+import { MESSAGING_ON } from "@/lib/social/messagingOn";
 
 const CHROME_FREE_PATTERNS: RegExp[] = [
   /^\/overlay(\/|$)/,
@@ -34,6 +35,7 @@ const CHROME_FREE_PATTERNS: RegExp[] = [
   /^\/trivia\/tv\/[^/]+/,
   /^\/social(\/|$)/, // hidden 9:16 stages filmed for social videos
   /^\/mmr\/[^/]+/, // the MMR card's OBS link
+  /^\/run\/[^/]+/, // a runner's speedrun overlay (OBS link)
   /^\/war\/[^/]+/, // a channel's war overlay (GameShuffle Competitive)
 ];
 
@@ -56,7 +58,7 @@ export function ConditionalChrome({ children, shop = false, previewInterests = n
         <AppBar />
         {/* Bottom-right Messenger — inside the chrome branch so it's absent on
             OBS/overlay routes (excluded at the layout level, per Spec 2 §2.3). */}
-        <Messenger />
+        {MESSAGING_ON && <Messenger />}
       </MessengerProvider>
     </PresenceProvider>
   );

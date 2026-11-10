@@ -9,7 +9,7 @@ export const revalidate = 900;
 export const fetchCache = "force-cache";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
-export const alt = "A Mario Kart time trial board on GameShuffle";
+export const alt = "A time trial board on GameShuffle";
 
 export default async function Image({ params }: { params: Promise<{ game: string; track: string }> }) {
   const { game, track } = await params;

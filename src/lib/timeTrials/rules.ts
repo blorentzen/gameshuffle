@@ -9,8 +9,9 @@
 export const MIN_MS = 30_000;
 export const MAX_MS = 10 * 60_000;
 
-/** A typed time in ms, or null when it can't be read or is outside 0:30 to 10:00. */
-export function parseTime(raw: string): number | null {
+/** A typed time in ms, or null when it can't be read or is outside 0:30 (or `floor`: a game's own floor,
+ *  TtGameInfo.minMs) to 10:00. */
+export function parseTime(raw: string, floor: number = MIN_MS): number | null {
   const s = raw.trim().replace(/[″”"]/g, '"').replace(/[′’']/g, "'").replace(/\s+/g, "");
   if (!s) return null;
   let m: RegExpMatchArray | null;
@@ -27,7 +28,7 @@ export function parseTime(raw: string): number | null {
   } else return null;
   if (sec > 59 && min > 0) return null;
   const total = min * 60_000 + sec * 1000 + ms;
-  return total >= MIN_MS && total <= MAX_MS ? total : null;
+  return total >= floor && total <= MAX_MS ? total : null;
 }
 
 /** 112384 → "1:52.384". */

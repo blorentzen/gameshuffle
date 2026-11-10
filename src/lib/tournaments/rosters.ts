@@ -11,6 +11,8 @@ import { PARTY_GAMES } from "@/data/party";
 import { SPLATOON3 } from "@/data/splatoon/splatoon3";
 import { AIR_RIDERS } from "@/data/kirby/air-riders";
 import { machinePool } from "@/lib/kirby/roll";
+import { CROSSWORLDS_GAME } from "@/data/sonic/crossworlds";
+import { machinePool as sonicMachines, racerPool as sonicRacers } from "@/lib/sonic/roll";
 import { getRandomNumber } from "@/lib/randomizer";
 import { STREET_FIGHTER_6, TEKKEN_8, liveFighters } from "@/data/fighters";
 import { OVERWATCH } from "@/data/heroes/overwatch";
@@ -46,6 +48,11 @@ function rosterFor(slug: string): Roster | null {
     case "kirby-air-riders": {
       const machines = machinePool(AIR_RIDERS);
       return { names: AIR_RIDERS.riders.map((r) => r.name), unique: true, detail: () => `on ${machines[getRandomNumber(machines.length)].name}` };
+    }
+    case "sonic-racing-crossworlds": {
+      // Free racers and machines only (no one's packs are known); a machine for each, which can repeat.
+      const machines = sonicMachines(CROSSWORLDS_GAME);
+      return { names: sonicRacers(CROSSWORLDS_GAME).map((r) => r.name), detail: () => `on the ${machines[getRandomNumber(machines.length)].name}` };
     }
     case "street-fighter-6":
       return { names: liveFighters(STREET_FIGHTER_6) };

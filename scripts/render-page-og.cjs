@@ -119,6 +119,7 @@ function specsFor(titles) {
   // using our primary/display font for the opengraph cards". Same look as the rest, in Gabarito.
   add("/gs-pro", "GS Pro", "Tools for streamers and hosts", G("sparkles", "broadcast", "palette", "brand-discord", "crown"));
   add("/apps", "Apps", "Every tool in one place", G("apps", "dice-5", "trophy", "calendar", "pokeball", "brain"));
+  add("/dailies", "All Dailies", "New puzzles at midnight Pacific", G("puzzle", "pokeball", "flame", "swords", "calendar-week"));
   add("/tools", "Free Tools", "Dice, wheels, brackets and more", G("dice-5", "chart-pie", "tournament", "clock", "coin"));
   add("/beta", "Streamer Beta", "Try new tools first", G("broadcast", "flask", "sparkles", "message-circle", "rocket"));
   add("/contact-us", "Contact Us", "We read every message", G("mail", "message-circle", "lifebuoy", "send", "heart-handshake"));

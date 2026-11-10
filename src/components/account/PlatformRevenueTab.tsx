@@ -4,9 +4,9 @@
  * Platform ▸ Overview ▸ Revenue (staff): what subscriptions bring in. Monthly
  * revenue from paying subscriptions (before tax and Stripe's fees), trials and
  * what they'd add, cancellations coming up, each plan, the path from account
- * to paying, and the latest subscription changes. Data from GET
- * /api/admin/revenue (src/lib/billing/revenue.ts); Stripe stays the record of
- * money actually collected.
+ * to paying, the latest subscription changes, and why people cancel (CancelReasons,
+ * GET /api/admin/cancellations). Data from GET /api/admin/revenue
+ * (src/lib/billing/revenue.ts); Stripe stays the record of money actually collected.
  */
 
 import Link from "next/link";
@@ -15,6 +15,7 @@ import { Alert, Badge, Button, EmptyState, StatCard, Table, TableBody, TableCell
 import { IconCalendarDue, IconCash, IconHourglass, IconRefresh, IconUsers } from "@tabler/icons-react";
 import { LoadingLines } from "@/components/loading/LoadingLines";
 import { AdminHeader, AdminSection, AdminStats, AdminTable } from "@/components/account/admin/AdminKit";
+import { CancelReasons } from "@/components/account/admin/LeaveReasons";
 import type { RevenueOverview } from "@/lib/billing/revenue";
 
 const usd = (cents: number) => `$${(cents / 100).toLocaleString("en-US", { minimumFractionDigits: cents % 100 ? 2 : 0, maximumFractionDigits: 2 })}`;
@@ -126,6 +127,8 @@ export function PlatformRevenueTab() {
           </AdminTable>
         )}
       </AdminSection>
+
+      <CancelReasons />
     </div>
   );
 }

@@ -24,7 +24,12 @@ import { GameCover } from "@/components/games/GameCover";
 import { GAME_CATALOG, boxArt, type CatalogEntry, type CatalogStatus } from "@/data/game-catalog";
 import { AdminHeader, AdminSection, AdminStats, AdminTable } from "@/components/account/admin/AdminKit";
 
-interface Payload { ok: boolean; profiles: number; favorites: Record<string, number>; asked: { name: string; count: number }[] }
+interface SpaceAsk { key: string; name: string; inCatalog: boolean; asks: number; lastAsked: string }
+interface Payload {
+  ok: boolean; profiles: number; favorites: Record<string, number>; asked: { name: string; count: number }[];
+  /** Spaces asked for on /games, most asked first; null until the asks table exists. */
+  spaceAsks?: SpaceAsk[] | null;
+}
 
 const PAGE = 25;
 /** The API returns the 100 most asked-for names. */
@@ -73,6 +78,7 @@ export function PlatformGamesTab() {
   const [data, setData] = useState<Payload | null>(null);
   const [failed, setFailed] = useState(false);
   const [askedLimit, setAskedLimit] = useState(PAGE);
+  const [spaceLimit, setSpaceLimit] = useState(PAGE);
   const [candLimit, setCandLimit] = useState(PAGE);
   const [allLimit, setAllLimit] = useState(PAGE);
   const [filter, setFilter] = useState<Filter>("all");
@@ -136,6 +142,38 @@ export function PlatformGamesTab() {
               </Table>
             </AdminTable>
             <ShowMore total={data.asked.length} limit={askedLimit} onMore={() => setAskedLimit((x) => x + PAGE)} />
+          </>
+        )}
+      </AdminSection>
+
+      <AdminSection
+        title="Spaces asked for"
+        intro="Games people asked a space for on the Games page, most asked first. One ask per account per game. A game the catalog doesn't have needs adding to it before it can get a space."
+      >
+        {!data ? null : data.spaceAsks == null ? (
+          <Alert variant="info">Asks start counting once the database update for game spaces has run (ideas-game-m1).</Alert>
+        ) : data.spaceAsks.length === 0 ? (
+          <EmptyState variant="bordered" icon={<IconSparkles size={28} />} title="Nobody has asked for a space yet" description="When someone names a game under Don't see your game? on the Games page, it shows here." />
+        ) : (
+          <>
+            <AdminTable label="Spaces asked for, most asked first">
+              <Table variant="striped" dense>
+                <TableHeader><TableRow><TableHead>Game</TableHead><TableHead>In the catalog</TableHead><TableHead align="right">Asks</TableHead></TableRow></TableHeader>
+                <TableBody>
+                  {data.spaceAsks.slice(0, spaceLimit).map((a) => {
+                    const g = a.inCatalog ? GAME_CATALOG.find((x) => x.slug === a.key) : undefined;
+                    return (
+                      <TableRow key={a.key}>
+                        <TableCell>{g ? <GameName game={g} /> : a.name}</TableCell>
+                        <TableCell>{a.inCatalog ? <Badge size="small" variant="success">Yes</Badge> : <Badge size="small" variant="default">Not yet</Badge>}</TableCell>
+                        <TableCell align="right" className="admin-num">{n(a.asks)}</TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </AdminTable>
+            <ShowMore total={data.spaceAsks.length} limit={spaceLimit} onMore={() => setSpaceLimit((x) => x + PAGE)} />
           </>
         )}
       </AdminSection>

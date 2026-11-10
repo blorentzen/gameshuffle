@@ -131,7 +131,7 @@ export function TtReviewQueue() {
             </form>
           ) : (
             <div className="tt-add__actions">
-              <Button variant="primary" iconBefore={IconCircleCheck} loading={busy === v.time.id} onClick={() => { setBusy(v.time.id); void post({ action: "video", timeId: v.time.id, ok: true }, "Verified").then(() => setBusy(null)); }}>{v.time.video === "waiting" ? "Clip checks out" : "It checks out"}</Button>
+              <Button variant="secondary" iconBefore={IconCircleCheck} loading={busy === v.time.id} onClick={() => { setBusy(v.time.id); void post({ action: "video", timeId: v.time.id, ok: true }, "Verified").then(() => setBusy(null)); }}>{v.time.video === "waiting" ? "Clip checks out" : "It checks out"}</Button>
               <Button variant="secondary" iconBefore={IconPencil} onClick={() => { setFixing(v.time.id); setRejecting(null); }}>Fix the time</Button>
               <Button variant="secondary" iconBefore={IconMessage} onClick={() => { setRejecting(v.time.id); setReason(""); setFixing(null); }}>Ask for an update</Button>
             </div>
@@ -179,7 +179,7 @@ export function TtReviewQueue() {
         </form>
       ) : (
         <div className="tt-add__actions">
-          <Button variant="primary" iconBefore={IconCircleCheck} loading={busy === c.id} onClick={() => { setBusy(c.id); void post({ action: "claim", claimId: c.id, approve: true }, `${c.listedName}'s times moved to ${c.userName}`).then(() => setBusy(null)); }}>It&apos;s them</Button>
+          <Button variant="secondary" iconBefore={IconCircleCheck} loading={busy === c.id} onClick={() => { setBusy(c.id); void post({ action: "claim", claimId: c.id, approve: true }, `${c.listedName}'s times moved to ${c.userName}`).then(() => setBusy(null)); }}>It&apos;s them</Button>
           <Button variant="secondary" onClick={() => { setRejecting(c.id); setReason(""); }}>Not them</Button>
         </div>
       )}
@@ -237,7 +237,7 @@ export function TtReviewQueue() {
                   </form>
                 ) : (
                   <div className="tt-add__actions">
-                    <Button variant="primary" iconBefore={IconCircleCheck} loading={busy === l.id} onClick={() => { setBusy(l.id); void post({ action: "verify", timeId: l.id }, "Verified").then(() => setBusy(null)); }}>It shows this run</Button>
+                    <Button variant="secondary" iconBefore={IconCircleCheck} loading={busy === l.id} onClick={() => { setBusy(l.id); void post({ action: "verify", timeId: l.id }, "Verified").then(() => setBusy(null)); }}>It shows this run</Button>
                     <Button variant="secondary" onClick={() => { setRejecting(l.id); setReason(""); }}>It doesn&apos;t</Button>
                   </div>
                 )}

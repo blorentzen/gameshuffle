@@ -3523,3 +3523,7 @@ html.dark .empac-tabs--pills:not(.band__tabs) .empac-tabs__tab--active:hover:not
    scrolls inside. Raise with CascadeDS. */
 html .empac-modal { max-height: calc(100dvh - 4.8rem); }
 @media (max-width: 640px) { html .empac-modal { max-height: calc(100dvh - 4rem); } }
+
+/* Light: an off switch's 2px #d4d4d4 edge and near-white thumb on the #f8f8f8 page were about 1.4:1, so it read as
+   nothing at all (admin sweep, 2026-11-09). A darker edge shows its shape. On the CascadeDS fix list. */
+html:not(.dark) .empac-switch:not(:checked):not(:disabled) + .empac-switch-track { border-color: var(--text-tertiary); }

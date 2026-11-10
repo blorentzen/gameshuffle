@@ -44,6 +44,8 @@ export function AppBar() {
   const unread = useCommsUnread();
   const [me, setMe] = useState<{ username: string | null; streamer: boolean } | null>(null);
   const [creating, setCreating] = useState(false);
+  /** The tab just tapped, lit at once while its page loads (tap feedback picks, 2026-11-09); it lapses when the page changes. */
+  const [going, setGoing] = useState<{ key: string; from: string } | null>(null);
 
   useEffect(() => {
     if (!user) return;
@@ -70,17 +72,26 @@ export function AppBar() {
     you: (me?.username && pathname === `/u/${me.username}`) || pathname.startsWith("/account"),
   };
   const items = me?.streamer ? [...CREATE, STREAM] : CREATE;
-  const tab = (key: string, href: string, label: string, Glyph: Icon, current: boolean, badge = 0) => (
+  const chosen = going && going.from === pathname ? going.key : null;
+  const tab = (key: string, href: string, label: string, Glyph: Icon, current: boolean, badge = 0) => {
+    const lit = chosen ? chosen === key : current;
+    return (
     <li key={key}>
-      <Link href={href} className="app-bar__tab" aria-current={current ? "page" : undefined} onClick={() => track(EVENTS.appBarUsed, { tab: key })}>
+      <Link
+        href={href}
+        className={`app-bar__tab${lit ? " is-lit" : ""}${chosen === key ? " is-going" : ""}`}
+        aria-current={current ? "page" : undefined}
+        onClick={() => { if (!current) setGoing({ key, from: pathname }); track(EVENTS.appBarUsed, { tab: key }); }}
+      >
         <span className="app-bar__icon">
-          <Glyph size={24} stroke={current ? 2.2 : 1.8} aria-hidden="true" />
+          <Glyph size={24} stroke={lit ? 2.2 : 1.8} aria-hidden="true" />
           {badge > 0 && <span className="app-bar__badge">{badge > 9 ? "9+" : badge}<span className="sr-only"> unread</span></span>}
         </span>
         <span className="app-bar__label">{label}</span>
       </Link>
     </li>
-  );
+    );
+  };
 
   return (
     <>

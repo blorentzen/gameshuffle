@@ -1,10 +1,11 @@
-import { trackSummary } from "@/lib/timeTrials/store";
-import { trackPath, ttTrack, TT_GAME_ORDER } from "@/lib/timeTrials/tracks";
+import { trackSummary, ttGameReady } from "@/lib/timeTrials/store";
+import { gamePath, trackPath, ttTrack, TT_GAME_ORDER, type TtGame } from "@/lib/timeTrials/tracks";
+import { hasItems, type TtItems } from "@/lib/timeTrials/categories";
 import { CHECKLISTS, CHECKLISTS_PATH, checklistUrl } from "@/data/tcg-checklists";
 import type { MetadataRoute } from "next";
 import { compAppLive } from "@/lib/discord/appIds";
 import { publishedGuidesAsync } from "@/lib/guides/store";
-import { DUEL_PUBLIC, ROAD_PUBLIC, FIRE_ROUND_PUBLIC, GUIDES_PUBLIC, MK64_PUBLIC, PERFECT_DARK_PUBLIC, OVERWATCH_PUBLIC, MARVEL_RIVALS_PUBLIC } from "@/lib/games-visibility";
+import { DUEL_PUBLIC, ROAD_PUBLIC, FIRE_ROUND_PUBLIC, GUIDES_PUBLIC, MK64_PUBLIC, PERFECT_DARK_PUBLIC, OVERWATCH_PUBLIC, MARVEL_RIVALS_PUBLIC, SPEEDRUN_PUBLIC } from "@/lib/games-visibility";
 import { createPublicClient } from "@/lib/supabase/public";
 import { listCompetitiveGames } from "@/lib/competitive/config";
 import { HELP_ARTICLES } from "@/lib/help/manifest";
@@ -28,7 +29,7 @@ import { TIER_TEMPLATES } from "@/data/tier-templates";
 import { BINGO_TEMPLATES } from "@/data/bingo-templates";
 import { TRUTH_OR_DARE_SETS } from "@/data/truth-or-dare";
 import { publicDestinations } from "@/lib/nav/pillars";
-import { N64_PARTY_PUBLIC, FRLG_PUBLIC, GOLDENEYE_PUBLIC, KIRBY_PUBLIC, STADIUM_PUBLIC, SMASH_PUBLIC, SPLATOON_PUBLIC } from "@/lib/games-visibility";
+import { N64_PARTY_PUBLIC, FRLG_PUBLIC, GOLDENEYE_PUBLIC, KIRBY_PUBLIC, STADIUM_PUBLIC, SMASH_PUBLIC, SPLATOON_PUBLIC, SONIC_PUBLIC } from "@/lib/games-visibility";
 import LASTMOD from "@/data/sitemap-lastmod.json";
 import { ROAD_REGIONS, roadPath } from "@/lib/originals/duel/road";
 import { allRoadPeople } from "@/lib/originals/duel/roadPages";
@@ -158,6 +159,13 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       changeFrequency: "daily",
       priority: 0.7,
     },
+    // Every daily in one place (choose your dailies, 2026-11-09).
+    {
+      url: `${baseUrl}/dailies`,
+      lastModified: lm("/dailies"),
+      changeFrequency: "daily",
+      priority: 0.7,
+    },
     {
       url: `${baseUrl}/weekly`,
       lastModified: lm("/weekly"),
@@ -224,6 +232,13 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       changeFrequency: "monthly",
       priority: 0.6,
     },
+    // Speedrunning: once the relay runs in production (SPEEDRUN_PUBLIC). /run/<token> overlays stay out.
+    ...(SPEEDRUN_PUBLIC ? [{
+      url: `${baseUrl}/speedrun`,
+      lastModified: lm("/speedrun"),
+      changeFrequency: "monthly" as const,
+      priority: 0.6,
+    }] : []),
     ...(compAppLive() ? [{
       url: `${baseUrl}/mario-kart-discord-bot`,
       lastModified: lm("/mario-kart-discord-bot"),
@@ -434,6 +449,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     ...(KIRBY_PUBLIC ? [{
       url: `${baseUrl}/randomizers/kirby-air-riders`,
       lastModified: lm("/randomizers/kirby-air-riders"),
+      changeFrequency: "weekly" as const,
+      priority: 0.8,
+    }] : []),
+    ...(SONIC_PUBLIC ? [{
+      url: `${baseUrl}/randomizers/sonic-racing-crossworlds`,
+      lastModified: lm("/randomizers/sonic-racing-crossworlds"),
       changeFrequency: "weekly" as const,
       priority: 0.8,
     }] : []),
@@ -697,11 +718,14 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     console.error("Sitemap: failed to fetch series", err);
   }
 
-  // Time trial boards with at least three players (thinner boards are noindex).
+  // Time trial boards with at least three players (thinner boards are noindex). Kirby Air Riders' page and boards once
+  // supabase/tt-kirby-m1.sql has run (its boards have no items setting).
   let ttRoutes: MetadataRoute.Sitemap = [];
   try {
-    for (const g of TT_GAME_ORDER) {
-      for (const items of ["shrooms", "none"] as const) {
+    const kirby = await ttGameReady("kar");
+    if (kirby) ttRoutes.push({ url: `${baseUrl}${gamePath("kar")}`, changeFrequency: "daily" as const, priority: 0.5 });
+    for (const g of [...TT_GAME_ORDER, ...(kirby ? ["kar" as const] : [])] as TtGame[]) {
+      for (const items of (hasItems(g) ? ["shrooms", "none"] : ["shrooms"]) as TtItems[]) {
         for (const s of await trackSummary(g, items)) {
           const t = ttTrack(g, s.track);
           if (t && s.players >= 3) ttRoutes.push({ url: `${baseUrl}${trackPath(t, s.cc, { items })}`, changeFrequency: "daily" as const, priority: 0.4 });

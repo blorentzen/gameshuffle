@@ -1,5 +1,6 @@
 import "server-only";
 import { createServiceClient } from "@/lib/supabase/admin";
+import { readAllPages } from "@/lib/supabase/pages";
 import { listBlockedByUser } from "@/lib/moderation/blocks";
 import { can } from "@/lib/moderation/standing";
 import { IDEA_LIMITS, PUBLIC_IDEA_STATUSES, type IdeaCategory } from "./constants";
@@ -16,10 +17,29 @@ import type { Idea, IdeaAuthor, IdeaCycle, IdeaSort } from "./types";
  */
 
 // Public/author-safe column allowlist — no moderation_note / reviewed_by.
-const IDEA_COLS =
+const BASE_COLS =
   "id, author_id, title, body, category, status, vote_count, submitted_at, published_at, expires_at, cycle_id, verdict, verdict_note, shipped_ref";
+
+/**
+ * Whether gs_ideas has its `game` column yet (supabase/ideas-game-m1.sql). Until it does, ideas read and save without a
+ * game, the game picker and filter hide, and game spaces list no ideas. Asked again after a minute when it's missing.
+ */
+let gameReadyAt = 0;
+export async function ideasGameReady(): Promise<boolean> {
+  if (gameReadyAt > 0) return true;
+  if (gameReadyAt < 0 && Date.now() + gameReadyAt < 60_000) return false;
+  // A plain one-row read: a HEAD request can come back without an error body when the column is missing.
+  const { error } = await createServiceClient().from("gs_ideas").select("game").limit(1);
+  gameReadyAt = error ? -Date.now() : Date.now();
+  return !error;
+}
+
+/** The public columns, with `game` once the column exists. */
+async function ideaCols(): Promise<string> {
+  return (await ideasGameReady()) ? `${BASE_COLS}, game` : BASE_COLS;
+}
 // Author-only variant: adds the reject reason, exposed to the author (§4).
-const IDEA_COLS_AUTHOR = `${IDEA_COLS}, moderation_note`;
+const authorCols = async () => `${await ideaCols()}, moderation_note`;
 
 interface IdeaRow {
   id: string;
@@ -36,6 +56,7 @@ interface IdeaRow {
   verdict: "planned" | "declined" | null;
   verdict_note: string | null;
   shipped_ref: string | null;
+  game?: string | null;
 }
 
 function rowToIdea(
@@ -58,6 +79,7 @@ function rowToIdea(
     verdict: r.verdict,
     verdictNote: r.verdict_note,
     shippedRef: r.shipped_ref,
+    game: r.game ?? null,
     author,
     hasVoted,
     moderationNote,
@@ -110,14 +132,18 @@ export async function listPublicIdeas(opts: {
   viewerId?: string | null;
   category?: IdeaCategory | null;
   status?: Idea["status"] | null;
+  /** Only ideas for these games (catalog keys): a game space's Ideas tab, /ideas?game=. Empty before ideas-game-m1. */
+  games?: string[] | null;
   sort?: IdeaSort;
   limit?: number;
 }): Promise<Idea[]> {
   const admin = createServiceClient();
   const viewerId = opts.viewerId ?? null;
   const nowIso = new Date().toISOString();
+  const gameReady = await ideasGameReady();
+  if (opts.games && (!gameReady || !opts.games.length)) return [];
 
-  let q = admin.from("gs_ideas").select(IDEA_COLS);
+  let q = admin.from("gs_ideas").select(gameReady ? `${BASE_COLS}, game` : BASE_COLS);
 
   if (opts.status && PUBLIC_IDEA_STATUSES.includes(opts.status)) {
     q = q.eq("status", opts.status);
@@ -125,6 +151,7 @@ export async function listPublicIdeas(opts: {
     q = q.in("status", PUBLIC_IDEA_STATUSES as unknown as string[]);
   }
   if (opts.category) q = q.eq("category", opts.category);
+  if (opts.games) q = q.in("game", opts.games);
 
   // Lazy expiry filter (§5.3): a public row past its window is not listed.
   q = q.or(`status.neq.public,expires_at.is.null,expires_at.gt.${nowIso}`);
@@ -136,7 +163,7 @@ export async function listPublicIdeas(opts: {
   q = q.limit(opts.limit ?? 100);
 
   const { data } = await q;
-  let rows = (data ?? []) as IdeaRow[];
+  let rows = (data ?? []) as unknown as IdeaRow[];
 
   // Exclude ideas authored by anyone the viewer has blocked (§6.1).
   if (viewerId) {
@@ -174,9 +201,9 @@ export async function getVotingCycle(): Promise<IdeaCycle | null> {
 /** A single idea for the detail page — public rows for anyone, any-status for the author. */
 export async function getIdea(id: string, viewerId: string | null): Promise<Idea | null> {
   const admin = createServiceClient();
-  const { data } = await admin.from("gs_ideas").select(IDEA_COLS_AUTHOR).eq("id", id).maybeSingle();
+  const { data } = await admin.from("gs_ideas").select(await authorCols()).eq("id", id).maybeSingle();
   if (!data) return null;
-  const row = data as IdeaRow & { moderation_note: string | null };
+  const row = data as unknown as IdeaRow & { moderation_note: string | null };
 
   const isAuthor = !!viewerId && viewerId === row.author_id;
   const isPublicStatus = PUBLIC_IDEA_STATUSES.includes(row.status);
@@ -194,14 +221,17 @@ export async function getIdea(id: string, viewerId: string | null): Promise<Idea
 // Author surfaces
 // ---------------------------------------------------------------------------
 
-export async function listMyIdeas(userId: string): Promise<Idea[]> {
+export async function listMyIdeas(userId: string, opts: { games?: string[]; status?: Idea["status"] } = {}): Promise<Idea[]> {
   const admin = createServiceClient();
-  const { data } = await admin
+  if (opts.games && (!(await ideasGameReady()) || !opts.games.length)) return [];
+  let q = admin
     .from("gs_ideas")
-    .select(IDEA_COLS_AUTHOR)
-    .eq("author_id", userId)
-    .order("submitted_at", { ascending: false });
-  const rows = (data ?? []) as Array<IdeaRow & { moderation_note: string | null }>;
+    .select(await authorCols())
+    .eq("author_id", userId);
+  if (opts.games) q = q.in("game", opts.games);
+  if (opts.status) q = q.eq("status", opts.status);
+  const { data } = await q.order("submitted_at", { ascending: false });
+  const rows = (data ?? []) as unknown as Array<IdeaRow & { moderation_note: string | null }>;
   const author = (await hydrateAuthors([userId])).get(userId) ?? null;
   return rows.map((r) => rowToIdea(r, author, undefined, r.moderation_note));
 }
@@ -211,10 +241,10 @@ export async function listPendingIdeas(): Promise<Idea[]> {
   const admin = createServiceClient();
   const { data } = await admin
     .from("gs_ideas")
-    .select(IDEA_COLS)
+    .select(await ideaCols())
     .eq("status", "submitted")
     .order("submitted_at", { ascending: true });
-  const rows = (data ?? []) as IdeaRow[];
+  const rows = (data ?? []) as unknown as IdeaRow[];
   const authors = await hydrateAuthors(rows.map((r) => r.author_id));
   return rows.map((r) => rowToIdea(r, authors.get(r.author_id) ?? null));
 }
@@ -228,6 +258,8 @@ export async function createIdea(args: {
   title: string;
   body: string;
   category: IdeaCategory;
+  /** A catalog key (checked by the route). Saved once ideas-game-m1 has run; dropped quietly before. */
+  game?: string | null;
 }): Promise<CreateIdeaResult> {
   const title = args.title.trim();
   const body = args.body.trim();
@@ -247,9 +279,10 @@ export async function createIdea(args: {
     .gte("submitted_at", since);
   if ((count ?? 0) >= IDEA_LIMITS.submissionsPer24h) return { ok: false, reason: "rate_limited" };
 
+  const game = args.game && (await ideasGameReady()) ? args.game : null;
   const { data, error } = await admin
     .from("gs_ideas")
-    .insert({ author_id: args.authorId, title, body, category: args.category, status: "submitted" })
+    .insert({ author_id: args.authorId, title, body, category: args.category, status: "submitted", ...(game ? { game } : {}) })
     .select("id")
     .single();
   if (error || !data) return { ok: false, reason: "invalid" };
@@ -309,4 +342,18 @@ export async function toggleVote(
   }
   await admin.from("gs_idea_votes").insert({ idea_id: ideaId, user_id: userId });
   return { ok: true, voted: true };
+}
+
+/**
+ * The games that have public ideas, most ideas first (the game filter on /ideas). Empty before ideas-game-m1. Reads
+ * only the game column of public rows, a page at a time (Supabase answers 1,000 rows a request).
+ */
+export async function ideaGames(): Promise<{ game: string; count: number }[]> {
+  if (!(await ideasGameReady())) return [];
+  const admin = createServiceClient();
+  const { data } = await readAllPages<{ game: string | null }>((from, to) => admin.from("gs_ideas").select("id, game").not("game", "is", null)
+    .in("status", PUBLIC_IDEA_STATUSES as unknown as string[]).order("id").range(from, to));
+  const counts = new Map<string, number>();
+  for (const r of data) if (r.game) counts.set(r.game, (counts.get(r.game) ?? 0) + 1);
+  return [...counts.entries()].map(([game, count]) => ({ game, count })).sort((a, b) => b.count - a.count || a.game.localeCompare(b.game));
 }

@@ -12,7 +12,7 @@
  * (same prompt and picture).
  *
  * The seasonal packs (Halloween, Christmas) and the game packs (Pokémon,
- * Mario Kart, Smash, Super Mario, Zelda, Kirby; each tagged with its game via
+ * Mario Kart, Smash, Super Mario, Zelda, Kirby, Sonic; each tagged with its game via
  * `gameSlug`) live in their own trivia-pack-*.ts files and are spread in below.
  *
  * Picture questions use art we already serve on the randomizers. Phones and
@@ -27,6 +27,7 @@ import { MARIO_PACK } from "@/data/originals/trivia-pack-mario";
 import { MARIO_KART_PACK } from "@/data/originals/trivia-pack-mario-kart";
 import { POKEMON_PACK } from "@/data/originals/trivia-pack-pokemon";
 import { SMASH_PACK } from "@/data/originals/trivia-pack-smash";
+import { SONIC_PACK } from "@/data/originals/trivia-pack-sonic";
 import { ZELDA_PACK } from "@/data/originals/trivia-pack-zelda";
 
 export type PackCategory =
@@ -412,6 +413,7 @@ export const TRIVIA_PACK: PackQuestion[] = [
   ...MARIO_PACK,
   ...ZELDA_PACK,
   ...KIRBY_PACK,
+  ...SONIC_PACK,
   ...pictures(SMASH, "Picture: game characters", "super-smash-bros-ultimate/fighters", "Name this video game character.",
     { title: "SmashWiki: Super Smash Bros. Ultimate roster", url: "https://www.ssbwiki.com/Super_Smash_Bros._Ultimate#Characters" }),
   ...pictures(OVERWATCH, "Picture: Overwatch heroes", "overwatch/heroes", "Name this Overwatch hero.",

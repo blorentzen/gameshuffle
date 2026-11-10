@@ -28,8 +28,9 @@
   .settings-layout:has(.settings-pane--index) .settings-layout__pane { display: none; }
   .settings-layout:not(:has(.settings-pane--index)) .settings-nav { display: none; }
   .settings-pane__back { display: inline-flex; align-items: center; gap: var(--spacing-4); justify-self: start; min-height: 4rem; font-weight: 700; font-size: var(--font-size-14); color: var(--brand-ink, #2f5bea); text-decoration: none; }
-  .settings-nav__item { padding: var(--spacing-12); background: var(--background-primary, #fff); border-radius: 0; }
-  .settings-nav ul { gap: 0; border-radius: 1.6rem; overflow: hidden; box-shadow: 0 1px 2px rgba(20, 26, 58, .06), 0 6px 18px rgba(20, 26, 58, .06); }
+  .settings-nav__item { padding: var(--spacing-12); background: var(--background-elevated, #fff); border-radius: 0; }
+  /* Raised and edged in both themes: on the page's own color the groups vanished in dark (sweep, 2026-11-09). */
+  .settings-nav ul { gap: 0; border-radius: 1.6rem; overflow: hidden; border: 1px solid var(--border-default); box-shadow: 0 1px 2px rgba(20, 26, 58, .06), 0 6px 18px rgba(20, 26, 58, .06); }
   .settings-nav li + li .settings-nav__item { border-top: 1px solid var(--border-subtle); }
-  .settings-nav__item.is-on { box-shadow: none; background: var(--background-primary, #fff); }
+  .settings-nav__item.is-on { box-shadow: none; background: var(--background-elevated, #fff); }
 }

@@ -376,10 +376,10 @@ export const HELP_ARTICLES: HelpArticleMeta[] = [
   {
     id: "time-trials",
     title: "Time trials",
-    description: "Add your best times on every Mario Kart 8 Deluxe and Mario Kart World track, get them verified, and climb the boards.",
+    description: "Add your best times on every Mario Kart 8 Deluxe and Mario Kart World track and every Kirby Air Riders course, get them verified, and climb the boards.",
     href: "/help/competitive/time-trials",
     category: "competitive",
-    keywords: ["time trials", "tt", "best times", "screenshot", "verified", "unverified", "legacy", "clip", "vouch", "country", "import", "quaxly", "report", "boards", "200cc", "no mushrooms"],
+    keywords: ["time trials", "tt", "best times", "screenshot", "verified", "unverified", "legacy", "clip", "vouch", "country", "import", "quaxly", "report", "boards", "200cc", "no mushrooms", "kirby air riders", "time attack", "air ride", "machine", "legendary"],
   },
   {
     id: "reviewing-times",
@@ -539,11 +539,11 @@ export const HELP_ARTICLES: HelpArticleMeta[] = [
   },
   {
     id: "comms-center",
-    title: "Notifications & Messages",
-    description: "The Comms Center: your alerts and your direct messages, and how DMs work.",
+    title: "Your inbox",
+    description: "Inbox: your alerts (follows, replies, invites, results) and reminders, and how to choose what reaches you.",
     href: "/help/community/comms-center",
     category: "community",
-    keywords: ["notifications", "messages", "dm", "direct message", "comms", "alerts", "chat", "mutual follow"],
+    keywords: ["notifications", "inbox", "comms", "alerts", "reminders", "bell"],
   },
   {
     id: "discord-bot",

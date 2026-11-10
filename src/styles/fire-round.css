@@ -92,6 +92,12 @@ html.dark .fire-page, [data-theme="dark"] .fire-page { --fire-ink: #ff9a7a; }
 .fire-q { display: grid; gap: var(--spacing-12); }
 .fire-q__tag { display: inline-flex; align-items: center; gap: var(--spacing-6, 6px); margin: 0; font-size: var(--font-size-14); font-weight: var(--font-weight-semibold, 600); color: var(--fire-ink); }
 .fire-q__prompt { margin: 0; font-size: var(--font-size-24); line-height: 1.25; text-wrap: balance; }
+/* The clock hit zero: this stands in for the question until the results arrive (a moment). */
+.fire-timeup { display: grid; justify-items: center; gap: var(--spacing-8); padding-block: var(--spacing-32); text-align: center; }
+.fire-timeup .fire-feedback { justify-self: stretch; text-align: left; }
+.fire-timeup__icon { color: var(--fire-ink); }
+.fire-timeup__title { margin: 0; font-size: var(--font-size-28); font-weight: var(--font-weight-bold, 700); line-height: 1.2; }
+.fire-timeup__line { margin: 0; font-size: var(--font-size-16); color: var(--text-secondary); }
 .fire-q__pic { width: min(22rem, 100%); height: auto; aspect-ratio: 1; object-fit: contain; border-radius: var(--radius-12, 12px); background: var(--surface-subtle, rgba(120, 120, 140, 0.1)); }
 .fire-feedback { display: flex; align-items: center; flex-wrap: wrap; gap: var(--spacing-6, 6px); margin: 0; padding: var(--spacing-8) var(--spacing-12); border-radius: var(--radius-8, 8px); font-size: var(--font-size-14); font-weight: var(--font-weight-semibold, 600); }
 .fire-feedback--right { background: var(--success-100, #e4f5ea); color: var(--success-ink, #157a3c); }

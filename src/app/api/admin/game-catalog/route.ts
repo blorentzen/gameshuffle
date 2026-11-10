@@ -2,13 +2,16 @@
  * GET /api/admin/game-catalog → Platform ▸ Game catalog: how many profiles
  * favorite each catalog game, and the games people added that the catalog
  * doesn't have yet ("Other"), most asked first. Staff/admin only. Reads only
- * users.favorite_games (names), never who picked what.
+ * users.favorite_games (names), never who picked what. Also the games people
+ * asked a space for on /games ("Don't see your game?"), with counts, never who
+ * asked; `spaceAsks` is null until supabase/ideas-game-m1.sql has run.
  */
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/admin";
 import { requireStaff } from "@/lib/shop/adminGuard";
 import { catalogGame } from "@/data/game-catalog";
+import { spaceAsks } from "@/lib/games/requests";
 
 export const runtime = "nodejs";
 
@@ -17,6 +20,7 @@ export async function GET() {
   if (!gate.ok) return NextResponse.json({ ok: false, error: gate.error }, { status: gate.status });
 
   const svc = createServiceClient();
+  const asksRead = spaceAsks(100).catch(() => null);
   const favorites = new Map<string, number>(); // catalog slug → profiles
   const asked = new Map<string, { name: string; count: number }>(); // normalized → shown name
   let profiles = 0;
@@ -45,5 +49,6 @@ export async function GET() {
     profiles,
     favorites: Object.fromEntries(favorites),
     asked: [...asked.values()].sort((a, b) => b.count - a.count || a.name.localeCompare(b.name)).slice(0, 100),
+    spaceAsks: await asksRead,
   }, { headers: { "Cache-Control": "private, no-store" } });
 }

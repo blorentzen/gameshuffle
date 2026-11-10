@@ -31,6 +31,8 @@ import { SPLATOON3, splatStageArt } from "@/data/splatoon/splatoon3";
 import { rollBattle, rollSalmon, rollSet } from "@/lib/splatoon/roll";
 import { AIR_RIDERS } from "@/data/kirby/air-riders";
 import { rollCourse, rollStadium } from "@/lib/kirby/roll";
+import { CROSSWORLDS_GAME } from "@/data/sonic/crossworlds";
+import { rollGrandPrix as rollSonicGrandPrix, rollRaces as rollSonicRaces } from "@/lib/sonic/roll";
 import { rollMatch as rollGoldenEyeMatch } from "@/lib/goldeneye/roll";
 import { rollMatch as rollPdMatch } from "@/lib/perfectdark/roll";
 import { stadiumGame } from "@/lib/pokemon/stadium";
@@ -220,6 +222,29 @@ const kirbySetup: ChatSetup = {
   },
 };
 
+// ── Sonic Racing: CrossWorlds ─────────────────────────────────────────────────
+
+/** Races with the CrossWorld for lap 2 (4 by default, a number up to 12), or `gp` for a Grand Prix. Base tracks only:
+ *  chat can't know who owns which pack. */
+const sonicSetup: ChatSetup = {
+  argHint: "a number of races or gp",
+  choices: [{ label: "4 races", arg: "" }, { label: "8 races", arg: "8" }, { label: "Grand Prix", arg: "gp" }],
+  roll: ({ arg }) => {
+    const g = CROSSWORLDS_GAME;
+    const w = words(arg);
+    if (w.some((x) => x === "gp" || x.startsWith("grand"))) {
+      const cup = rollSonicGrandPrix(g);
+      return setup(g.slug, cup.name, [...cup.tracks.map((t, i) => text(t, "#173a8a", `Race ${i + 1}`)), text("A lap of each", "#0b2a6f", "Final race")], "🏁",
+        [...cup.tracks.map((t, i) => `${i + 1}. ${t}`), "4. A lap of each"]);
+    }
+    const count = raceCount(arg, 4, 12);
+    const races = rollSonicRaces(g, { count });
+    return setup(g.slug, `${count} ${count === 1 ? "race" : "races"}`,
+      races.map((r, i) => text(r.track, "#173a8a", `Race ${i + 1}`, r.crossWorld ? `CrossWorld: ${r.crossWorld}` : undefined)), "🏁",
+      races.map((r, i) => `${i + 1}. ${r.track}${r.crossWorld ? ` (${r.crossWorld})` : ""}`));
+  },
+};
+
 // ── N64 shooters ─────────────────────────────────────────────────────────────
 
 const goldeneyeSetup: ChatSetup = {
@@ -282,6 +307,7 @@ export const CHAT_SETUPS: Record<string, ChatSetup> = {
   [MARVEL_RIVALS.slug]: heroSetup(MARVEL_RIVALS),
   [SPLATOON3.slug]: splatoonSetup,
   [AIR_RIDERS.slug]: kirbySetup,
+  [CROSSWORLDS_GAME.slug]: sonicSetup,
   "goldeneye-007": goldeneyeSetup,
   "perfect-dark": perfectDarkSetup,
   "pokemon-stadium": stadiumSetup("pokemon-stadium"),

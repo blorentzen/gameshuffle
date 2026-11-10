@@ -77,7 +77,10 @@
   padding: var(--spacing-8) var(--spacing-4); border-top: 1px solid var(--border-default); min-height: 5.6rem;
 }
 .merch-products__row.is-picked { background: var(--bg-primary-subtle, var(--surface-subtle)); }
-.merch-products__pic { width: 4rem; height: 4rem; border-radius: var(--radius-sm, 6px); object-fit: cover; background: var(--surface-subtle, var(--surface-default)); }
+/* Product pictures are made for a light page, so they sit on a light tile in both themes (a black cap vanished on dark,
+   2026-11-09); a product with no picture yet shows a dashed square instead of a gap. */
+.merch-products__pic { width: 4rem; height: 4rem; flex: 0 0 auto; border-radius: var(--radius-sm, 6px); object-fit: contain; background: #f3f4f7; }
+span.merch-products__pic { display: inline-block; background: none; border: 1px dashed var(--border-strong); }
 .merch-products__name { display: flex; flex-direction: column; min-width: 0; }
 .merch-products__name strong { font-size: var(--font-size-16); overflow-wrap: anywhere; }
 .merch-products__name span { font-size: var(--font-size-14); color: var(--text-secondary); }

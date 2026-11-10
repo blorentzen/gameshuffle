@@ -21,12 +21,12 @@ import type { TtItems, TtVehicle } from "@/lib/timeTrials/categories";
 import { describePlayers } from "@/lib/daily/boards";
 import { headers } from "next/headers";
 import { siteActor } from "@/lib/timeTrials/players";
-import { playerBests, trackSummary } from "@/lib/timeTrials/store";
+import { playerBests, readyBoardGames, trackSummary } from "@/lib/timeTrials/store";
 import { serverSummary } from "@/lib/timeTrials/server";
 import { reviewCounts } from "@/lib/timeTrials/review";
 import { IconClipboardCheck } from "@tabler/icons-react";
 import { formatTime, ordinal } from "@/lib/timeTrials/rules";
-import { gamePath, serverPath, trackPath, ttCups, ttTracks, TT_GAMES, TT_GAME_ORDER, type TtClass, type TtGame } from "@/lib/timeTrials/tracks";
+import { cupLabel, gamePath, serverPath, trackPath, ttCups, ttTracks, TT_GAMES, TT_GAME_ORDER, type TtClass, type TtGame } from "@/lib/timeTrials/tracks";
 
 /**
  * The time trials page, for /time-trials (both games, Mario Kart World first) and each game's own
@@ -35,6 +35,9 @@ import { gamePath, serverPath, trackPath, ttCups, ttTracks, TT_GAMES, TT_GAME_OR
  * links share a row, the filters share one bar, and each cup is a card (three across on desktop).
  * With `server`, it's one Discord server's board (/time-trials/servers/<id>, the time trial panel's Server
  * board): the records among that server's players, and no search or questions.
+ * Kirby Air Riders (2026-11-09) has a page of its own here, once its migration has run: its Air Ride courses, a
+ * machine filter instead of items and speed, no Discord or Quaxly parts (those are Mario Kart only) and its own
+ * questions (KAR_FAQ).
  */
 
 export const TT_FAQ = [
@@ -51,20 +54,41 @@ export const TT_FAQ = [
   { q: "What if a time looks fake?", a: "A time faster than the track's world record can't be saved. For anything else, report it from the board: it opens a ticket, the time's owner can answer with proof, and a reviewer keeps or removes it with a reason everyone in the ticket sees." },
 ];
 
+/** The hub's questions, with Kirby Air Riders once its boards are open. */
+export function ttFaq(kirby: boolean) {
+  return kirby ? [...TT_FAQ, { q: "Is there a Kirby Air Riders board?", a: "Yes. Kirby Air Riders has a board for each of its 18 Air Ride courses, with a filter for each machine. The game keeps no online rankings for Time Attack, so the boards here are where players compare." }] : TT_FAQ;
+}
+
+/** Questions on the Kirby Air Riders page. */
+export const KAR_FAQ = [
+  { q: "What do the Kirby Air Riders boards count?", a: "Air Ride Time Attack: one solo run of a course at its default number of laps, the total time the game shows at the finish. Every board is one course. Time Attack and Free Run have no online rankings in the game itself." },
+  { q: "Why is every time set with a machine?", a: "The game keeps its records per course by machine, so each time here names the machine it was set on. Any machine shows every time, No Legendaries leaves out Dragoon, Hydra and Leo, and each machine has its own board too." },
+  { q: "How many laps is a run?", a: "Each course's default: three on Floria Fields and Fantasy Meadows, one on Mount Amberfalls and Galactic Nova, and two everywhere else. Times from version 1.0.0, which ran some courses at other lap counts, don't count." },
+  { q: "Does the game tempo matter?", a: "Time Attack always runs at the normal tempo. With Game Tempo set to Slow the game doesn't record times at all." },
+  { q: "What proof do I need?", a: "A screenshot of the result for every new time. Type the time from it yourself: we don't read Kirby screenshots yet. Times in a board's top ten also need a clip of the run's last 30 seconds before a reviewer marks them Verified." },
+  { q: "Is Top Ride on here?", a: "Not yet. These boards are Air Ride courses only." },
+];
+
 export async function TimeTrialsHub({ game, cc, items = "shrooms", vehicle = "any", gamePage, server, country = null }: { game: TtGame; cc: TtClass; items?: TtItems; vehicle?: TtVehicle; gamePage: boolean; server?: { guildId: string; name: string };
   /** A country's records (round 4 pick 3A): `?country=` on the time trials pages. */
   country?: string | null }) {
   const info = TT_GAMES[game];
+  const kirby = info.family === "kirby";
   const actor = await siteActor();
-  const [summary, mine, countries, reviews, events] = await Promise.all([
+  const [summary, mine, countries, reviews, events, ready] = await Promise.all([
     server ? serverSummary(server.guildId, game, items, vehicle) : country ? countryPlayers(country).then((ps) => trackSummary(game, items, vehicle, ps)) : trackSummary(game, items, vehicle),
     actor ? playerBests(actor.player) : Promise.resolve([]),
     server ? Promise.resolve([]) : countriesInUse(),
     // Reviewers and updaters get a way into their queue from here (Britton, 2026-11-05).
     actor?.userId && !server ? reviewCounts(actor.userId) : Promise.resolve(null),
-    // Time trial events taking players or running (events pick 12A), not on a Discord server's page.
-    server ? Promise.resolve([]) : listTtEvents(gamePage ? game : null),
+    // Time trial events taking players or running (events pick 12A), not on a Discord server's page. Events are Mario
+    // Kart only, so none on Kirby's page.
+    server || kirby ? Promise.resolve([]) : listTtEvents(gamePage ? game : null),
+    // The games in the switch: a Discord server's page is Mario Kart (its panel is); elsewhere Kirby once it's open.
+    server ? Promise.resolve<TtGame[]>(TT_GAME_ORDER) : readyBoardGames(),
   ]);
+  const faq = kirby ? KAR_FAQ : ttFaq(ready.includes("kar"));
+  const word = info.trackWord;
   // Asked once (round 4 pick 1A): someone with times and no country.
   const ask = !server && actor && mine.length > 0 && (await shouldAskCountry(actor.player, "site"));
   const ip = ask ? (await headers()).get("x-vercel-ip-country")?.toLowerCase() ?? null : null;
@@ -77,6 +101,8 @@ export async function TimeTrialsHub({ game, cc, items = "shrooms", vehicle = "an
   const myRecords = [...mineByTrack.values()].filter((b) => b.place === 1).length;
   const withCountry = (path: string, c: string | null) => (c ? `${path}${path.includes("?") ? "&" : "?"}country=${c}` : path);
   const pathFor = (g: TtGame, c?: TtClass, cat?: { items?: TtItems; vehicle?: TtVehicle }) => (server ? serverPath(server.guildId, g, c, cat) : withCountry(gamePath(g, c, cat), country));
+  // Items carry over between the Mario Kart games; Kirby has none, so its pill (and the way back) starts plain.
+  const gamePills = ready.map((g) => ({ label: TT_GAMES[g].label, href: pathFor(g, undefined, TT_GAMES[g].family === "kart" && !kirby ? { items } : undefined), active: g === game }));
   const here = server || gamePage ? pathFor(game, cc, { items, vehicle }) : withCountry("/time-trials", country);
   const countryFilter = !server && countries.length > 0 ? (
     <TtFilterSelect
@@ -95,14 +121,16 @@ export async function TimeTrialsHub({ game, cc, items = "shrooms", vehicle = "an
     <main className="tt-page">
       <TtMovedToast />
       <BrowseHero
-        eyebrow={server ? "Discord server" : "Mario Kart"}
+        eyebrow={server ? "Discord server" : kirby ? "Kirby" : "Mario Kart"}
         title={server ? `${server.name} time trials` : gamePage ? `${info.label} time trials` : "Time trials"}
         sub={server
           ? `The best ${info.label} times on every track from players in this Discord server.`
-          : gamePage
-            ? `The best times on every ${info.label} track, from players on GameShuffle and in Discord.`
-            : "The best times on every Mario Kart 8 Deluxe and Mario Kart World track, from players on GameShuffle and in Discord."}
-        subShort={server ? "This server's best time on every track." : "Every track's best times, on GameShuffle and in Discord."}
+          : kirby
+            ? `The best Time Attack times on every ${info.label} Air Ride course, by machine.`
+            : gamePage
+              ? `The best times on every ${info.label} track, from players on GameShuffle and in Discord.`
+              : `The best times on every Mario Kart 8 Deluxe and Mario Kart World track${ready.includes("kar") ? " and every Kirby Air Riders course" : ""}, from players on GameShuffle and in Discord.`}
+        subShort={server ? "This server's best time on every track." : kirby ? "Every course's best times, by machine." : "Every track's best times, on GameShuffle and in Discord."}
         accent="blue"
         field="compete"
         compact
@@ -120,21 +148,21 @@ export async function TimeTrialsHub({ game, cc, items = "shrooms", vehicle = "an
           <TtPlayerSearch />
           {actor && (
             <p className="tt-mine">
-              {myTracks ? <>Times on {myTracks} of {ttTracks(game).length} tracks{myRecords ? `, ${myRecords} ${myRecords === 1 ? "record" : "records"}` : ""}</> : "You haven't added a time yet"}
-              {myTracks > 0 && <ArrowLink href="/time-trials/players/me">Your times</ArrowLink>}
-              <ArrowLink href="/time-trials/import">Import from Quaxly or a list</ArrowLink>
+              {myTracks ? <>Times on {myTracks} of {ttTracks(game).length} {word}s{myRecords ? `, ${myRecords} ${myRecords === 1 ? "record" : "records"}` : ""}</> : "You haven't added a time yet"}
+              {myTracks > 0 && <ArrowLink href={kirby ? `/time-trials/players/me?game=${game}` : "/time-trials/players/me"}>Your times</ArrowLink>}
+              {!kirby && <ArrowLink href="/time-trials/import">Import from Quaxly or a list</ArrowLink>}
             </p>
           )}
         </section>}
-        {!server && <TtEventsRow events={events} game={gamePage ? game : null} />}
+        {!server && !kirby && <TtEventsRow events={events} game={gamePage ? game : null} />}
         {ask && <TtCountryAsk suggest={ip} />}
-        {actor && !actor.discordLinked && <TtConnectDiscord returnTo={here} />}
+        {actor && !actor.discordLinked && !kirby && <TtConnectDiscord returnTo={here} />}
 
         <section className="tt-sec" aria-labelledby="tt-tracks">
-          <h2 id="tt-tracks" className="sr-only">{info.label} tracks</h2>
+          <h2 id="tt-tracks" className="sr-only">{info.label} {word}s</h2>
           <TtCategoryNav
             game={game} cc={cc} items={items} vehicle={vehicle} href={(c) => pathFor(game, c.cc, c)}
-            games={TT_GAME_ORDER.map((g) => ({ label: TT_GAMES[g].label, href: pathFor(g, undefined, { items }), active: g === game }))}
+            games={gamePills}
             end={countryFilter}
           />
           {country && (
@@ -146,8 +174,8 @@ export async function TimeTrialsHub({ game, cc, items = "shrooms", vehicle = "an
           )}
           <div className="tt-cups">
             {ttCups(game).map((cup) => (
-              <section key={cup.cup} className="tt-cupcard" aria-label={`${cup.cup}${/Mario Kart$/.test(cup.cup) ? " courses" : " Cup"}`}>
-                <h3 className="tt-cupcard__head"><span>{cup.cup}{/Mario Kart$/.test(cup.cup) ? " courses" : " Cup"}</span><span className="tt-cupcard__col" aria-hidden="true">{country ? "National record" : "Record"}</span></h3>
+              <section key={cup.cup} className="tt-cupcard" aria-label={cupLabel(cup.cup)}>
+                <h3 className="tt-cupcard__head"><span>{cupLabel(cup.cup)}</span><span className="tt-cupcard__col" aria-hidden="true">{country ? "National record" : "Record"}</span></h3>
                 <ul className="tt-cupcard__list">
                   {cup.tracks.map((t) => {
                     const s = byTrack.get(t.id);
@@ -186,7 +214,7 @@ export async function TimeTrialsHub({ game, cc, items = "shrooms", vehicle = "an
           </div>
         </section>
 
-        {!server && <section className="tt-sec" aria-labelledby="tt-discord">
+        {!server && !kirby && <section className="tt-sec" aria-labelledby="tt-discord">
           <h2 id="tt-discord">In Discord</h2>
           <p className="tt-note">With GameShuffle Competitive in your server, <code>/tt add</code> saves a time from the result screenshot, <code>/tt track</code> shows a track&apos;s top ten for the server, and <code>/tt player</code> shows someone&apos;s bests. Coming from Quaxly? Press and hold its reply to <code>/dx display_time</code>, tap Apps, then Save to GameShuffle.</p>
           <div className="tt-links">
@@ -197,7 +225,7 @@ export async function TimeTrialsHub({ game, cc, items = "shrooms", vehicle = "an
 
         {!server && <section className="tt-sec" aria-labelledby="tt-faq">
           <h2 id="tt-faq">Questions</h2>
-          <FaqList items={TT_FAQ} />
+          <FaqList items={faq} />
         </section>}
       </Container>
     </main>

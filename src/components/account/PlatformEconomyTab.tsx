@@ -18,6 +18,7 @@ import { IconBroadcast, IconCalendarEvent, IconCoins, IconConfetti, IconHandStop
 import { useToast } from "@/components/toast/ToastProvider";
 import { LoadingLines } from "@/components/loading/LoadingLines";
 import { AdminField, AdminHeader, AdminSection } from "@/components/account/admin/AdminKit";
+import { LabeledSubNav } from "@/components/ui/LabeledSubNav";
 
 interface ConfigRow {
   key: string;
@@ -284,12 +285,19 @@ export function PlatformEconomyTab() {
         <LoadingLines label="Loading the levers" />
       ) : (
         <>
+          {/* About 70 levers made a very long page (17,200px on a phone, 2026-11-09 sweep): jump to a group. */}
+          <LabeledSubNav
+            label="Lever groups"
+            variant="pills"
+            className="admin-jump"
+            items={CATEGORIES.filter((cat) => LEVERS.some((l) => l.category === cat.id)).map((cat) => ({ label: cat.title, href: `#levers-${cat.id}` }))}
+          />
           {CATEGORIES.map((cat) => {
             const list = LEVERS.filter((l) => l.category === cat.id);
             if (list.length === 0) return null;
             const Icon = cat.icon;
             return (
-              <AdminSection key={cat.id} title={cat.title} intro={cat.intro} icon={<Icon size={20} />}>
+              <AdminSection key={cat.id} id={`levers-${cat.id}`} title={cat.title} intro={cat.intro} icon={<Icon size={20} />}>
                 <ul className="admin-money-list">{list.map((l) => row(l.key, l.label, l.helper, l.unit))}</ul>
               </AdminSection>
             );

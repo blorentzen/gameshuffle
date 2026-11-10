@@ -21,7 +21,7 @@ import { OriginalsLink, useArtSrc, useOriginalsHost, type OriginalsHost } from "
 import { EVENTS, track } from "@/lib/analytics/events";
 import { ChallengeVersus } from "@/components/share/ShareChallenge";
 import {
-  CLUE_AFTER, DEFAULT_CLOSE_NOTE, MAX_GUESSES, answerFor, dayKey, guessFeedback, guessLimits, hintFor, ladderShown, playTraits, previewPuzzle, puzzleFor, puzzleLabel, puzzleNumber, rotationFor, PUZZLES, shareText, silhouetteAfter, starterFor, WRITTEN_CLUE,
+  CLUE_AFTER, DEFAULT_CLOSE_NOTE, MAX_GUESSES, answerFor, dayKey, guessFeedback, guessLimits, hintFor, ladderShown, lastChanceLetters, playTraits, previewPuzzle, puzzleFor, puzzleLabel, puzzleNumber, rotationFor, PUZZLES, shareText, silhouetteAfter, starterFor, WRITTEN_CLUE,
   type DailyStats, type GuessHint, type TraitCell, type TraitDef,
 } from "@/lib/originals/daily";
 
@@ -76,6 +76,34 @@ function rotationText(day: string): string {
   const days = rotationFor(day);
   const order = [...new Set(days)];
   return andList(order.map((id) => `${PUZZLES[id].game} on ${andList(WEEKDAYS.filter((_, i) => days[i] === id))}`));
+}
+
+/**
+ * The week in one line when a game has its own day(s) inside the usual pool
+ * ("Sonic on Saturdays, and the All-Stars pool the rest of the week"), else null.
+ */
+function weekText(day: string): string | null {
+  const days = rotationFor(day);
+  const counts = new Map<string, number>();
+  for (const id of days) counts.set(id, (counts.get(id) ?? 0) + 1);
+  if (counts.size < 2) return null;
+  const usual = [...counts.entries()].sort((a, b) => b[1] - a[1])[0][0];
+  const name = (id: string) => puzzleLabel(PUZZLES[id]) ?? "the All-Stars pool";
+  const special = [...counts.keys()].filter((id) => id !== usual).map((id) => `${name(id)} on ${andList(WEEKDAYS.filter((_, i) => days[i] === id).map((w) => `${w}s`))}`);
+  return `It's ${andList(special)}, and ${name(usual)} the rest of the week.`;
+}
+
+const ORDINALS = ["first", "second", "third", "fourth", "fifth", "sixth"];
+/** "your second and fourth misses": when a puzzle's hints arrive (all its characters share them). */
+function hintTimes(afters: number[]): string {
+  const words = afters.map((n) => ORDINALS[n - 1] ?? `${n}th`);
+  return `your ${andList(words)} ${afters.length > 1 ? "misses" : "miss"}`;
+}
+
+/** A character with no picture (Sonic days: names only, never art): their first letter on a tile. */
+function NameTile({ name, size }: { name: string; size: "row" | "answer" }) {
+  const letter = [...name].find((ch) => /\p{L}/u.test(ch))?.toUpperCase() ?? "?";
+  return <span className={`daily__tile daily__tile--${size}`} aria-hidden>{letter}</span>;
 }
 
 function yesterday(day: string): string {
@@ -168,7 +196,19 @@ export function DailyShuffle() {
   // Before the first guess: the characters drift past and three steps say how to play.
   const fresh = loaded && !over && hints.length === 0 && !elsewhere;
   const times = pickTimes(account?.times, clock.local, score?.seconds);
-  const steps = puzzle.lastChance
+  // When this puzzle's hints arrive (All-Stars: one before the first guess and after each miss).
+  const hintAfters = [...new Set((answer.ladder ?? []).map((h) => h.after))].sort((a, b) => a - b);
+  const hintEveryMiss = hintAfters.length > 0 && hintAfters.every((n, i) => n === i);
+  const nextHintAt = (answer.ladder ?? []).map((h) => h.after).filter((n) => n > hints.length).sort((a, b) => a - b)[0];
+  // No art to show (Sonic days): letter tiles instead of pictures, and the last chance shows the first letter.
+  const letters = lastChanceLetters(puzzle) > 0;
+  const steps = puzzle.lastChance && !hintEveryMiss
+    ? [
+      { icon: "guess" as const, title: "Guess anyone", text: `Pick from ${puzzle.characters.length} ${label ? `${label} ` : ""}${noun}s.` },
+      { icon: "colors" as const, title: "Follow the colors", text: `Green matches, yellow is close. ${main} guesses, then a last chance.` },
+      { icon: "hint" as const, title: "Hints on the way", text: hintAfters.length ? `A hint after ${hintTimes(hintAfters)}.` : "Each guess narrows it down." },
+    ]
+    : puzzle.lastChance
     ? [
       { icon: "hint" as const, title: "Read the hint", text: "A nod to today's character, with a new one after each miss." },
       { icon: "guess" as const, title: "Guess anyone", text: "Type a name; Smash's guests count too." },
@@ -274,7 +314,10 @@ export function DailyShuffle() {
         <span className="party-muted">{elsewhere ? Math.min(elsewhere.guesses, main) : Math.min(hints.length, main)} of {main} guesses{inLastChance || savedIt ? " · last chance" : ""}</span>
       </div>
 
-      {!over && loaded && !started && <DailyStartCard onStart={clock.start}>{fresh && <DailySteps steps={steps} />}</DailyStartCard>}
+      {!over && loaded && !started && (
+        // The default note promises the first hint at Start: only true when a hint shows before guess one.
+        <DailyStartCard onStart={clock.start} note={hintAfters.length && !hintAfters.includes(0) ? "The clock starts when you tap Start." : undefined}>{fresh && <DailySteps steps={steps} />}</DailyStartCard>
+      )}
       {!over && loaded && started && (
         <div className="daily__guess">
           <LabeledCombobox label={`Guess today's ${noun}`} value={pick} onChange={setPick} options={options} placeholder={`Type a ${noun}`} allowCreate={false} />
@@ -290,24 +333,30 @@ export function DailyShuffle() {
           <ol className="daily__ladder">{shownHints.map((h) => <li key={h.after}>{h.text}</li>)}</ol>
         </Alert>
       )}
-      {moreHints && hints.length > 0 && <p className="party-muted daily__next-hint">A new hint after each miss.</p>}
+      {moreHints && hints.length > 0 && (
+        <p className="party-muted daily__next-hint">{hintEveryMiss ? "A new hint after each miss." : `${shownHints.length ? "Another" : "A"} hint after ${nextHintAt === hints.length + 1 ? "your next miss" : hintTimes([nextHintAt])}.`}</p>
+      )}
       {inLastChance && (
         <Alert variant="warning" title="Last chance">
           {`${main} guesses down. One more try, just for fun: it keeps your streak going but won't count as a win.`}
         </Alert>
       )}
-      {!over && hints.length >= silhouetteAfter(puzzle) && (
+      {!over && hints.length >= silhouetteAfter(puzzle) && letters && (
+        <HelpWord name={answer.name} free={1} bought={help.letters}
+          note={help.letters ? "Last chance: the first letter, the letters you bought in gold, and a square for every letter." : "Last chance: their first letter, and a square for every letter."} />
+      )}
+      {!over && hints.length >= silhouetteAfter(puzzle) && !letters && (
         <div className={`daily__silhouette${blur ? " daily__silhouette--blur" : ""}`}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={art(answer.img)} alt={blur ? `Today's ${noun}, blurred` : `Today's ${noun}, as a silhouette`} />
           <span className="party-muted">{blur ? "Last chance: here's a blurry look." : "Last chance: here's their silhouette."}</span>
         </div>
       )}
-      {inLastChance && help.letters > 0 && (
+      {inLastChance && help.letters > 0 && !letters && (
         <HelpWord name={answer.name} free={0} bought={help.letters} note="The letters you bought, and a square for every letter." />
       )}
       {inLastChance && !preview && (
-        <DailyHelpPanel game="shuffle" info={helpInfo} help={help} signupPath="/daily"
+        <DailyHelpPanel game="shuffle" info={helpInfo} help={help} signupPath="/daily" free={lastChanceLetters(puzzle)}
           onBought={(h) => { setLocalHelp(h); write({ day, puzzle: puzzle.id, guesses, stats, help: h }); void reloadHelp(); }} />
       )}
 
@@ -346,8 +395,10 @@ export function DailyShuffle() {
                   <TableRow key={h.name} className={[h.correct ? "daily__row--win" : "", h.name === flash ? "daily__row--new" : ""].filter(Boolean).join(" ") || undefined}>
                     <TableCell>
                       <span className="daily__who">
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img src={art(c.img)} alt="" className="daily__img" />
+                        {c.img
+                          // eslint-disable-next-line @next/next/no-img-element
+                          ? <img src={art(c.img)} alt="" className="daily__img" />
+                          : <NameTile name={c.name} size="row" />}
                         <span className="daily__who-name">{h.name}</span>
                       </span>
                     </TableCell>
@@ -368,8 +419,10 @@ export function DailyShuffle() {
       {over && (
         <div className="daily__done">
           <div className="daily-result">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={art(answer.img)} alt="" className="daily__answer-img" />
+            {answer.img
+              // eslint-disable-next-line @next/next/no-img-element
+              ? <img src={art(answer.img)} alt="" className="daily__answer-img" />
+              : <NameTile name={answer.name} size="answer" />}
             <div className="daily-result__text">
               <p className="oddone__verdict">{savedIt ? "Saved it on the last chance." : solved ? `Got it in ${elsewhere ? elsewhere.guesses : hints.length}!` : "Not today."} It was <strong>{answer.name}</strong>{answer.name.endsWith(".") ? "" : "."}</p>
               <DailySolveTime times={times} solved={solved} />
@@ -419,8 +472,9 @@ export function DailyShuffle() {
           <>
             {puzzle.lastChance ? (
               <>
-                <p>Each guess fills a row: {andList(traits.map((t) => t.label))}. Green is a match. Yellow is close: {puzzle.closeNote ?? DEFAULT_CLOSE_NOTE}.</p>
-                <p>Hints get more specific with each miss. If all {main} guesses miss, you get a last chance with their {blur ? "blurry picture" : "silhouette"}: solve it then and your streak keeps going, but it doesn&apos;t count as a win.</p>
+                <p>{label ? `Guess today's ${label} ${noun}. ` : ""}Each guess fills a row: {andList(traits.map((t) => t.label))}. Green is a match. Yellow is close: {puzzle.closeNote ?? DEFAULT_CLOSE_NOTE}.</p>
+                <p>{hintEveryMiss ? "Hints get more specific with each miss." : hintAfters.length ? `A hint comes after ${hintTimes(hintAfters)}.` : ""} If all {main} guesses miss, you get a last chance with {letters ? "the first letter of their name and a square for every letter" : `their ${blur ? "blurry picture" : "silhouette"}`}: solve it then and your streak keeps going, but it doesn&apos;t count as a win.</p>
+                {weekText(day) && <p>{weekText(day)} Your streak counts every day you solve, whatever the game.</p>}
               </>
             ) : (
               <>

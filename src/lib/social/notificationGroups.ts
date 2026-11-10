@@ -11,6 +11,7 @@
  */
 
 import type { GsNotificationType } from "@/lib/social/notificationTypes";
+import { MESSAGING_ON } from "./messagingOn";
 
 export interface NotificationGroup {
   id: string;
@@ -31,7 +32,8 @@ export const NOTIFICATION_SECTIONS: { id: NotificationGroup["section"]; label: s
 
 export const NOTIFICATION_GROUPS: NotificationGroup[] = [
   { id: "social", section: "people", label: "Follows, comments and reactions", helper: "Someone follows you, comments, replies, reacts or mentions you.", types: ["follow", "joined_from_link", "post_reaction", "post_comment", "comment_reply", "comment_like", "post_mention"] },
-  { id: "messages", section: "people", label: "Messages", helper: "A new direct message. The message itself stays in Comms.", types: ["message"] },
+  // Messages are shelved (MESSAGING_ON), so their switch is hidden; it returns with them.
+  ...(MESSAGING_ON ? [{ id: "messages", section: "people", label: "Messages", helper: "A new direct message. The message itself stays in Comms.", types: ["message"] } as NotificationGroup] : []),
   { id: "nudges", section: "people", label: "Nudges from friends", helper: "A friend wants you on today's daily, sends their result to beat, or saves you a seat at a night. Friends only, once a day each.", types: ["daily_nudge", "night_invite"] },
   { id: "invites", section: "people", label: "Invitations", helper: "Invites to streams, tournaments, championships and Chat Brain co-streams.", types: ["session_invite", "tournament_invite", "championship_invite", "chatbrain_costream"] },
   { id: "tournaments", section: "games", emailDefault: true, label: "Tournaments", helper: "Reminders, check-in opening, when you're up, changes from the organizer, and people waiting to get into your own tournament.", types: ["tournament_reminder", "tournament_checkin_open", "tournament_youre_up", "tournament_update", "tournament_claim_offer", "tournament_plan_waitlist"] },

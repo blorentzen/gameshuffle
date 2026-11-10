@@ -6,6 +6,7 @@ import { describePartySetup } from "@/data/party";
 import { describeSmashSetup } from "@/data/smash";
 import { describeSplatoonSetup } from "@/data/splatoon";
 import { describeKirbySetup } from "@/data/kirby";
+import { describeSonicSetup } from "@/data/sonic";
 import { describeStadiumSetup } from "@/data/pokemon/stadium-setup";
 import { getGameName } from "@/data/game-registry";
 
@@ -95,6 +96,12 @@ export default async function SharedConfigPage({
               </div>
             ))}
             {configData.type === "kirby-setup" && describeKirbySetup(configData).map((r) => (
+              <div key={r.label} className="account-card__row">
+                <span className="account-card__label">{r.label}</span>
+                <span className="account-card__value">{r.value}</span>
+              </div>
+            ))}
+            {configData.type === "sonic-setup" && describeSonicSetup(configData).map((r) => (
               <div key={r.label} className="account-card__row">
                 <span className="account-card__label">{r.label}</span>
                 <span className="account-card__value">{r.value}</span>

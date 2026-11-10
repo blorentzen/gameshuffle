@@ -1,146 +1,44 @@
-"use client";
+import type { Metadata } from "next";
+import { ideasGameReady } from "@/lib/ideas/store";
+import { IDEA_CATEGORIES, IDEA_LIMITS, type IdeaCategory } from "@/lib/ideas/constants";
+import { GAME_CATALOG } from "@/data/game-catalog";
+import { gameEntry } from "@/lib/games/key";
+import { spaceFor, spaceOpen, spacePath } from "@/lib/games/spaces";
+import { gsDay } from "@/lib/time/gsClock";
+import { IdeaSubmitForm } from "./IdeaSubmitForm";
+import "@/styles/space-ideas.css";
 
-import { useEffect, useState } from "react";
-import Link from "next/link";
-import { Container, Input, Textarea, Select, Button } from "@empac/cascadeds";
-import { useAuth } from "@/components/auth/AuthProvider";
-import { TurnstileWidget } from "@/components/TurnstileWidget";
-import {
-  IDEA_LIMITS,
-  IDEA_CATEGORIES,
-  IDEA_CATEGORY_LABELS,
-  type IdeaCategory,
-} from "@/lib/ideas/constants";
+export const metadata: Metadata = {
+  title: "Submit an idea",
+  robots: { index: false, follow: true },
+};
 
-const CATEGORY_OPTIONS = IDEA_CATEGORIES.map((c) => ({ value: c, label: IDEA_CATEGORY_LABELS[c] }));
-
-export default function SubmitIdeaPage() {
-  const { user } = useAuth();
-  const [title, setTitle] = useState("");
-  const [body, setBody] = useState("");
-  const [category, setCategory] = useState<IdeaCategory>("game_idea");
-  // Links can preselect a category (/discord's "Suggest it" sends ?category=randomizer).
-  // One read of the URL after hydration (as on /signup), not a cascading render.
-  useEffect(() => {
-    const c = new URLSearchParams(window.location.search).get("category");
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    if (c && (IDEA_CATEGORIES as readonly string[]).includes(c)) setCategory(c as IdeaCategory);
-  }, []);
-  const [token, setToken] = useState<string | null>(null);
-  const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [done, setDone] = useState(false);
-
-  async function submit(e: React.FormEvent) {
-    e.preventDefault();
-    setError(null);
-    if (!token) {
-      setError("Please complete the verification.");
-      return;
-    }
-    setSubmitting(true);
-    const res = await fetch("/api/ideas", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ title, body, category, turnstileToken: token }),
-    });
-    setSubmitting(false);
-    if (res.ok) {
-      setDone(true);
-      return;
-    }
-    const d = (await res.json().catch(() => null)) as { error?: string } | null;
-    setError(
-      d?.error === "rate_limited"
-        ? `You can submit up to ${IDEA_LIMITS.submissionsPer24h} ideas per day. Try again tomorrow.`
-        : "Couldn't submit that. Check your entry and try again.",
-    );
-  }
-
-  if (done) {
-    return (
-      <Container className="ideas-page">
-        <div className="ideas-submit__done">
-          <h1 className="ideas-page__title">Idea submitted</h1>
-          <p className="ideas-page__lead">
-            Thanks! Every idea goes through a quick review before it appears on the board. This
-            keeps the board focused. Once it&apos;s approved it&apos;ll go live and start collecting
-            votes. You can track its status any time.
-          </p>
-          <div className="ideas-submit__actions">
-            <Link href="/ideas/mine">
-              <Button variant="primary">View my ideas</Button>
-            </Link>
-            <Button variant="secondary" onClick={() => { setTitle(""); setBody(""); setDone(false); }}>
-              Submit another
-            </Button>
-          </div>
-        </div>
-      </Container>
-    );
-  }
-
-  if (!user) {
-    return (
-      <Container className="ideas-page">
-        <h1 className="ideas-page__title">Submit an idea</h1>
-        <p className="ideas-page__lead">Sign in to share a game idea, randomizer concept, or feature request.</p>
-        <Link href="/login?redirect=/ideas/submit">
-          <Button variant="primary">Log in</Button>
-        </Link>
-      </Container>
-    );
-  }
+/**
+ * The Idea Board's form. Links can preselect: `?category=randomizer` (/discord's "Suggest it"), and from a game space
+ * `?game=<catalog key>` plus a starter idea's `?title=`.
+ */
+export default async function SubmitIdeaPage({ searchParams }: { searchParams: Promise<{ category?: string; game?: string; title?: string }> }) {
+  const sp = await searchParams;
+  const category: IdeaCategory = (IDEA_CATEGORIES as readonly string[]).includes(sp.category ?? "") ? (sp.category as IdeaCategory) : "game_idea";
+  const entry = sp.game ? gameEntry(sp.game) : null;
+  const space = entry ? spaceFor(entry.slug) : null;
+  const gameReady = await ideasGameReady().catch(() => false);
+  const names = [...new Set(GAME_CATALOG.map((g) => g.name))].sort((a, b) => a.localeCompare(b));
+  const back = new URLSearchParams();
+  if (sp.category) back.set("category", sp.category);
+  if (entry) back.set("game", entry.slug);
+  if (sp.title) back.set("title", sp.title);
+  const self = `/ideas/submit${back.toString() ? `?${back.toString()}` : ""}`;
 
   return (
-    <Container className="ideas-page">
-      <h1 className="ideas-page__title">Submit an idea</h1>
-      <p className="ideas-page__lead">
-        Game ideas, randomizer concepts, tools, and features. The community votes, and ideas enter
-        batched review cycles, and every reviewed idea gets a public verdict.
-      </p>
-
-      <form onSubmit={submit} className="ideas-submit__form">
-        <div className="ideas-field">
-          <Input
-            floatingLabel="Title"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            maxLength={IDEA_LIMITS.titleMax}
-            fullWidth
-            required
-          />
-          <span className="ideas-field__count">{title.length}/{IDEA_LIMITS.titleMax}</span>
-        </div>
-
-        <Select
-          floatingLabel="Category"
-          options={CATEGORY_OPTIONS}
-          value={category}
-          onChange={(v) => setCategory(v as IdeaCategory)}
-          fullWidth
-        />
-
-        <div className="ideas-field">
-          <Textarea
-            floatingLabel="Describe your idea"
-            value={body}
-            onChange={(e) => setBody(e.target.value)}
-            maxLength={IDEA_LIMITS.bodyMax}
-            rows={6}
-            fullWidth
-            required
-          />
-          <span className="ideas-field__count">{body.length}/{IDEA_LIMITS.bodyMax}</span>
-        </div>
-
-        <TurnstileWidget onToken={setToken} />
-        {error && <p className="ideas-submit__error">{error}</p>}
-
-        <Button type="submit" variant="primary" loading={submitting} disabled={!title.trim() || !body.trim()}>
-          Submit for review
-        </Button>
-      </form>
-    </Container>
+    <IdeaSubmitForm
+      initialGame={entry ? { key: entry.slug, name: entry.name } : null}
+      initialTitle={(sp.title ?? "").slice(0, IDEA_LIMITS.titleMax)}
+      initialCategory={category}
+      gameReady={gameReady}
+      gameNames={names}
+      space={space && spaceOpen(space, gsDay()) ? { href: spacePath(space), name: space.name } : null}
+      loginHref={`/login?redirect=${encodeURIComponent(self)}`}
+    />
   );
 }

@@ -1,0 +1,43 @@
+/* Page outlines while a page loads (src/components/loading/PageOutline.tsx). Shapes only; sizes follow the real pages
+   roughly so nothing jumps far when the page arrives. */
+.page-outline { min-height: 100vh; }
+/* CDS gives every rectangle skeleton a 100px minimum; outlines size their own (pills are 44px). */
+.page-outline .empac-skeleton--rectangular { min-height: 0; }
+.outline__body { display: grid; gap: var(--spacing-20); padding-block: var(--spacing-24) var(--spacing-48); }
+.outline__band { color: #fff; background: radial-gradient(90% 130% at 0% 0%, color-mix(in srgb, var(--brand-primary, #2766ec) 40%, transparent) 0%, transparent 72%), radial-gradient(125% 140% at 50% -20%, var(--primary-900, #1c1e5f) 0%, #0b0d14 64%); }
+.outline__band--short { min-height: 20rem; }
+.outline__band--tall { min-height: 22rem; }
+.outline__band-inner { display: grid; gap: var(--spacing-20); padding-block: 9.6rem var(--spacing-32); }
+.outline__band .empac-skeleton { background-color: rgba(255, 255, 255, 0.14); }
+.outline__band .empac-skeleton::after { background: linear-gradient(90deg, transparent 0%, transparent 25%, rgba(255, 255, 255, 0.12) 50%, transparent 75%, transparent 100%); }
+
+.outline__search { display: block; width: min(100%, 52rem); height: 7.2rem; border-radius: 1.2rem; background-color: rgba(255, 255, 255, 0.14); }
+.outline__line { display: block; height: var(--font-size-16); }
+.outline__heading { display: block; height: var(--font-size-24); margin-top: var(--spacing-8); }
+.outline__text { display: grid; gap: var(--spacing-10, 1rem); max-width: 60rem; }
+.outline__text .empac-skeleton--text + .empac-skeleton--text,
+.outline__card-text .empac-skeleton--text + .empac-skeleton--text { margin-top: 0; }
+.outline__pills { display: flex; flex-wrap: wrap; gap: var(--spacing-8); }
+.outline__pill { flex: 1 1 6rem; max-width: 12rem; height: 4.4rem; border-radius: 99rem; }
+.outline__panel { display: block; width: 100%; height: 28rem; border-radius: 1.6rem; }
+.outline__panel--short { height: 20rem; }
+.outline__tiles { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--spacing-8); }
+@media (min-width: 900px) { .outline__tiles { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+.outline__tile { display: block; height: 11.6rem; border-radius: 1.4rem; }
+.outline__cards { display: grid; gap: var(--spacing-16); grid-template-columns: repeat(auto-fill, minmax(min(100%, 26rem), 1fr)); }
+.outline__card { display: grid; grid-template-columns: 6.4rem minmax(0, 1fr); gap: var(--spacing-14, 1.4rem); align-items: start; padding: var(--spacing-16); border-radius: 1.6rem; border: 1px solid var(--border-default); background: var(--background-elevated, #fff); }
+.outline__box { display: block; width: 6.4rem; height: 8.6rem; border-radius: 1rem; }
+.outline__card-text { display: grid; gap: var(--spacing-10, 1rem); min-width: 0; align-content: start; padding-top: var(--spacing-4); }
+.outline__list { display: grid; }
+.outline__row { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: var(--spacing-12); align-items: center; padding-block: var(--spacing-12); border-top: 1px solid var(--border-default); }
+.outline__row:first-child { border-top: 0; }
+.outline__space-head { display: grid; grid-template-columns: 9.6rem minmax(0, 1fr); gap: var(--spacing-16); align-items: end; margin-top: calc(-1 * var(--spacing-48)); }
+.outline__boxart { display: block; width: 9.6rem; height: 12.8rem; border-radius: 1.2rem; border: 3px solid var(--background-primary); }
+.outline__btns { display: grid; grid-template-columns: 1fr 1fr; gap: var(--spacing-12); }
+.outline__btn { display: block; height: 4.4rem; border-radius: 1rem; }
+.outline__tabs { display: flex; gap: var(--spacing-20); padding-bottom: var(--spacing-12); border-bottom: 1px solid var(--border-default); }
+.outline__profile-head { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: var(--spacing-16); align-items: center; }
+.outline__avatar { border: 3px solid var(--background-primary); }
+@media (prefers-reduced-motion: reduce) {
+  .page-outline .empac-skeleton::after { animation: none; display: none; }
+}

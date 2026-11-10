@@ -2,12 +2,14 @@
  * POST /api/time-trials/read (multipart: file, game?) → stores the screenshot as proof and
  * reads the track, class and time from it for the player to check. Signed in; a daily cap
  * (lever tt_reads_per_day). Nothing is saved as a time here.
+ * Kirby Air Riders screenshots are stored as proof but not read (`read: null, error: "manual"`): the reader knows
+ * Mario Kart's result screens, and we haven't checked Kirby's results screen from a real screenshot yet.
  */
 import { NextResponse } from "next/server";
 import { rateLimit } from "@/lib/ratelimit";
 import { siteActor } from "@/lib/timeTrials/players";
 import { MAX_SCREENSHOT_BYTES, readScreenshot, readsLeft, storeScreenshot } from "@/lib/timeTrials/read";
-import { isTtGame } from "@/lib/timeTrials/tracks";
+import { isBoardGame, isKartGame } from "@/lib/timeTrials/tracks";
 import { signRead } from "@/lib/timeTrials/proof";
 
 export const runtime = "nodejs";
@@ -30,10 +32,12 @@ export async function POST(req: Request) {
   if (!TYPES.has(file.type)) return NextResponse.json({ ok: false, error: "bad_type" }, { status: 400 });
   if (file.size > MAX_SCREENSHOT_BYTES) return NextResponse.json({ ok: false, error: "too_big" }, { status: 400 });
   const gameRaw = form?.get("game");
-  const game = isTtGame(gameRaw) ? gameRaw : null;
+  const game = isBoardGame(gameRaw) ? gameRaw : null;
 
   const shot = await storeScreenshot(new Uint8Array(await file.arrayBuffer()), actor.userId);
   if (!shot) return NextResponse.json({ ok: false, error: "storage" }, { status: 503 });
+  // Proof only for Kirby Air Riders: the player types the time (and nothing counts against their daily reads).
+  if (game && !isKartGame(game)) return NextResponse.json({ ok: true, proofUrl: shot.url, read: null, error: "manual" }, { headers: { "Cache-Control": "private, no-store" } });
   const res = await readScreenshot({ jpeg: shot.jpeg, game, userId: actor.userId, capKey: actor.player });
   // The screenshot still counts as proof when it can't be read (or the day's reads are used up).
   if (!res.ok) return NextResponse.json({ ok: true, proofUrl: shot.url, read: null, error: res.error, left: res.error === "cap" ? 0 : undefined });

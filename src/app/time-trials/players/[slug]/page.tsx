@@ -26,7 +26,7 @@ import { StatusChip } from "@/components/timeTrials/TtTimeWindow";
 import { claimView, listedPlayer } from "@/lib/timeTrials/claims";
 import { sheetTimeIds } from "@/lib/timeTrials/store";
 import { playerPagePath, readPlayerSlug } from "@/lib/timeTrials/playerPath";
-import { isClassFor, trackPath, ttTrack, ttTracks, TT_GAMES, TT_GAME_ORDER, type TtClass, type TtGame } from "@/lib/timeTrials/tracks";
+import { isClassFor, trackPath, ttTrack, ttTracks, TT_BOARD_GAMES, TT_GAMES, type TtClass, type TtGame } from "@/lib/timeTrials/tracks";
 import { attentionFor, timePath, type AttentionItem } from "@/lib/timeTrials/asks";
 import { trustedPlayers } from "@/lib/timeTrials/status";
 import { IconTile } from "@/components/ui/IconTile";
@@ -105,8 +105,9 @@ export default async function TtPlayerPage({ params, searchParams }: Props) {
     ? [...new Map(bests.filter((b) => b.place <= TOP_TEN && !fromSheet.has(b.timeId) && (b.video === "none" || b.video === "rejected") && !askedIds.has(b.timeId)).map((b) => [b.timeId, b])).values()]
     : [];
   const waitingOnYou = asked.filter((a) => a.kind !== "answered").length + clipNeeds.length;
-  const games = TT_GAME_ORDER.filter((g) => bests.some((b) => b.game === g));
-  const game: TtGame = TT_GAME_ORDER.includes(sp.game as TtGame) ? (sp.game as TtGame) : games[0] ?? "mk8dx";
+  // Every game the player has times in, Kirby Air Riders included.
+  const games = TT_BOARD_GAMES.filter((g) => bests.some((b) => b.game === g));
+  const game: TtGame = TT_BOARD_GAMES.includes(sp.game as TtGame) ? (sp.game as TtGame) : games[0] ?? "mk8dx";
   const info = TT_GAMES[game];
   const ccRaw = Number(sp.cc);
   const cc = (isClassFor(game, ccRaw) ? ccRaw : info.classes[0]) as TtClass;
@@ -202,7 +203,7 @@ export default async function TtPlayerPage({ params, searchParams }: Props) {
         )}
         <section className="tt-sec tt-sec--flat" aria-label="Totals">
           <dl className="tt-stats">
-            <div><dt>Tracks</dt><dd>{tracks} of {ttTracks(game).length}</dd><dd className="tt-stats__sub">{categoryText(game, cc, items, vehicle, info.classes.length > 1)}</dd></div>
+            <div><dt>{info.trackWord === "course" ? "Courses" : "Tracks"}</dt><dd>{tracks} of {ttTracks(game).length}</dd><dd className="tt-stats__sub">{categoryText(game, cc, items, vehicle, info.classes.length > 1)}</dd></div>
             <div><dt>Records</dt><dd>{records}</dd></div>
             <div><dt>Top tens</dt><dd>{topTens}</dd></div>
             <div><dt>Verified</dt><dd>{verified}</dd></div>
@@ -227,7 +228,7 @@ export default async function TtPlayerPage({ params, searchParams }: Props) {
                 <Table className="tt-cup__table">
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Track</TableHead>
+                      <TableHead>{info.trackWord === "course" ? "Course" : "Track"}</TableHead>
                       <TableHead>{other ? <span className="tt-colname" title={who.name}>{who.name}</span> : "Best"}</TableHead>
                       <TableHead>Place</TableHead>
                       {other && <TableHead><span className="tt-colname" title={other.name}>{other.name}</span></TableHead>}

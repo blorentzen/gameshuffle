@@ -21,20 +21,29 @@ const PER_LANE = 16;
 export function DailyParade({ characters, art }: { characters: { name: string; img: string }[]; art: (src: string) => string }) {
   // Shuffled in the browser after the first paint, so the server and the page agree.
   const [lanes, setLanes] = useState<{ name: string; img: string }[][] | null>(null);
+  // A puzzle with no art at all (Sonic days: names only) parades names on letter tiles, like the Dex.
+  const names = !characters.some((c) => c.img);
   useEffect(() => {
-    const list = characters.filter((c) => c.img);
+    const list = names ? [...characters] : characters.filter((c) => c.img);
     for (let i = list.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [list[i], list[j]] = [list[j], list[i]]; }
     void Promise.resolve().then(() => setLanes([list.slice(0, PER_LANE), list.slice(PER_LANE, PER_LANE * 2)]));
-  }, [characters]);
-  if (!lanes) return <div className="daily-parade" aria-hidden />;
+  }, [characters, names]);
+  const cls = `daily-parade${names ? " dex-parade daily-parade--names" : ""}`;
+  if (!lanes) return <div className={cls} aria-hidden />;
   return (
-    <div className="daily-parade" aria-hidden>
+    <div className={cls} aria-hidden>
       {lanes.map((lane, i) => (
         <div key={i} className={`daily-parade__lane${i === 1 ? " daily-parade__lane--back" : ""}`}>
           {/* Three times over, so a wide screen never sees the end and the loop has no seam. */}
-          {[...lane, ...lane, ...lane].map((c, j) => (
+          {[...lane, ...lane, ...lane].map((c, j) => (names
+            ? (
+              <span key={`${c.name}-${j}`} className="dex-parade__mon">
+                <span className="daily-parade__letter">{[...c.name].find((ch) => /\p{L}/u.test(ch))?.toUpperCase()}</span>
+                <span className="dex-parade__name">{c.name}</span>
+              </span>
+            )
             // eslint-disable-next-line @next/next/no-img-element
-            <img key={`${c.name}-${j}`} src={art(c.img)} alt="" loading="lazy" decoding="async" />
+            : <img key={`${c.name}-${j}`} src={art(c.img)} alt="" loading="lazy" decoding="async" />
           ))}
         </div>
       ))}

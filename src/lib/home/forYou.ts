@@ -92,7 +92,7 @@ export type Tile =
       kind: "today"; span: TileSpan; games: TodayGame[]; weekly: { line: string; action: string } | null; streak: number; streakFrom: number | null;
       /** The day so far: players, the fastest, your place, your people (dailies + explore picks 2026-11-05). */
       live: TodayLive | null;
-      /** Every daily done: the spot becomes "Done for today" with these three picks, and takes a row of its own. */
+      /** Every daily done: the spot becomes "Done for today". `picks` feed Play next every day. */
       done: boolean; picks: Pick[];
       /** When new dailies come (midnight Pacific). */
       resetAt: string;
@@ -262,7 +262,8 @@ async function todayTile(userId: string, duel: DuelChallengerView | null, visit:
   const done = games.length > 0 && games.every((g) => g.done);
   // What's yours goes on the picks' pictures (context picks 1A): your card, best track, saved build, friends' faces.
   const ctx = done ? await pickContext(userId, live?.friends ?? []).catch(() => undefined) : undefined;
-  const picks = done ? await nextPicks({ interests: mine.interests, favorites: mine.favorites, signedIn: true, ctx }).catch(() => []) : [];
+  // Play next shows every day now, not only once the dailies are done (Home in five blocks, 2026-11-09).
+  const picks = await nextPicks({ interests: mine.interests, favorites: mine.favorites, signedIn: true, ctx }).catch(() => []);
   const day = gsDay();
   return {
     kind: "today", span: 5, games, weekly: { line: `Weekly Challenge · ${w.status}`, action: w.action }, streak, streakFrom: visit ? visit.streak : null,
@@ -439,7 +440,7 @@ async function timeBeaten(db: Db, userId: string, since: number): Promise<SinceL
   const who = await playerName(db, beat.player);
   const gap = best.get(`${beat.game}|${beat.track}|${beat.cc}`)! - beat.time_ms;
   return {
-    icon: "times", title: `${who} beat your ${track.name} time`, line: `${fmtTime(beat.time_ms)} at ${beat.cc}cc, ${(gap / 1000).toFixed(3)} faster than yours`,
+    icon: "times", title: `${who} beat your ${track.name} time`, line: `${fmtTime(beat.time_ms)}${beat.game === "kar" ? "" : ` at ${beat.cc}cc`}, ${(gap / 1000).toFixed(3)} faster than yours`,
     href: trackPath(track, beat.cc as 150 | 200), action: "See it", sample: false,
   };
 }

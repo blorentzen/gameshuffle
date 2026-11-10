@@ -120,12 +120,21 @@ let readyAt = 0;
 export async function challengesReady(): Promise<boolean> {
   if (readyAt > 0) return true;
   if (readyAt < 0 && Date.now() + readyAt < 60_000) return false;
-  const { error } = await createServiceClient().from("space_challenges").select("space", { head: true, count: "exact" }).limit(1);
+  // A plain one-row read: a header-only request to a missing table can come back without an error.
+  const { error } = await createServiceClient().from("space_challenges").select("space").limit(1);
   readyAt = error ? -Date.now() : Date.now();
   return !error;
 }
 
 const ROLL = { owned: null, arg: "", taken: [] as string[] };
+
+/**
+ * Whether a space has a day or week of its own (rollDay / rollWeek below): Mario Kart, Smash, Mario Party, Pokémon.
+ * The first wave of new spaces (2026-11-09) has none yet, so nothing is read or rolled for them.
+ */
+export function hasChallenges(s: GameSpace): boolean {
+  return !!s.tt || s.id === "smash" || s.id === "mario-party" || s.id === "pokemon";
+}
 
 /** What a space's day is, rolled fresh (stored by the caller). Null for spaces without a daily of their own. */
 function rollDay(s: GameSpace, day: string): DayChallenge | null {
@@ -209,7 +218,7 @@ export const weekOf = (s: GameSpace) => challengeFor<WeekChallenge>(s, "week", g
  * "Leaf Green"). Null before the tables exist or when nothing could be rolled.
  */
 export async function pickLine(s: GameSpace): Promise<{ label: string; name: string; img: string | null } | null> {
-  if (!(await challengesReady())) return null;
+  if (!hasChallenges(s) || !(await challengesReady())) return null;
   const day = await dayOf(s).catch(() => null);
   if (day) {
     const lead = day.roll.slots[0];
@@ -350,7 +359,7 @@ async function facesOf(ids: string[]): Promise<ChallengeFace[]> {
 /** Everything the space's Today hero shows: the day, the week, the counts and the viewer's own progress. */
 export async function challengeView(s: GameSpace, viewerId: string | null): Promise<ChallengeView> {
   const tokens = await spaceLevers().catch(() => DEFAULT_LEVERS);
-  if (!(await challengesReady())) return { ready: false, day: null, week: null, tokens };
+  if (!hasChallenges(s) || !(await challengesReady())) return { ready: false, day: null, week: null, tokens };
   const today = gsDay();
   const week = gsWeekStart();
   const db = createServiceClient();

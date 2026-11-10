@@ -14,6 +14,7 @@ import { IconChevronLeft } from "@tabler/icons-react";
 import { adminHref, adminItem } from "@/lib/admin/items";
 import { PlatformHealthTab } from "@/components/account/PlatformHealthTab";
 import { PlatformGrowthTab } from "@/components/account/PlatformGrowthTab";
+import { PlatformSetupTab } from "@/components/account/PlatformSetupTab";
 import { PlatformRevenueTab } from "@/components/account/PlatformRevenueTab";
 import { PlatformSupportTab } from "@/components/account/PlatformSupportTab";
 import { PlatformEventsTab } from "@/components/account/PlatformEventsTab";
@@ -50,6 +51,7 @@ import { PlatformGamesTab } from "@/components/account/PlatformGamesTab";
 const SCREENS: Record<string, () => ReactNode> = {
   "platform-health": () => <PlatformHealthTab />,
   "platform-growth": () => <PlatformGrowthTab />,
+  "platform-setup": () => <PlatformSetupTab />,
   "platform-revenue": () => <PlatformRevenueTab />,
   "platform-ai": () => <PlatformAiTab />,
   "platform-switches": () => <PlatformSwitchesTab />,

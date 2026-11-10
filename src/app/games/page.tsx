@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Container } from "@empac/cascadeds";
+import { Badge, Container } from "@empac/cascadeds";
 import { IconPlus } from "@tabler/icons-react";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/admin";
@@ -8,12 +8,18 @@ import { cardsFor, joinedSpaces, visibleSpaces, type GameCard } from "@/lib/home
 import { SpaceJoin } from "@/components/games/SpaceJoin";
 import { ArrowLink } from "@/components/ui/ArrowLink";
 import { GameCover } from "@/components/games/GameCover";
+import { SpaceAsk } from "@/components/games/SpaceAsk";
+import { GAME_CATALOG } from "@/data/game-catalog";
+import { GAME_SPACES } from "@/lib/games/spaces";
+import { spaceRequestsReady } from "@/lib/games/requests";
 import "@/styles/home-room.css";
 import "@/styles/game-space.css";
 
 /**
  * /games: every game space you can open (journeys picks 2026-11-06; the phone app bar's Games tab). Yours first, then
- * the rest with Join. Before any space opens to everyone, members see their games' shelf and the tools instead.
+ * the rest with Join, then the ideas spaces (games we have no tools for yet, first wave 2026-11-09), each new one
+ * marked New, then "Don't see your game?". Before any space opens to everyone, members see their games' shelf and the
+ * tools instead.
  */
 export const metadata: Metadata = {
   title: "Games",
@@ -24,8 +30,12 @@ function Card({ g, action }: { g: GameCard; action?: React.ReactNode }) {
   return (
     <div className="gamespace-card">
       <Link href={g.href} className="room-game" style={{ "--acc": g.accent } as React.CSSProperties}>
-        {/* eslint-disable-next-line @next/next/no-img-element -- our box art */}
-        {g.box ? <img className="room-game__box" src={g.box} alt="" /> : <span className="room-game__box" aria-hidden="true" />}
+        <span className="gamespace-card__art">
+          {/* eslint-disable-next-line @next/next/no-img-element -- our box art */}
+          {g.box ? <img className="room-game__box" src={g.box} alt="" /> : <span className="room-game__box" aria-hidden="true" />}
+          {/* Just opened: the site's New badge on the art, like a new randomizer's card. */}
+          {g.isNew && <span className="gamespace-card__new"><Badge variant="info" size="small">New</Badge></span>}
+        </span>
         <span className="room-game__text">
           <b className="room-game__name">{g.name}</b>
           {g.pick && <span className="room-game__pick">{g.pick.label}: <b>{g.pick.name}</b></span>}
@@ -47,7 +57,12 @@ export default async function GamesPage() {
   const favorites = row?.favorite_games ?? [];
   const mine = joinedSpaces(favorites, role);
   const others = visibleSpaces(role).filter((s) => !mine.includes(s));
-  const [mineCards, otherCards] = await Promise.all([cardsFor(mine, null), cardsFor(others, null)]);
+  const [mineCards, otherCards, asksReady] = await Promise.all([cardsFor(mine, null), cardsFor(others, null), spaceRequestsReady().catch(() => false)]);
+  const toolCards = otherCards.filter((g) => !g.ideas);
+  const ideaCards = otherCards.filter((g) => g.ideas);
+  // "Don't see your game?" suggests the catalog's games that have no space yet.
+  const spaced = new Set(GAME_SPACES.flatMap((sp) => sp.games));
+  const askable = [...new Set(GAME_CATALOG.filter((g) => !spaced.has(g.slug)).map((g) => g.name))].sort((a, b) => a.localeCompare(b));
 
   return (
     <main className="games-index">
@@ -64,14 +79,28 @@ export default async function GamesPage() {
           </section>
         )}
 
-        {otherCards.length > 0 && (
+        {toolCards.length > 0 && (
           <section className="room-games" aria-labelledby="games-more">
             <div className="room-games__head"><h2 id="games-more">{mineCards.length ? "More game spaces" : "Game spaces"}</h2></div>
             <div className="room-games__row">
-              {otherCards.map((g) => <Card key={g.id} g={g} action={<SpaceJoin space={g.id} name={g.name} joined={false} signedIn={!!user} size="small" />} />)}
+              {toolCards.map((g) => <Card key={g.id} g={g} action={<SpaceJoin space={g.id} name={g.name} joined={false} signedIn={!!user} size="small" pitch={g.join} />} />)}
             </div>
           </section>
         )}
+
+        {ideaCards.length > 0 && (
+          <section className="room-games" aria-labelledby="games-ideas">
+            <div className="room-games__head">
+              <h2 id="games-ideas">Tell us what to build</h2>
+              <p className="games-index__sub">No tools for these yet. Join, vote on ideas and suggest your own.</p>
+            </div>
+            <div className="room-games__row">
+              {ideaCards.map((g) => <Card key={g.id} g={g} action={<SpaceJoin space={g.id} name={g.name} joined={false} signedIn={!!user} size="small" pitch={g.join} />} />)}
+            </div>
+          </section>
+        )}
+
+        {asksReady && mineCards.length + otherCards.length > 0 && <SpaceAsk signedIn={!!user} suggestions={askable} />}
 
         {mineCards.length + otherCards.length === 0 && (
           <section className="room-games" aria-labelledby="games-soon">

@@ -17,7 +17,7 @@
 
 import { DailiesAfter } from "@/components/originals/DailiesAfter";
 import Link from "next/link";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Button, Chip } from "@empac/cascadeds";
 import { IconCalendarEvent, IconFlameFilled, IconTrophy } from "@tabler/icons-react";
 import { useToast } from "@/components/toast/ToastProvider";
@@ -70,6 +70,8 @@ export function FireRound() {
   const [run, setRun] = useState<FireRunView | null>(null);
   const [outcome, setOutcome] = useState<FireOutcome | null>(null);
   const [busy, setBusy] = useState(false);
+  /** True while an answer is on its way, until its reply is on screen (time up waits for it). */
+  const sending = useRef(false);
   const [offset, setOffset] = useState(0);
   const [countdown, setCountdown] = useState<number | null>(null);
   const [category, setCategory] = useState(MIXED);
@@ -144,26 +146,44 @@ export function FireRound() {
   const move = useCallback(async (m: FireMove) => {
     if (!run || busy) return;
     setBusy(true);
-    const res = await fireFetch(`/api/fire-round/${run.id}`, { method: "POST", body: JSON.stringify(m) }).catch(() => null);
-    setBusy(false);
-    if (res?.ok) {
-      const body = (await res.json()) as { run: FireRunView; outcome: FireOutcome | null };
-      take(body.run, body.outcome);
-      return;
+    sending.current = true;
+    try {
+      const res = await fireFetch(`/api/fire-round/${run.id}`, { method: "POST", body: JSON.stringify(m) }).catch(() => null);
+      setBusy(false);
+      if (res?.ok) {
+        const body = (await res.json()) as { run: FireRunView; outcome: FireOutcome | null };
+        take(body.run, body.outcome);
+        return;
+      }
+      // Out of step with the server (two taps at once): take the server's copy.
+      const fresh = await fireFetch(`/api/fire-round/${run.id}`).then((r) => (r.ok ? r.json() : null)).catch(() => null) as { run: FireRunView } | null;
+      if (fresh) take(fresh.run);
+      else toast.error("Couldn't send that answer. Check your connection.");
+    } finally {
+      sending.current = false;
     }
-    // Out of step with the server (two taps at once): take the server's copy.
-    const fresh = await fireFetch(`/api/fire-round/${run.id}`).then((r) => (r.ok ? r.json() : null)).catch(() => null) as { run: FireRunView } | null;
-    if (fresh) take(fresh.run);
-    else toast.error("Couldn't send that answer. Check your connection.");
   }, [busy, run, take, toast]);
 
+  // The clock hit zero: end the round now and show the results (Britton, 2026-11-09: the question used to sit there,
+  // because the server keeps a round open GRACE_MS past the clock and the one check came before that). An answer
+  // already on its way lands first; then "stop" closes the round at once.
   const timeUp = useCallback(async () => {
     if (!run) return;
-    // A moment past the clock: an answer in flight still lands first.
-    await new Promise((r) => setTimeout(r, 600));
-    const fresh = await fireFetch(`/api/fire-round/${run.id}`).then((r) => (r.ok ? r.json() : null)).catch(() => null) as { run: FireRunView } | null;
-    if (fresh) take(fresh.run);
-  }, [run, take]);
+    for (let i = 0; i < 40 && sending.current; i++) await new Promise((r) => setTimeout(r, 100));
+    const res = await fireFetch(`/api/fire-round/${run.id}`, { method: "POST", body: JSON.stringify({ action: "stop" }) }).catch(() => null);
+    if (res?.ok) {
+      const body = (await res.json()) as { run: FireRunView };
+      take(body.run);
+      return;
+    }
+    // No answer from the server: keep asking until it has closed the round.
+    for (let i = 0; i < 8; i++) {
+      await new Promise((r) => setTimeout(r, 1500));
+      const fresh = await fireFetch(`/api/fire-round/${run.id}`).then((r) => (r.ok ? r.json() : null)).catch(() => null) as { run: FireRunView } | null;
+      if (fresh?.run.status === "done") { take(fresh.run); return; }
+    }
+    toast.error("Couldn't reach the server to finish the round. Refresh the page to see your score.");
+  }, [run, take, toast]);
 
   const joinBoard = useCallback(async (name: string, token: string | null) => {
     const problem = await boards.join(name, token);

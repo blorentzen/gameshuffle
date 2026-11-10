@@ -6,8 +6,9 @@
 
 import {
   IconAdjustmentsHorizontal, IconArrowsShuffle, IconBrain, IconChartBar, IconClock, IconDice5, IconGridDots, IconLayoutDashboard,
-  IconMessageCircle, IconMusic, IconPuzzle, IconTerminal2, IconUsers, IconUsersGroup, type Icon,
+  IconMessageCircle, IconMusic, IconPuzzle, IconStopwatch, IconTerminal2, IconUsers, IconUsersGroup, type Icon,
 } from "@tabler/icons-react";
+import { speedrunShown } from "@/lib/games-visibility";
 
 export type StudioTone = "blue" | "violet" | "magenta" | "teal" | "green" | "orange" | "red";
 
@@ -36,6 +37,8 @@ export const STUDIO_TOOLS: StudioTool[] = [
   { id: "overlay", label: "Overlay layout", line: "Where every piece sits in OBS", icon: IconLayoutDashboard, tone: "violet", screen: "overlay-layout", group: "overlay" },
   { id: "tool-looks", label: "Dice, coin and timer", line: "How the overlay's tools look", icon: IconDice5, tone: "orange", screen: "stream-tools", chat: "!roll · !flip · !gs timer", group: "overlay" },
   { id: "chat-feed", label: "Chat feed", line: "Your chat on the overlay", icon: IconMessageCircle, tone: "blue", screen: "chat-feed", group: "overlay" },
+  // Speedrunning (picks 2026-11-09): its own setup (the /speedrun page's), not an Account ▸ Streaming screen.
+  ...(speedrunShown() ? [{ id: "speedrun", label: "Speedrun", line: "Your splits on stream, from the timer you already use", icon: IconStopwatch, tone: "teal" as const, screen: "speedrun", group: "overlay" as const }] : []),
   { id: "commands", label: "Commands", line: "Every command on your channel", icon: IconTerminal2, tone: "blue", screen: "chat-commands", group: "chat" },
   { id: "modules", label: "Modules", line: "Turn chat features on and off", icon: IconPuzzle, tone: "teal", screen: "community", group: "chat" },
   { id: "game-defaults", label: "Game defaults", line: "Mario Kart session settings", icon: IconAdjustmentsHorizontal, tone: "red", screen: "game-modules", group: "chat" },

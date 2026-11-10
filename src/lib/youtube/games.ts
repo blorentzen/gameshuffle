@@ -23,6 +23,7 @@ const TITLE_PATTERNS: [RegExp, string][] = [
   [/marvel\s*rivals/, "marvel-rivals"],
   [/splatoon\s*3/, "splatoon-3"],
   [/air\s*riders/, "kirby-air-riders"],
+  [/cross\s*worlds/, "sonic-racing-crossworlds"],
   [/goldeneye/, "goldeneye-007"],
   [/perfect\s*dark/, "perfect-dark"],
   [/pok[eé]mon\s*stadium\s*2/, "pokemon-stadium-2"],

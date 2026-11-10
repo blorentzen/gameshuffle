@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { Container } from "@empac/cascadeds";
 import { BrowseHero } from "@/components/events/BrowseHero";
+import { ROAD_HERO } from "./hero";
 import { DailyDuelModule } from "@/components/originals/duel/DuelChallenger";
 import { FaqList } from "@/components/marketing/FaqList";
 import { MarketingJsonLd } from "@/components/marketing/MarketingJsonLd";
@@ -49,13 +50,7 @@ export default function TrainerRoadPage() {
   return (
     <main>
       <MarketingJsonLd appName="Trainer Road" appDescription="Duel every Pokémon Gym Leader, Elite Four member and Champion from the games with Pokémon cards." appUrl="/pokemon-trainers" breadcrumb={{ label: "Trainer Road", path: "/pokemon-trainers" }} faq={FAQ} />
-      <BrowseHero
-        eyebrow="Trainer Road"
-        title="Pokémon Gym Leaders and Champions: every team, every region"
-        sub="Elite Four members, rivals and villains too. Pick one and battle them with the Daily Duel's cards."
-        accent="duel"
-        field="duel"
-      />
+      <BrowseHero {...ROAD_HERO} />
       <Container className="road-hub">
         <RoadHubPath signUpHref="/signup?redirect=%2Fpokemon-trainers" />
         <RoadStarsProvider>

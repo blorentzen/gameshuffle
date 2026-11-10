@@ -128,6 +128,7 @@ export const FIRE_CATEGORIES: FireCategory[] = [
   { id: "mario", label: "Super Mario", icon: "mushroom", games: ["mario-series"] },
   { id: "zelda", label: "Zelda", icon: "triangle", games: ["zelda"] },
   { id: "kirby", label: "Kirby", icon: "stars", games: ["kirby"] },
+  { id: "sonic", label: "Sonic", icon: "run", games: ["sonic"] },
   { id: "halloween", label: "Halloween", icon: "ghost", categories: ["Halloween"], season: SEASONS.Halloween },
   { id: "christmas", label: "Christmas", icon: "tree", categories: ["Christmas"], season: SEASONS.Christmas },
 ];

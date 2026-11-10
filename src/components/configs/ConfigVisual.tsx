@@ -11,6 +11,7 @@ import { describePartySetup } from "@/data/party";
 import { describeSmashSetup } from "@/data/smash";
 import { describeSplatoonSetup } from "@/data/splatoon";
 import { describeKirbySetup } from "@/data/kirby";
+import { describeSonicSetup } from "@/data/sonic";
 import { describeStadiumSetup } from "@/data/pokemon/stadium-setup";
 
 type ImgItem = { img?: string; name?: string };
@@ -102,6 +103,13 @@ export function ConfigVisual({ cfg }: { cfg: Record<string, unknown> }) {
     return (
       <ul className="cfg-list">
         {describeKirbySetup(cfg).map((r) => <li key={r.label}>{r.label}: {r.value}</li>)}
+      </ul>
+    );
+  }
+  if (type === "sonic-setup") {
+    return (
+      <ul className="cfg-list">
+        {describeSonicSetup(cfg).map((r) => <li key={r.label}>{r.label}: {r.value}</li>)}
       </ul>
     );
   }

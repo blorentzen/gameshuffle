@@ -95,6 +95,8 @@ export function FirePlay({ run, outcome, busy, offset, onMove, onTimeUp }: {
   };
 
   const lives = run.lives;
+  /** The clock ran out: the question gives way at once while the round is closed. */
+  const out = left !== null && left <= 0;
 
   return (
     <section className="fire-play" aria-labelledby="fire-question">
@@ -118,6 +120,14 @@ export function FirePlay({ run, outcome, busy, offset, onMove, onTimeUp }: {
         )}
       </div>
 
+      {out ? (
+        <div className="fire-timeup" role="status">
+          <Feedback outcome={outcome} />
+          <IconClock size={32} aria-hidden className="fire-timeup__icon" />
+          <p className="fire-timeup__title">Time&apos;s up</p>
+          <p className="fire-timeup__line">Adding up your score…</p>
+        </div>
+      ) : (<>
       <div className="fire-q" aria-live="polite">
         <Feedback outcome={outcome} />
         {q && (
@@ -160,6 +170,8 @@ export function FirePlay({ run, outcome, busy, offset, onMove, onTimeUp }: {
           <p className="fire-answer__note">Worth {CHOICE_POINTS}{run.heat > 1 ? `, times your heat (${heatText(run.heat)})` : ""}.</p>
         </div>
       )}
+
+      </>)}
 
       {lives !== null && (
         <div className="fire-stop">

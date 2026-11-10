@@ -42,9 +42,10 @@ export const ADMIN_GROUPS: AdminGroup[] = [
   {
     label: "Run the site",
     items: [
-      { id: "overview", label: "Overview", sub: "Health, growth, revenue, AI usage", icon: IconActivity, tone: "blue", keywords: "dashboard numbers", tabs: [
+      { id: "overview", label: "Overview", sub: "Health, growth, setup, revenue, AI usage", icon: IconActivity, tone: "blue", keywords: "dashboard numbers", tabs: [
         { id: "health", key: "platform-health", label: "Health", sub: "What's happening right now", keywords: "online live streams accounts hero rosters checks" },
         { id: "growth", key: "platform-growth", label: "Growth", sub: "Sign-ups and who stays", keywords: "signups retention churn mailing list" },
+        { id: "setup", key: "platform-setup", label: "Setup", sub: "Who has Twitch and Discord connected, and what broke", keywords: "twitch discord connected integrations bot overlay obs eventsub servers broken reach out top games twitch now viewers next spaces" },
         { id: "revenue", key: "platform-revenue", label: "Revenue", sub: "Monthly revenue by plan", keywords: "mrr money subscriptions trials cancellations" },
         { id: "ai", key: "platform-ai", label: "AI usage", sub: "Generations, tokens and limits", keywords: "claude allowance generations" },
       ] },

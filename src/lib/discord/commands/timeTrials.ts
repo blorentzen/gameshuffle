@@ -24,7 +24,7 @@ import { COMMUNITY_VOUCHES, formatGap, formatLap, formatTime, ordinal, parseTime
 import { setVouch } from "@/lib/timeTrials/detail";
 import { rateLimit } from "@/lib/ratelimit";
 import { vouchCounts } from "@/lib/timeTrials/status";
-import { isClassFor, searchTracks, trackFromKey, trackKey, trackPath, ttTrack, ttTracks, TT_GAMES, type TtClass, type TtGame, type TtTrack } from "@/lib/timeTrials/tracks";
+import { isClassFor, isTtGame, searchTracks, trackFromKey, trackKey, trackPath, ttTrack, ttTracks, TT_GAMES, type TtClass, type TtGame, type TtTrack } from "@/lib/timeTrials/tracks";
 import { trackCode, trackTitle, tracksByCode } from "@/lib/timeTrials/codes";
 import { playerPagePath } from "@/lib/timeTrials/playerPath";
 import { botTokenFor } from "../apps";
@@ -523,7 +523,9 @@ export async function handleGsTt(interaction: Record<string, unknown>): Promise<
  * times), grouped by speed, a code per line, best places first; counts are tracks per speed out of the
  * game's own list. Null when there's nothing to show.
  */
-export function playerReply(who: string, all: TtBest[], game: TtGame | null, player: string, profile: string | null): Record<string, unknown> | null {
+export function playerReply(who: string, allGames: TtBest[], game: TtGame | null, player: string, profile: string | null): Record<string, unknown> | null {
+  // Discord's /tt is Mario Kart only: Kirby Air Riders times stay on the site.
+  const all = allGames.filter((b) => isTtGame(b.game));
   const counts = new Map<TtGame, number>();
   for (const b of all) counts.set(b.game, (counts.get(b.game) ?? 0) + 1);
   const g: TtGame | null = game ?? ([...counts.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] ?? null);

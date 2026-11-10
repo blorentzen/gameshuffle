@@ -1,6 +1,6 @@
 import { compAppLive } from "@/lib/discord/appIds";
 import type { Interest } from "@/lib/interests/rules";
-import { DAILY_DEX_PUBLIC, DUEL_PUBLIC, FIRE_ROUND_PUBLIC, ROAD_PUBLIC, N64_PARTY_PUBLIC, FRLG_PUBLIC, GOLDENEYE_PUBLIC, GUIDES_PUBLIC, KIRBY_PUBLIC, STADIUM_PUBLIC, SMASH_PUBLIC, SPLATOON_PUBLIC, MK64_PUBLIC, PERFECT_DARK_PUBLIC, OVERWATCH_PUBLIC, MARVEL_RIVALS_PUBLIC } from "@/lib/games-visibility";
+import { DAILY_DEX_PUBLIC, DUEL_PUBLIC, FIRE_ROUND_PUBLIC, ROAD_PUBLIC, N64_PARTY_PUBLIC, FRLG_PUBLIC, GOLDENEYE_PUBLIC, GUIDES_PUBLIC, KIRBY_PUBLIC, STADIUM_PUBLIC, SMASH_PUBLIC, SPLATOON_PUBLIC, MK64_PUBLIC, PERFECT_DARK_PUBLIC, OVERWATCH_PUBLIC, MARVEL_RIVALS_PUBLIC, SONIC_PUBLIC, speedrunShown } from "@/lib/games-visibility";
 /**
  * The five worlds: the single source of truth for GameShuffle's information architecture (menus and account picks
  * 2026-11-05, https://claude.ai/artifact/FVgHcSgixdcLaGZisgsd97, 1A): Play, Pokémon, Compete, Host, Stream. The same
@@ -107,6 +107,7 @@ export const PILLARS: Pillar[] = [
           ...(FIRE_ROUND_PUBLIC ? [{ label: "Fire Round", href: "/daily-trivia", blurb: "Daily trivia against the clock." }] : []),
           ...(DUEL_PUBLIC ? [{ label: "Daily Duel", href: "/daily-duel", blurb: "Today's trainer, one card battle." }] : []),
           { label: "Weekly Challenge", href: "/weekly", blurb: "One question for everyone, answers on Monday." },
+          { label: "All dailies", href: "/dailies", blurb: "Every daily in one place, and choose yours." },
         ],
       },
       {
@@ -122,6 +123,7 @@ export const PILLARS: Pillar[] = [
           { label: "Mario Party Superstars randomizer", href: "/randomizers/mario-party-superstars", blurb: "The five classic boards, 100 minigames and house rules.", secondary: true },
           ...(MARVEL_RIVALS_PUBLIC ? [{ label: "Marvel Rivals randomizer", href: "/randomizers/marvel-rivals", blurb: "Hero roulette, Team-Up teams and a random map.", secondary: true }] : []),
           ...(KIRBY_PUBLIC ? [{ label: "Kirby Air Riders randomizer", href: "/randomizers/kirby-air-riders", blurb: "Riders, machines, courses and City Trial Stadiums for up to 8 players.", secondary: true }] : []),
+          ...(SONIC_PUBLIC ? [{ label: "Sonic Racing: CrossWorlds randomizer", href: "/randomizers/sonic-racing-crossworlds", blurb: "Racers, machines, Gadget Plates and races for up to 12 players.", secondary: true }] : []),
           ...(N64_PARTY_PUBLIC ? [
             { label: "Mario Party randomizer", href: "/randomizers/mario-party", blurb: "The N64 original: 8 boards and 50 minigames.", secondary: true },
             { label: "Mario Party 2 randomizer", href: "/randomizers/mario-party-2", blurb: "Six lands and 65 minigames.", secondary: true },
@@ -209,6 +211,8 @@ export const PILLARS: Pillar[] = [
           { label: "Time trials", href: "/time-trials", blurb: "Every track's best times in Mario Kart 8 Deluxe and World. Add yours from a screenshot.", footer: true },
           { label: "Lounge stats", href: "/lounge", blurb: "Any lounge player's season, plus boards for the people you know.", footer: true },
           { label: "MMR card", href: "/mmr-card", blurb: "Your lounge MMR on stream, live, with a moment every event. Free.", footer: true },
+          // Speedrunning (picks 2026-11-09): hidden in production until the relay runs (SPEEDRUN_PUBLIC).
+          ...(speedrunShown() ? [{ label: "Speedrun overlay", href: "/speedrun", blurb: "Your LiveSplit One splits on stream, live. Free.", footer: true }] : []),
           // GameShuffle Competitive's page, once the app exists here (picks 2026-10-31, 5A).
           ...(compAppLive() ? [{ label: "Mario Kart Discord bot", href: "/mario-kart-discord-bot", blurb: "Time trials, MMR and room reads in your server. Free.", footer: true }] : []),
           { label: "Live scoring", href: "/competitive/mario-kart-8-deluxe", blurb: "Score a set between friends as you race." },

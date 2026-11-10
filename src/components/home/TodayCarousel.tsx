@@ -329,12 +329,12 @@ function DoneStrip({ games, streak, resetAt, popping }: { games: TodayGame[]; st
 }
 
 /** "Next for you": three picture cards by what you play, a row of their own with nothing behind them (3A). */
-function NextForYou({ picks, onStart }: { picks: Pick[]; onStart: (g: NonNullable<Pick["start"]>) => void }) {
+function NextForYou({ picks, onStart, title = "Next for you", sub = "By what you play" }: { picks: Pick[]; onStart: (g: NonNullable<Pick["start"]>) => void; title?: string; sub?: string | null }) {
   return (
     <section className="room-next" aria-labelledby="room-next-title">
       <div className="room-next__head">
-        <h2 id="room-next-title">Next for you</h2>
-        <span>By what you play</span>
+        <h2 id="room-next-title">{title}</h2>
+        {sub && <span>{sub}</span>}
       </div>
       <ul className={`room-next__row room-next__row--${picks.length}`}>
         {picks.map((p, k) => (
@@ -342,6 +342,24 @@ function NextForYou({ picks, onStart }: { picks: Pick[]; onStart: (g: NonNullabl
         ))}
       </ul>
     </section>
+  );
+}
+
+/**
+ * Play next (Home in five blocks, picks 2026-11-09): two picks, never more. One from what you play and one new thing
+ * when both exist (the picks come as own, friends, new), else the first two.
+ */
+export function PlayNext({ picks }: { picks: Pick[] }) {
+  const { start, window: startWindow } = useQuickStart("home-next");
+  const fresh = picks.find((p) => p.kicker === "Something new");
+  const yours = picks.find((p) => p !== fresh);
+  const two = yours && fresh ? [yours, fresh] : picks.slice(0, 2);
+  if (!two.length) return null;
+  return (
+    <>
+      <NextForYou picks={two} onStart={start} title="Play next" sub={null} />
+      {startWindow}
+    </>
   );
 }
 

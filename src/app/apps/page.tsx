@@ -9,7 +9,8 @@ import { DarkBand } from "@/components/marketing/DarkBand";
 import { MarketingHeroCurve } from "@/components/marketing/MarketingHeroCurve";
 import { AuthAwareCTA } from "@/components/marketing/AuthAwareCTA";
 import { MarketingHeroField } from "@/components/marketing/MarketingHeroField";
-import { N64_PARTY_PUBLIC, FRLG_PUBLIC, GOLDENEYE_PUBLIC, SMASH_PUBLIC, STADIUM_PUBLIC, MK64_PUBLIC, PERFECT_DARK_PUBLIC, OVERWATCH_PUBLIC, MARVEL_RIVALS_PUBLIC, KIRBY_PUBLIC, SPLATOON_PUBLIC } from "@/lib/games-visibility";
+import { N64_PARTY_PUBLIC, FRLG_PUBLIC, GOLDENEYE_PUBLIC, SMASH_PUBLIC, STADIUM_PUBLIC, MK64_PUBLIC, PERFECT_DARK_PUBLIC, OVERWATCH_PUBLIC, MARVEL_RIVALS_PUBLIC, KIRBY_PUBLIC, SPLATOON_PUBLIC, SONIC_PUBLIC } from "@/lib/games-visibility";
+import { ImageComingSoon } from "@/components/ImageComingSoon";
 import { GAME_ART } from "@/data/game-art";
 import { EVENTS, tagged } from "@/lib/analytics/events";
 import { ArrowLink } from "@/components/ui/ArrowLink";
@@ -207,6 +208,17 @@ export default function AppsPage() {
               imageSrc={GAME_ART["kirby-air-riders"].cover}
               imageAlt="Kirby Air Riders banner art"
               href="/randomizers/kirby-air-riders"
+              ctaLabel="Open randomizer"
+              isNew
+              linkTitle
+            />
+            )}
+            {SONIC_PUBLIC && (
+            <AppCard
+              title="Sonic Racing: CrossWorlds Randomizer"
+              description="A racer, machine and full Gadget Plate for up to 12 players, then races with their CrossWorlds or a Grand Prix."
+              media={<ImageComingSoon />}
+              href="/randomizers/sonic-racing-crossworlds"
               ctaLabel="Open randomizer"
               isNew
               linkTitle

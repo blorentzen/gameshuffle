@@ -13,6 +13,9 @@
  *   Circuit 256  → "Included with GS Circuit 256" (it carries Pro), no checkout
  *   Free         → Start 14-day Pro trial / Go Pro (monthly vs annual)
  *
+ * A live GS Pro or GS Circuit plan also gets "Cancel …", which opens the
+ * Before you go window (BeforeYouGo: why, then Stripe's cancel page).
+ *
  * Checkout + portal flows are handled via the /api/stripe/* endpoints,
  * which return a URL for the browser to follow to Stripe's hosted pages.
  */
@@ -38,6 +41,7 @@ import { HighlightGroups, LimitsTable } from "./plans/PlanHighlights";
 import { CircuitTierLadder } from "./plans/CircuitTierLadder";
 import { EVENTS, track } from "@/lib/analytics/events";
 import { LoadingLines } from "@/components/loading/LoadingLines";
+import { CancelPlanButton } from "@/components/account/leave/BeforeYouGo";
 
 interface SubscriptionRow {
   status: string;
@@ -46,6 +50,13 @@ interface SubscriptionRow {
   current_period_end: string | null;
   cancel_at_period_end: boolean;
   trial_end: string | null;
+}
+
+/** The live GS Circuit subscription, for its Cancel button (none while it's already set to end). */
+interface CircuitSubRow {
+  status: string;
+  current_period_end: string | null;
+  cancel_at_period_end: boolean;
 }
 
 interface UserBillingRow {
@@ -86,6 +97,7 @@ export function PlansTab() {
   const supportStatus = useSupportStatus();
   const [subscription, setSubscription] = useState<SubscriptionRow | null>(null);
   const [userRow, setUserRow] = useState<UserBillingRow | null>(null);
+  const [circuitSub, setCircuitSub] = useState<CircuitSubRow | null>(null);
   const [portalWorking, setPortalWorking] = useState(false);
   const pricing = usePublicPricing();
   const { info: aiInfo } = useAiAccess("setup");
@@ -131,7 +143,7 @@ export function PlansTab() {
     let cancelled = false;
     const load = async () => {
       const supabase = createClient();
-      const [subRes, userRes] = await Promise.all([
+      const [subRes, userRes, circuitRes] = await Promise.all([
         supabase
           .from("subscriptions")
           .select("status, tier, price_id, current_period_end, cancel_at_period_end, trial_end")
@@ -146,12 +158,22 @@ export function PlansTab() {
           .select("role, has_used_trial, stripe_customer_id, circuit_tier, circuit_status")
           .eq("id", user.id)
           .maybeSingle(),
+        supabase
+          .from("subscriptions")
+          .select("status, current_period_end, cancel_at_period_end")
+          .eq("user_id", user.id)
+          .eq("product", "circuit")
+          .in("status", ["trialing", "active", "past_due"])
+          .order("updated_at", { ascending: false })
+          .limit(1)
+          .maybeSingle(),
       ]);
       if (cancelled) return;
       const sub = (subRes.data as SubscriptionRow | null) ?? null;
       const u = (userRes.data as UserBillingRow | null) ?? null;
       setSubscription(sub);
       setUserRow(u);
+      setCircuitSub((circuitRes.data as CircuitSubRow | null) ?? null);
       setBillingStatus(resolveBillingStatus(sub, u));
     };
     load();
@@ -240,6 +262,8 @@ export function PlansTab() {
   const proStatus: BillingStatus = billingStatus === "free" && levelGrantsPro(supportStatus?.level) ? "support_pro" : billingStatus;
   const pro = describeProPlan(proStatus, subscription);
   const circuit = describeCircuitPlan(userRow);
+  // A live Circuit plan that isn't already set to end can be cancelled (staff never pay for one).
+  const circuitCancel = circuit.subscribed && !isStaffRole(userRow?.role ?? null) && !!circuitSub && !circuitSub.cancel_at_period_end;
   const proPrice = pricing.plans.pro ?? { monthly: 9, annual: 99 };
   const proSave =
     proPrice.monthly && proPrice.annual
@@ -304,9 +328,12 @@ export function PlansTab() {
           </>
         ) : (
           <>
-            <Button variant={pro.reactivate ? "primary" : "secondary"} onClick={handlePortal} disabled={portalWorking}>
-              {portalWorking ? "Opening…" : pro.reactivate ? "Reactivate / Manage billing" : "Manage billing"}
-            </Button>
+            <div className="leave-actions">
+              <Button variant={pro.reactivate ? "primary" : "secondary"} onClick={handlePortal} disabled={portalWorking}>
+                {portalWorking ? "Opening…" : pro.reactivate ? "Reactivate / Manage billing" : "Manage billing"}
+              </Button>
+              {pro.cancel && <CancelPlanButton product="pro" label="Cancel GS Pro" keepLabel="Keep GS Pro" endsLine={pro.cancel.endsLine} />}
+            </div>
             {/* Shown outright, not behind a disclosure. A subscriber should be
                 able to see what they are paying for without opening anything —
                 half of this list is a feature they may not know they have. */}
@@ -328,9 +355,19 @@ export function PlansTab() {
       >
         {circuit.subscribed ? (
           <>
-            <Button variant="secondary" onClick={handlePortal} disabled={portalWorking}>
-              {portalWorking ? "Opening…" : "Manage billing"}
-            </Button>
+            <div className="leave-actions">
+              <Button variant="secondary" onClick={handlePortal} disabled={portalWorking}>
+                {portalWorking ? "Opening…" : "Manage billing"}
+              </Button>
+              {circuitCancel && (
+                <CancelPlanButton
+                  product="circuit"
+                  label="Cancel GS Circuit"
+                  keepLabel="Keep GS Circuit"
+                  endsLine={circuitSub?.current_period_end ? `If you cancel, your Circuit plan stays on until ${formatDate(circuitSub.current_period_end)}.` : null}
+                />
+              )}
+            </div>
             <h4 className="plan-section-heading">What your plan includes</h4>
             <HighlightGroups groups={CIRCUIT_HIGHLIGHTS} />
           </>
@@ -387,16 +424,24 @@ function SupportPlanCard() {
 
 type PillTone = "active" | "trial" | "warn" | "muted";
 interface PlanStatus { label: string; tone: PillTone; }
-interface PlanDesc { status: PlanStatus; rows: { label: string; value: string }[]; alert?: string; free?: boolean; reactivate?: boolean; subscribed?: boolean; viaSupport?: boolean; }
+interface PlanDesc { status: PlanStatus; rows: { label: string; value: string }[]; alert?: string; free?: boolean; reactivate?: boolean; subscribed?: boolean; viaSupport?: boolean; cancel?: { endsLine: string | null }; }
 
 function describeProPlan(billingStatus: BillingStatus, sub: SubscriptionRow | null): PlanDesc {
   switch (billingStatus) {
     case "staff":
       return { status: { label: "Staff (Pro access)", tone: "active" }, rows: [] };
     case "pro_trialing":
-      return { status: { label: "Trial active", tone: "trial" }, rows: sub?.trial_end ? [{ label: "Trial ends", value: formatDate(sub.trial_end) }] : [] };
+      return {
+        status: { label: "Trial active", tone: "trial" },
+        rows: sub?.trial_end ? [{ label: "Trial ends", value: formatDate(sub.trial_end) }] : [],
+        cancel: { endsLine: sub?.trial_end ? `If you cancel, your trial runs until ${formatDate(sub.trial_end)} and you won't be charged.` : null },
+      };
     case "pro_active":
-      return { status: { label: "Active", tone: "active" }, rows: sub?.current_period_end ? [{ label: "Renews", value: formatDate(sub.current_period_end) }] : [] };
+      return {
+        status: { label: "Active", tone: "active" },
+        rows: sub?.current_period_end ? [{ label: "Renews", value: formatDate(sub.current_period_end) }] : [],
+        cancel: { endsLine: sub?.current_period_end ? `If you cancel, GS Pro stays on until ${formatDate(sub.current_period_end)}.` : null },
+      };
     case "pro_ending":
       return { status: { label: "Canceling", tone: "warn" }, rows: sub?.current_period_end ? [{ label: "Access through", value: formatDate(sub.current_period_end) }] : [], reactivate: true };
     case "circuit_pro":
@@ -404,7 +449,7 @@ function describeProPlan(billingStatus: BillingStatus, sub: SubscriptionRow | nu
     case "support_pro":
       return { status: { label: "Included with your support", tone: "active" }, rows: [], viaSupport: true };
     case "pro_past_due":
-      return { status: { label: "Past due", tone: "warn" }, rows: [], alert: "Payment failed. Pro access continues while Stripe retries the payment. Update your card to keep it going." };
+      return { status: { label: "Past due", tone: "warn" }, rows: [], alert: "Payment failed. Pro access continues while Stripe retries the payment. Update your card to keep it going.", cancel: { endsLine: null } };
     default:
       return { status: { label: "Not subscribed", tone: "muted" }, rows: [], free: true };
   }

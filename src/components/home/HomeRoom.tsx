@@ -1,531 +1,114 @@
 /**
- * "Your room": the signed-in homepage's top (home look picks 2026-11-05, https://claude.ai/artifact/8QB79Y4WaNih8MRX2XEeB7,
- * all A). The header wears your banner, picture and colors (the brand navy when you have none); one "Since you were
- * here" line; then live tiles from src/lib/home/forYou.ts in a 12-column grid (phones stack them in the same order):
- * the lead interest's tile beside Today, then three to a row. Tiles rise in on the first visit of the day and your
- * numbers roll from your last visit (both drawn on the server from the `gs-home` cookie, so nothing flashes); all of
- * it is still for reduced motion.
+ * "Your room", the signed-in homepage, in five blocks (Home and dailies picks 2026-11-09, all as recommended): Today
+ * (your dailies and the Weekly), For you (up to three lines: something live or today, what changed since your last
+ * visit, your road, your people), Play next (two picks), Your games, and One thing to try (a single nudge). Home stays
+ * about two phone screens whatever you play: a new game or feature never adds a block; it shows up in For you, Play
+ * next, Your games or Games. The header wears your banner, picture and colors (the brand navy when you have none).
+ * The data comes from src/lib/home/forYou.ts; src/lib/home/forYouLines.ts picks the lines and the nudge.
  */
 
 import Link from "next/link";
-import { Suspense, type CSSProperties, type ReactNode } from "react";
-import { Badge, Container } from "@empac/cascadeds";
+import { type CSSProperties } from "react";
+import { Container } from "@empac/cascadeds";
 import {
-  IconCalendarEvent, IconCards, IconChartBar, IconClock, IconConfetti, IconDeviceGamepad2, IconDeviceTv, IconFlame,
-  IconPlus, IconQuestionMark, IconRoute, IconStarFilled, IconThumbUp, IconTournament, IconUserPlus, IconUsersGroup, type Icon,
+  IconBroadcast, IconCalendarEvent, IconCards, IconChartBar, IconChevronRight, IconClock, IconConfetti, IconDeviceGamepad2,
+  IconDeviceTv, IconFlame, IconMessage2, IconPlus, IconRoute, IconUserPlus, IconUsers, IconUsersGroup, type Icon,
 } from "@tabler/icons-react";
 import { UserAvatar } from "@/components/UserAvatar";
 import { IconTile } from "@/components/ui/IconTile";
 import { ArrowLink } from "@/components/ui/ArrowLink";
-import { GameCover } from "@/components/games/GameCover";
-import { TrainerArt } from "@/components/originals/duel/TrainerArt";
-import { MmrCard } from "@/components/mmr/MmrCard";
-import { MmrSince } from "@/components/mmr/MmrLive";
-import { RollNum } from "./RollNum";
-import { TodayBoard, TodayLive, TodayLiveProvider } from "./TodayCarousel";
-import { StickyRail } from "./StickyRail";
-import { PeopleList } from "@/components/people/PersonRow";
-import { PostLines } from "@/components/social/PostLines";
-import { HappeningBand } from "./HappeningBand";
-import { HomeVisit, InviteLink, MightLike, PlanRow, ShowingLine, StatusBubble, WorldsAndPickUp } from "./HomeForYou";
+import { PlayNext, TodayLive, TodayLiveProvider } from "./TodayCarousel";
+import { TodayChoose } from "./TodayChoose";
+import type { DailyPicksSeed } from "@/components/originals/DailyPicks";
+import { HomeVisit, PlanRow, ShowingLine, StatusBubble } from "./HomeForYou";
 import { gsDay } from "@/lib/time/gsClock";
-import { boxArt, findGame } from "@/data/game-catalog";
-import { wideArt } from "@/lib/home/art";
-import { cardFor, liveFor } from "@/lib/mmr/store";
-import { DEFAULT_LOOK, type MmrLook } from "@/lib/mmr/look";
-import { demoSource, viewOf } from "@/lib/mmr/rules";
-import { mmrSeenFor, type Room, type RoomHead, type SetupStep, type SinceLine, type Ticket, type Tile } from "@/lib/home/forYou";
+import type { Room, RoomHead } from "@/lib/home/forYou";
+import { forYouLines, oneThing, type ForYouIcon, type ForYouLine, type OneThing } from "@/lib/home/forYouLines";
 import type { GameCard } from "@/lib/home/yourGames";
 import { ResponsiveCarousel } from "@/components/layout/ResponsiveCarousel";
 import { EVENTS, tagged } from "@/lib/analytics/events";
-import { createServiceClient } from "@/lib/supabase/admin";
-import "@/styles/mmr-card.css";
 import "@/styles/home-room.css";
 import "@/styles/home-today.css";
 import "@/styles/duel-art.css";
 
-type TileOf<K extends Tile["kind"]> = Extract<Tile, { kind: K }>;
-
-// ─── the header ──────────────────────────────────────────────────────────────
-
-export function RoomHeader({ head, showing, interests, band }: { head: RoomHead; showing: Room["showing"]; interests: Room["interests"]; band: Room["band"] }) {
+/** The header: your picture, name and status, and what you follow. The worlds band and its carousel left Home with
+ * the five blocks (Play next does that job now). */
+export function RoomHeader({ head, showing, interests }: { head: RoomHead; showing: Room["showing"]; interests: Room["interests"] }) {
   return (
-    <header className={`room-head${head.banner ? " room-head--banner" : ""}`} style={head.theme}>
+    <header className={`room-head room-head--short${head.banner ? " room-head--banner" : ""}`} style={head.theme}>
       {head.banner && (
         // eslint-disable-next-line @next/next/no-img-element -- the account's own banner from our storage (R2), already cropped
         <img className="room-head__banner" src={head.banner} alt="" />
       )}
       <Container>
-      <div className="room-head__inner">
-        <div className="room-head__who">
-          <UserAvatar user={head.avatar} size={84} className="room-head__avatar" />
-          <div className="room-head__text">
-            <h1>Welcome back, {head.name}</h1>
-            <StatusBubble status={head.status ?? null} />
-            {/* What you follow: a settings button at the end of the worlds once you've picked (header picks 2026-11-08, A);
-                before that, or with no worlds row, the words under your name. Your front window is in the You menu. */}
-            {(!showing || band.length === 0) && <div className="room-head__showing"><ShowingLine showing={showing} interests={interests} /></div>}
+        <div className="room-head__inner">
+          <div className="room-head__who">
+            <UserAvatar user={head.avatar} size={84} className="room-head__avatar" />
+            <div className="room-head__text">
+              <h1>Welcome back, {head.name}</h1>
+              <StatusBubble status={head.status ?? null} />
+              <div className="room-head__showing"><ShowingLine showing={showing} interests={interests} /></div>
+            </div>
           </div>
         </div>
-        {band.length > 0 && <HappeningBand worlds={band} tone="dark" signedIn interests={interests}
-          tabsEnd={showing ? <ShowingLine showing={showing} interests={interests} icon /> : undefined} />}
-        <WorldsAndPickUp worlds={band.length === 0} />
-      </div>
       </Container>
     </header>
   );
 }
 
-// ─── since you were here ─────────────────────────────────────────────────────
+const LINE_ICON: Record<ForYouIcon, Icon> = {
+  event: IconCalendarEvent, live: IconBroadcast, clock: IconClock, streak: IconFlame, mmr: IconChartBar, road: IconRoute,
+  post: IconMessage2, people: IconUsers, tonight: IconConfetti,
+};
 
-const SINCE_ICON: Record<SinceLine["icon"], Icon> = { times: IconClock, streak: IconFlame, mmr: IconChartBar, road: IconRoute, event: IconCalendarEvent };
-const SINCE_TONE = { times: "blue", streak: "orange", mmr: "blue", road: "red", event: "violet" } as const;
-
-function Since({ since, sweep }: { since: SinceLine; sweep: boolean }) {
+/** For you: up to three lines, the most pressing first; Inbox holds the rest. */
+function ForYouBlock({ lines }: { lines: ForYouLine[] }) {
   return (
-    <aside className={`room-since${sweep ? " room-since--sweep" : ""}`} aria-label="Since you were here">
-      <IconTile icon={SINCE_ICON[since.icon]} tone={SINCE_TONE[since.icon]} />
-      <span className="room-since__text">
-        <Link href={since.href} className="room-since__title">{since.title}</Link>
-        <span>{since.line}</span>
-      </span>
-      {since.sample && <Badge variant="warning" size="small">Sample</Badge>}
-      <span className="room-btn room-btn--ghost" aria-hidden="true">{since.action}</span>
-    </aside>
-  );
-}
-
-// ─── the tiles ───────────────────────────────────────────────────────────────
-
-function TileBox({ tile, i, className, children, label, labelId }: { tile: Tile; i: number; className?: string; children: ReactNode; label?: string; labelId?: string }) {
-  return (
-    <section
-      className={`room-tile room-tile--${tile.kind}${className ? ` ${className}` : ""}`}
-      style={{ "--span": tile.span, "--i": i } as CSSProperties}
-      data-span={tile.span}
-      aria-label={label}
-      aria-labelledby={labelId}
-    >
-      {children}
-    </section>
-  );
-}
-
-/** The competitive tile's MMR card: the account's own, in its look, rolled from the last visit. Loads after the page. */
-async function MmrCardBit({ userId, who, sample }: { userId: string; who: string; sample: boolean }) {
-  if (sample) {
-    const look: MmrLook = { ...DEFAULT_LOOK, game: "mk8dx", brand: "off" };
-    return <div className="mmr-frame" role="region" aria-label="Sample MMR card"><MmrCard view={viewOf(demoSource("mk8dx", "Sample player"))} look={look} fit="frame" /></div>;
-  }
-  const card = await cardFor(userId).catch(() => null);
-  const live = card ? await liveFor(card, { country: false }).catch(() => null) : null;
-  if (!live?.ok) return <p className="room-compete__none">The lounge isn&apos;t answering right now. Your card shows here when it does.</p>;
-  // On our own page the "Built by GameShuffle" line says what the page already does; a rolling bar is a stream's.
-  const look: MmrLook = { ...live.look, brand: "off", layout: live.look.layout === "rolling" ? "deck" : live.look.layout };
-  const since = await mmrSeenFor(who);
-  // The card scales to the space it has, so the whole card is always in view.
-  return <div className="mmr-frame" role="region" aria-label="Your card as it shows on stream"><MmrSince initial={live} since={since} who={who} look={look} /></div>;
-}
-
-function CompeteTile({ tile, i, userId, who, mmrFrom }: { tile: TileOf<"compete">; i: number; userId: string; who: string; mmrFrom: number | null }) {
-  const l = tile.lounge;
-  if (!tile.card && !l) {
-    // Nothing to show yet: the game's art and the one step that fills the tile.
-    return (
-      <TileBox tile={tile} i={i} className="room-tile--art" labelId="room-compete">
-        {/* eslint-disable-next-line @next/next/no-img-element -- our own game art */}
-        <img className="room-art room-art--img" src={wideArt("mario-kart-8-deluxe") ?? ""} alt="" />
-        <div className="room-art__text">
-          <h2 id="room-compete" className="room-kicker room-kicker--light">Your lounge</h2>
-          <b className="room-art__title">Your season, on your home</b>
-          <span>Confirm your lounge name with Discord: your MMR, world rank and MMR card show here.</span>
-          <span className="room-art__actions">
-            <Link href="/lounge" className="room-btn room-btn--light">Confirm your lounge name</Link>
-            <Link href={tile.times ? "/account/competitive" : "/time-trials/import"} className="room-art__setup">{tile.times ? `${tile.times.toLocaleString("en-US")} ${tile.times === 1 ? "time" : "times"} on the boards` : "Add a time"}</Link>
-          </span>
-        </div>
-      </TileBox>
-    );
-  }
-  return (
-    <TileBox tile={tile} i={i} className={tile.card ? "room-tile--bare" : undefined} labelId="room-compete">
-      <div className="room-tile__head">
-        <h2 id="room-compete">{tile.card ? "Your MMR card" : "Your lounge"}</h2>
-        {tile.sample && <Badge variant="warning" size="small">Sample</Badge>}
-        {tile.card ? <ArrowLink href="/mmr-card" className="room-tile__more">Open the studio</ArrowLink>
-          : l && <ArrowLink href={l.href} className="room-tile__more">Your lounge page</ArrowLink>}
+    <section className="room-block" aria-labelledby="room-foryou-title">
+      <div className="room-block__head">
+        <h2 id="room-foryou-title">For you</h2>
+        <ArrowLink href="/comms" className="room-tile__more">See all</ArrowLink>
       </div>
-      {tile.card ? (
-        <div className="room-compete__card">
-          <Suspense fallback={<div className="room-compete__wait" role="status">Loading your MMR card</div>}>
-            <MmrCardBit userId={userId} who={who} sample={tile.sample} />
-          </Suspense>
-        </div>
-      ) : l && (
-        <dl className="room-nums">
-          {l.mmr != null && <div><dt>MMR</dt><dd><RollNum value={l.mmr} from={mmrFrom} /></dd></div>}
-          {l.worldRank ? <div><dt>World</dt><dd>#{l.worldRank.toLocaleString("en-US")}</dd></div> : null}
-          <div><dt>Times on the boards</dt><dd>{tile.times.toLocaleString("en-US")}</dd></div>
-        </dl>
-      )}
-    </TileBox>
-  );
-}
-
-function RoadTile({ tile, i }: { tile: TileOf<"road">; i: number }) {
-  const e = tile.encounter;
-  const n = tile.next;
-  const picture = e?.picture ?? n?.picture ?? null;
-  const href = e?.href ?? n?.href ?? "/pokemon-trainers";
-  return (
-    <TileBox tile={tile} i={i} className={`room-tile--art${e ? " room-road--blocked" : ""}`} labelId="room-road">
-      {picture && <TrainerArt picture={picture} shape="banner" className="room-art" />}
-      <Link href={href} className="room-art__text">
-        <h2 id="room-road" className="room-kicker room-kicker--gold">{e ? "Blocking your road" : "Next on your road"}</h2>
-        <b className="room-art__title">{e ? e.name : n ? n.name : "Trainer Road"}</b>
-        <span>{e ? `Beat them to keep going in ${e.regionName}` : n ? `${n.regionName} · ${n.label}` : "Duel every Gym Leader with their own team"}</span>
-        {n && !e && n.kind === "gym" && (
-          <span className="room-badges" aria-label={`${tile.badges} of ${tile.gyms} badges`}>
-            {Array.from({ length: tile.gyms }, (_, k) => <i key={k} className={k < tile.badges ? "on" : undefined} />)}
-          </span>
-        )}
-        <span className="room-art__meta">
-          Level {tile.level}
-          {tile.stars > 0 && <> · <IconStarFilled size={14} aria-hidden="true" /> <RollNum value={tile.stars} from={tile.starsFrom} /> this month</>}
-        </span>
-      </Link>
-    </TileBox>
-  );
-}
-
-async function CardsFan({ userId }: { userId: string }) {
-  const { data } = await createServiceClient().from("gs_user_cards").select("card:tcg_cards(name, image_small_path, images)").eq("user_id", userId).order("added_at", { ascending: false }).limit(3);
-  const cards = ((data ?? []) as { card: { name: string; image_small_path: string | null; images: { small?: string } | null } | { name: string; image_small_path: string | null; images: { small?: string } | null }[] | null }[])
-    .map((r) => (Array.isArray(r.card) ? r.card[0] : r.card))
-    .map((c) => (c ? { name: c.name, src: c.image_small_path ?? c.images?.small ?? null } : null))
-    .filter((c): c is { name: string; src: string } => !!c?.src);
-  if (!cards.length) return null;
-  return (
-    <span className="room-fan" aria-hidden="true">
-      {/* eslint-disable-next-line @next/next/no-img-element -- Scrydex card images, small size, never rewritten */}
-      {cards.map((c, k) => <img key={k} src={c.src} alt="" loading="lazy" style={{ "--k": k } as CSSProperties} />)}
-    </span>
-  );
-}
-
-function CardsTile({ tile, i, userId }: { tile: TileOf<"cards">; i: number; userId: string }) {
-  return (
-    <TileBox tile={tile} i={i} labelId="room-cards">
-      <div className="room-tile__head">
-        <h2 id="room-cards">My Cards</h2>
-        {tile.sample && <Badge variant="warning" size="small">Sample</Badge>}
-        <ArrowLink href="/account/pokemon?tab=my-cards" className="room-tile__more">Open My Cards</ArrowLink>
-      </div>
-      <div className="room-cards">
-        {!tile.sample && tile.cards > 0 && <Suspense fallback={null}><CardsFan userId={userId} /></Suspense>}
-        <dl className="room-nums">
-          <div><dt>Cards</dt><dd>{tile.cards.toLocaleString("en-US")}</dd></div>
-          <div><dt>{tile.decks === 1 ? "Deck list" : "Deck lists"}</dt><dd>{tile.decks}</dd></div>
-        </dl>
-      </div>
-    </TileBox>
-  );
-}
-
-function ShelfTile({ tile, i }: { tile: TileOf<"shelf">; i: number }) {
-  return (
-    <TileBox tile={tile} i={i} labelId="room-shelf">
-      <div className="room-tile__head">
-        <h2 id="room-shelf">Your games</h2>
-        <ArrowLink href="/account?tab=games" className="room-tile__more">Change</ArrowLink>
-      </div>
-      {/* With no games yet it's a row of the "Get set up" card instead (4A). */}
-      <ul className="room-shelf">
-        {tile.games.map((g) => {
-          const inner = (
-            <>
-              <GameCover name={g.name} className="room-shelf__cover" />
-              <span className="sr-only">{g.name}</span>
-              {g.action && <span className="room-shelf__act" aria-hidden="true">{g.action}</span>}
-            </>
-          );
-          return <li key={g.name}>{g.href ? <Link href={g.href} aria-label={`${g.action} ${g.name}`}>{inner}</Link> : <span>{inner}</span>}</li>;
-        })}
-        {tile.games.length < 6 && (
-          <li><Link href="/account?tab=games" className="room-shelf__add"><span className="room-shelf__slot"><IconPlus size={26} stroke={1.8} aria-hidden="true" /></span><span className="room-shelf__act">Add a game</span></Link></li>
-        )}
-      </ul>
-    </TileBox>
-  );
-}
-
-const TICKET_ICON = { trivia: IconQuestionMark, party: IconUsersGroup, event: IconTournament } as const;
-
-function TicketArt({ art }: { art: Ticket["art"] }) {
-  if (art.kind === "img") {
-    // eslint-disable-next-line @next/next/no-img-element -- the event's own cover from our storage
-    return <img className="room-ticket__img" src={art.src} alt="" loading="lazy" />;
-  }
-  if (art.kind === "icon") {
-    const Glyph = TICKET_ICON[art.icon];
-    return <span className="room-ticket__glyph"><Glyph size={40} stroke={1.6} aria-hidden="true" /></span>;
-  }
-  const wide = wideArt(art.slug);
-  if (wide) {
-    // eslint-disable-next-line @next/next/no-img-element -- the game's key art (ours or our CDN)
-    return <img className="room-ticket__img" src={wide} alt="" loading="lazy" />;
-  }
-  const box = boxArt(findGame(art.slug, art.name));
-  if (!box) {
-    // A game we have no art for: a photo of people playing, never a lettered tile this big.
-    // eslint-disable-next-line @next/next/no-img-element -- our own photo
-    return <img className="room-ticket__img" src="/images/lifestyle/hero-game-nights.96d98118.jpg" alt="" loading="lazy" />;
-  }
-  return (
-    <span className="room-ticket__box" style={{ "--box": `url(${box})` } as CSSProperties}>
-      <GameCover slug={art.slug} name={art.name || "Event"} className="room-ticket__cover" />
-    </span>
-  );
-}
-
-function TicketCard({ t, compact = false }: { t: Ticket; compact?: boolean }) {
-  return (
-    <Link href={t.href} className={`room-ticket${compact ? " room-ticket--compact" : ""}${t.running ? " room-ticket--live" : ""}`}>
-      <span className="room-ticket__art" aria-hidden="true">
-        <TicketArt art={t.art} />
-        <span className="room-ticket__when">{t.when}</span>
-      </span>
-      <span className="room-ticket__body">
-        <span className="room-kicker">{t.role}</span>
-        <b>{t.title}</b>
-        {t.line && <span className="room-ticket__line">{t.line}</span>}
-        {!compact && <span className="room-btn">{t.action}</span>}
-        <span className="sr-only">{t.when}</span>
-      </span>
-    </Link>
-  );
-}
-
-function TicketTile({ tile, i }: { tile: TileOf<"ticket">; i: number }) {
-  return (
-    <TileBox tile={tile} i={i} className="room-tile--flush" label="Your next event">
-      <TicketCard t={tile.ticket} />
-    </TileBox>
-  );
-}
-
-function EventsTile({ tile, i }: { tile: TileOf<"events">; i: number }) {
-  return (
-    <TileBox tile={tile} i={i} labelId="room-events">
-      <div className="room-tile__head">
-        <h2 id="room-events">Your events</h2>
-        {tile.sample && <Badge variant="warning" size="small">Sample</Badge>}
-        <ArrowLink href="/account/events" className="room-tile__more">All of them</ArrowLink>
-      </div>
-      {tile.tickets.length ? (
-        <ul className="room-tickets">
-          {tile.tickets.map((t) => <li key={t.href}><TicketCard t={t} compact /></li>)}
-        </ul>
-      ) : <p className="room-tile__note">Nothing on yet.</p>}
-    </TileBox>
-  );
-}
-
-function StreamTile({ tile, i }: { tile: TileOf<"stream">; i: number }) {
-  const s = tile.setup;
-  return (
-    <TileBox tile={tile} i={i} className="room-tile--art room-tile--stream" labelId="room-stream">
-      {tile.art
-        // eslint-disable-next-line @next/next/no-img-element -- the game's key art
-        ? <img className="room-art room-art--img" src={tile.art} alt="" />
-        : tile.game ? <span className="room-art room-art--box" style={{ "--box": `url(${boxArt(findGame(tile.game, tile.gameName)) ?? ""})` } as CSSProperties} /> : <span className="room-art room-art--plain" />}
-      <div className="room-art__text">
-        <h2 id="room-stream" className="room-kicker room-kicker--light">
-          {tile.status === "live" ? <span className="room-live">Live</span> : "Your stream"}
-          {tile.sample && <Badge variant="warning" size="small">Sample</Badge>}
-        </h2>
-        <b className="room-art__title">{tile.title}</b>
-        <span>{tile.status === "none" ? (tile.pro ? "Your lobby, rolls and live games in one place" : "Chat games, the overlay and a Discord bot, with GS Pro") : [tile.gameName, tile.when].filter(Boolean).join(" · ")}</span>
-        <span className="room-art__actions">
-          <Link href={tile.status === "none" && !tile.pro ? "/gs-pro?from=home-stream" : tile.href} className="room-btn room-btn--light">{tile.action}</Link>
-          {s && s.next && <Link href={s.next.href} className="room-art__setup">Setup {s.done} of {s.total}: {s.next.label}</Link>}
-        </span>
-      </div>
-    </TileBox>
-  );
-}
-
-const TONIGHT_ICON = { tv: IconDeviceTv, party: IconUsersGroup, vote: IconThumbUp, trivia: IconQuestionMark, holiday: IconConfetti } as const;
-
-function TonightTile({ tile, i }: { tile: TileOf<"tonight">; i: number }) {
-  return (
-    <TileBox tile={tile} i={i} labelId="room-tonight">
-      <div className="room-tile__head">
-        <h2 id="room-tonight">Tonight</h2>
-        <ArrowLink href="/game-nights/tools" className="room-tile__more">Game night tools</ArrowLink>
-      </div>
-      <ul className="room-list">
-        {tile.picks.map((p) => (
-          <li key={p.href}>
-            <IconTile icon={TONIGHT_ICON[p.icon]} tone={p.tone} />
-            <span className="room-list__text">
-              <Link href={p.href} className="room-list__title">{p.title}</Link>
-              <span>{p.line}</span>
-            </span>
+      <ul className="room-lines">
+        {lines.map((l) => (
+          <li key={l.id}>
+            <Link href={l.href} className="room-line">
+              <IconTile icon={LINE_ICON[l.icon]} tone={l.tone} />
+              <span className="room-line__text">
+                <b>{l.title}</b>
+                {l.line && <span>{l.line}</span>}
+              </span>
+              <IconChevronRight size={18} className="room-line__go" aria-hidden="true" />
+            </Link>
           </li>
         ))}
       </ul>
-    </TileBox>
+    </section>
   );
 }
 
-// ─── the people rail ─────────────────────────────────────────────────────────
+const NUDGE_ICON: Record<OneThing["icon"], Icon> = { people: IconUserPlus, games: IconDeviceGamepad2, cards: IconCards, crew: IconUsersGroup, mmr: IconChartBar, stream: IconDeviceTv };
+
+/** One thing to try: a single nudge, never a list. */
+function OneThingRow({ thing }: { thing: OneThing }) {
+  return (
+    <section className="room-block room-block--one" aria-label="One thing to try">
+      <Link href={thing.href} className="room-line room-line--one">
+        <IconTile icon={NUDGE_ICON[thing.icon]} tone="orange" />
+        <span className="room-line__text">
+          <span className="room-line__kick">One thing to try</span>
+          <b>{thing.title}</b>
+          <span>{thing.line}</span>
+        </span>
+        <IconChevronRight size={18} className="room-line__go" aria-hidden="true" />
+      </Link>
+    </section>
+  );
+}
 
 /**
- * Your people (context picks 4A): who's live (a red ring, Watch), hosting (Join), online (a green dot) or around lately,
- * a friend marked. The rail's twin on the profile is its narrow column.
- */
-function RailPeople({ people }: { people: NonNullable<Room["people"]> }) {
-  const d = people.data;
-  return (
-    <section className="room-tile room-rail__block" aria-labelledby="room-people">
-      <div className="room-tile__head">
-        <h2 id="room-people">Your people</h2>
-        {people.sample && <Badge variant="warning" size="small">Sample</Badge>}
-        <ArrowLink href="/players" className="room-tile__more">Find players</ArrowLink>
-      </div>
-      {d.people.length ? (
-        <PeopleList people={d.people} />
-      ) : (
-        <p className="room-tile__note">Follow players and they show up here with what they&apos;re up to and a way to join them.</p>
-      )}
-    </section>
-  );
-}
-
-/** From your people (game spaces picks 8A): a few posts about a game from people you follow, each naming its game. */
-function RailPosts({ posts }: { posts: Room["posts"] }) {
-  return (
-    <section className="room-tile room-rail__block" aria-labelledby="room-posts">
-      <div className="room-tile__head">
-        <h2 id="room-posts">From your people</h2>
-      </div>
-      <PostLines label="Posts from people you follow" posts={posts} />
-    </section>
-  );
-}
-
-/** Bring your crew: your invite link and who's joined from it. */
-function RailCrew({ invite }: { invite: NonNullable<NonNullable<Room["people"]>["data"]["invite"]> }) {
-  return (
-    <section className="room-tile room-rail__block room-rail__crew" aria-labelledby="room-crew">
-      <div className="room-tile__head">
-        <h2 id="room-crew">Bring your crew</h2>
-      </div>
-      <InviteLink link={invite.link} joined={invite.joined} bare />
-    </section>
-  );
-}
-
-const SETUP: Record<SetupStep, { title: string; line: string; href: string; icon: Icon; tone: "teal" | "violet" | "red" }> = {
-  people: { title: "Follow players", line: "See what they're up to and join in", href: "/players", icon: IconUserPlus, tone: "teal" },
-  games: { title: "Pick your games", line: "They sit here, one tap to roll", href: "/account?tab=games", icon: IconDeviceGamepad2, tone: "violet" },
-  cards: { title: "Add your Pokémon cards", line: "Your collection and deck lists", href: "/account/pokemon?tab=my-cards", icon: IconCards, tone: "red" },
-};
-
-/** Get set up (home cleanup picks 2026-11-07, 4A): one row per thing with nothing in it yet, in place of empty tiles. */
-function RailSetup({ steps }: { steps: SetupStep[] }) {
-  return (
-    <section className="room-tile room-rail__block" aria-labelledby="room-setup">
-      <div className="room-tile__head">
-        <h2 id="room-setup">Get set up</h2>
-      </div>
-      <ul className="room-list">
-        {steps.map((k) => {
-          const s = SETUP[k];
-          return (
-            <li key={k}>
-              <IconTile icon={s.icon} tone={s.tone} />
-              <span className="room-list__text">
-                <Link href={s.href} className="room-list__title">{s.title}</Link>
-                <span>{s.line}</span>
-              </span>
-            </li>
-          );
-        })}
-      </ul>
-    </section>
-  );
-}
-
-// ─── the room ────────────────────────────────────────────────────────────────
-
-/**
- * Below the header (context + rooms picks 2026-11-05, https://claude.ai/artifact/APK5x7mRj9Ldvt7a8J7g4T, all A): since,
- * then the room in two zones on the 12-column grid. Your things take 8 (Today, then your tiles two to a row, a wide one
- * across); your people take a rail of 4 that stays put as you scroll (your people, today's board, bring your crew, and
- * "Get set up" for anything still empty).
- * Under 1200px it's one column with the people after Today. Then the plan line.
- */
-/** `wear`: the "Wear it" merch row (a server component from the page), after Your games. */
-export function RoomBody({ room, userId, wear = null }: { room: Room; userId: string; wear?: ReactNode }) {
-  const t = room.today;
-  const board = !!t.live && t.live.following > 0;
-  // Your people's block only once you follow someone; until then it's a row of "Get set up".
-  const people = room.people && !room.setup.includes("people") ? room.people : null;
-  const invite = room.people?.data.invite ?? null;
-  const blocks = (room.posts.length ? 1 : 0) + (people ? 1 : 0) + (board ? 1 : 0) + (invite ? 1 : 0) + (room.setup.length ? 1 : 0);
-  return (
-    <div className="room" data-rise={room.rise ? "" : undefined}>
-      <HomeVisit value={room.visit} />
-      {room.since && <Since since={room.since} sweep={room.freshVisit} />}
-      {room.games.length > 0 && <YourGames games={room.games} />}
-      {wear}
-      <TodayLiveProvider initial={t.live} day={gsDay()}>
-        <div className="room-zones">
-          <div className={`room-zone room-zone--today${t.done ? " room-zone--done" : ""}`}>
-            <TodayLive
-              games={t.games} weekly={t.weekly} streak={t.streak} streakFrom={t.streakFrom}
-              picks={t.picks} resetAt={t.resetAt}
-            />
-          </div>
-          <StickyRail blocks={blocks}>
-            {room.posts.length > 0 && <RailPosts posts={room.posts} />}
-            {people && <RailPeople people={people} />}
-            <TodayBoard games={t.games.map((g) => g.id)} />
-            {invite && <RailCrew invite={invite} />}
-            {room.setup.length > 0 && <RailSetup steps={room.setup} />}
-          </StickyRail>
-          {room.tiles.length > 0 && (
-            <div className="room-zone room-zone--main room-grid">
-              {room.tiles.map((tile, i) => {
-                switch (tile.kind) {
-                  case "compete": return <CompeteTile key={tile.kind} tile={tile} i={i} userId={userId} who={room.visitKey} mmrFrom={room.mmrFrom} />;
-                  case "road": return <RoadTile key={tile.kind} tile={tile} i={i} />;
-                  case "cards": return <CardsTile key={tile.kind} tile={tile} i={i} userId={userId} />;
-                  case "shelf": return <ShelfTile key={tile.kind} tile={tile} i={i} />;
-                  case "ticket": return <TicketTile key={tile.kind} tile={tile} i={i} />;
-                  case "events": return <EventsTile key={tile.kind} tile={tile} i={i} />;
-                  case "stream": return <StreamTile key={tile.kind} tile={tile} i={i} />;
-                  case "tonight": return <TonightTile key={tile.kind} tile={tile} i={i} />;
-                  case "like": return <MightLike key={tile.kind} items={tile.items} span={tile.span} i={i} />;
-                  default: return null;
-                }
-              })}
-            </div>
-          )}
-        </div>
-      </TodayLiveProvider>
-      {room.plan && <PlanRow plan={room.plan} />}
-    </div>
-  );
-}
-
-// ─── your games ──────────────────────────────────────────────────────────────
-
-/**
- * Your games (journeys picks 2026-11-06, 7A): a card per game space you've joined, leading the room. Box art, the
- * space's pick of the day, one line of what's new; the card opens the space. The last card adds a game.
+ * Your games (journeys picks 2026-11-06, 7A): a card per game space you've joined. Box art, the space's pick of the
+ * day, one line of what's new; the card opens the space. The last card adds a game.
  */
 function YourGames({ games }: { games: GameCard[] }) {
   return (
@@ -554,5 +137,37 @@ function YourGames({ games }: { games: GameCard[] }) {
         ]}
       </ResponsiveCarousel>
     </section>
+  );
+}
+
+/** The five blocks, then the one plan line (GS Pro, GS Circuit or Support). `picks`: your dailies (Today shows only
+ * those; dailyPicksState on the page). */
+export function RoomBody({ room, picks }: { room: Room; picks: DailyPicksSeed }) {
+  const t = room.today;
+  const mine = new Set(picks.picks ?? []);
+  const games = mine.size ? t.games.filter((g) => mine.has(g.id)) : t.games;
+  const allDone = games.length > 0 && games.every((g) => g.done);
+  const lines = forYouLines(room);
+  const nudge = oneThing(room);
+  return (
+    <div className="room room--five" data-rise={room.rise ? "" : undefined}>
+      <HomeVisit value={room.visit} />
+      <TodayLiveProvider initial={t.live} day={gsDay()}>
+        <section className={`room-block room-block--today${allDone ? " room-zone--done" : ""}`} aria-labelledby={allDone ? undefined : "room-today-title"} aria-label={allDone ? "Today" : undefined}>
+          {!allDone && (
+            <div className="room-block__head">
+              <h2 id="room-today-title">Today</h2>
+              <TodayChoose seed={picks} />
+            </div>
+          )}
+          <TodayLive games={games} weekly={t.weekly} streak={t.streak} streakFrom={t.streakFrom} picks={[]} resetAt={t.resetAt} />
+        </section>
+      </TodayLiveProvider>
+      {lines.length > 0 && <ForYouBlock lines={lines} />}
+      <PlayNext picks={t.picks} />
+      {room.games.length > 0 && <YourGames games={room.games} />}
+      {nudge && <OneThingRow thing={nudge} />}
+      {room.plan && <PlanRow plan={room.plan} />}
+    </div>
   );
 }

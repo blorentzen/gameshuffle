@@ -1,3 +1,5 @@
+import { isProduction } from "@/lib/env";
+
 /**
  * Games that are built but not public yet. A hidden game keeps all its code
  * and data; it's just left out of navigation, the sitemap, pickers (tournaments,
@@ -21,6 +23,8 @@ export const OVERWATCH_PUBLIC = true;
 export const MARVEL_RIVALS_PUBLIC = true;
 /** Mario Party 1-3 (N64 on Switch Online) on the party randomizer (beta; no art yet). */
 export const N64_PARTY_PUBLIC = true;
+/** Sonic Racing: CrossWorlds randomizer (names only, "Image coming soon" slots; launched 2026-11-09). */
+export const SONIC_PUBLIC = true;
 
 /**
  * Guides (/guides): hidden until there are enough guides, with imagery, to
@@ -45,6 +49,15 @@ export const ROAD_PUBLIC = true;
 /** Trainer Road can be seen here (always in development). */
 export const roadShown = () => ROAD_PUBLIC || process.env.NODE_ENV !== "production";
 
+/**
+ * Speedrunning (/speedrun, the OBS overlay at /run/<token>; picks 2026-11-09). Off until the relay (a Cloudflare
+ * Worker, speedrun-relay/) runs in production: off = production 404s /speedrun and leaves it out of the Compete menu,
+ * the Studio's tools and the sitemap. Development and the dev site always show it.
+ */
+export const SPEEDRUN_PUBLIC = false;
+/** Speedrunning can be seen here (always outside production). */
+export const speedrunShown = () => SPEEDRUN_PUBLIC || !isProduction;
+
 /** Hidden randomizers by slug, for lists that loop over every randomizer. */
 const HIDDEN_RANDOMIZERS: Record<string, boolean> = {
   "super-smash-bros-ultimate": !SMASH_PUBLIC,
@@ -60,6 +73,7 @@ const HIDDEN_RANDOMIZERS: Record<string, boolean> = {
   "perfect-dark": !PERFECT_DARK_PUBLIC,
   "overwatch": !OVERWATCH_PUBLIC,
   "marvel-rivals": !MARVEL_RIVALS_PUBLIC,
+  "sonic-racing-crossworlds": !SONIC_PUBLIC,
 };
 export function randomizerPublic(slug: string): boolean {
   return !HIDDEN_RANDOMIZERS[slug];

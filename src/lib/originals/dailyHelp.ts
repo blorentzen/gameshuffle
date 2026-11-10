@@ -6,6 +6,8 @@
  * Letters: the Daily Dex's last chance already shows the first letter, so
  * bought letters are the 2nd, 3rd and 4th; the Daily Shuffle shows none, so
  * the first purchase is the first letter (and, with the squares, the length).
+ * Puzzles with no art (the Shuffle's Sonic days) show the first letter like the
+ * Dex (lastChanceLetters in daily.ts).
  * Two letters always stay hidden, so a short name allows fewer.
  */
 

@@ -98,6 +98,7 @@ export function worldTrack(code: string): TtTrack | null {
 
 /** Every short name the reader knows for a game, for the import page's list (abbreviation, track). */
 export function shortNames(game: TtGame): { abbr: string; name: string }[] {
+  if (game === "kar") return [];
   if (game === "mk8dx") return MK8DX_ABBR.map((abbr) => ({ abbr, name: byAbbr(abbr)?.name ?? "" })).filter((r) => r.name);
   return Object.entries(MKWORLD_ABBR).map(([abbr, name]) => ({ abbr, name }));
 }

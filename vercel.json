@@ -125,6 +125,10 @@
       "schedule": "0 15 1 * *"
     },
     {
+      "path": "/api/cron/twitch-top",
+      "schedule": "0 3 * * *"
+    },
+    {
       "path": "/api/cron/tt-records",
       "schedule": "0 15 2 * *"
     },

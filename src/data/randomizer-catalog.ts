@@ -71,6 +71,8 @@ const GROUPS: CatalogGroup[] = [
       { slug: "goldeneye-007", href: "/randomizers/goldeneye-007", title: "GoldenEye 007", blurb: "Scenario, map, weapons and characters for 2 to 4.", image: GAME_ART["goldeneye-007"].hero.src, imageAlt: GAME_ART["goldeneye-007"].hero.alt, isNew: true },
       { slug: "perfect-dark", href: "/randomizers/perfect-dark", title: "Perfect Dark", blurb: "Scenario, arena, weapons and simulants for a Combat Simulator match.", image: GAME_ART["perfect-dark"].cover, imageAlt: GAME_ART["perfect-dark"].hero.alt, isNew: true },
       { slug: "kirby-air-riders", href: "/randomizers/kirby-air-riders", title: "Kirby Air Riders", blurb: "Riders, machines, courses and City Trial Stadiums.", image: GAME_ART["kirby-air-riders"].cover, imageAlt: "Kirby Air Riders artwork", isNew: true },
+      // No art yet: "Image coming soon" on /randomizers, generated art in the More randomizers carousel.
+      { slug: "sonic-racing-crossworlds", href: "/randomizers/sonic-racing-crossworlds", title: "Sonic Racing: CrossWorlds", short: "Sonic Racing", blurb: "Racers, machines, Gadget Plates, races and Grands Prix for up to 12.", art: { category: "video", ramp: ["#0b2a6f", "#1e5bd8"] }, isNew: true },
       { slug: "splatoon-3", href: "/randomizers/splatoon-3", title: "Splatoon 3", blurb: "Weapon kits, battles, Salmon Run and teams.", image: GAME_ART["splatoon-3"].cover, imageAlt: "Splatoon 3 artwork", isNew: true },
     ],
   },

@@ -13,7 +13,7 @@
 import "server-only";
 import { createServiceClient } from "@/lib/supabase/admin";
 import { getBalance } from "@/lib/economy/tokens";
-import { answerFor, dayKey, type DailySchedule } from "@/lib/originals/daily";
+import { answerFor, dayKey, lastChanceLetters, puzzleFor, type DailySchedule } from "@/lib/originals/daily";
 import { HELP_DEFAULTS, NO_HELP, lettersAllowed, type HelpCounts, type HelpPrices } from "@/lib/originals/dailyHelp";
 
 const missing = (e: { code?: string } | null | undefined) => e?.code === "42P01" || e?.code === "PGRST205" || e?.code === "PGRST202";
@@ -44,8 +44,11 @@ export async function extraGuesses(player: string, game: DailySchedule["id"], da
   return (await helpFor(player, game, day)).guesses;
 }
 
-/** The letters the last chance gives free: the Dex shows the first letter, the Shuffle none. */
-export const freeLetters = (game: DailySchedule["id"]) => (game === "dex" ? 1 : 0);
+/**
+ * The letters the last chance gives free: the first letter on puzzles with no art (the Dex every
+ * day, the Shuffle on Sonic days), none where a silhouette shows.
+ */
+export const freeLetters = (game: DailySchedule, day: string) => lastChanceLetters(puzzleFor(day, game));
 
 export interface HelpState { ready: boolean; balance: number | null; prices: HelpPrices; help: HelpCounts; lettersLeft: number }
 
@@ -57,7 +60,7 @@ export async function helpState(player: string, wallet: string | null, game: Dai
     wallet ? getBalance(wallet).catch(() => null) : Promise.resolve(null),
     createServiceClient().from("daily_help").select("player", { head: true, count: "exact" }).limit(1),
   ]);
-  const allowed = lettersAllowed(answerFor(day, game).name, freeLetters(game.id), prices.letters);
+  const allowed = lettersAllowed(answerFor(day, game).name, freeLetters(game, day), prices.letters);
   return { ready: !missing(probe.error), balance, prices, help, lettersLeft: Math.max(0, allowed - help.letters) };
 }
 
@@ -71,7 +74,7 @@ export async function buyHelp(args: { player: string; wallet: string | null; gam
   if (args.finished) return { ok: false, error: "finished" };
   const day = dayKey();
   const prices = await helpPrices();
-  const cap = args.kind === "letter" ? lettersAllowed(answerFor(day, args.game).name, freeLetters(args.game.id), prices.letters) : prices.guesses;
+  const cap = args.kind === "letter" ? lettersAllowed(answerFor(day, args.game).name, freeLetters(args.game, day), prices.letters) : prices.guesses;
   const { data, error } = await createServiceClient().rpc("gs_daily_help_buy", {
     p_identity_id: args.wallet, p_player: args.player, p_game: args.game.id, p_day: day, p_kind: args.kind, p_cap: cap,
     p_amount: args.kind === "letter" ? prices.letter : prices.guess,

@@ -12,6 +12,7 @@ import { ULTIMATE } from "@/data/smash/ultimate";
 import { JAMBOREE } from "@/data/party/jamboree";
 import { SUPERSTARS } from "@/data/party/superstars";
 import { AIR_RIDERS } from "@/data/kirby/air-riders";
+import { CROSSWORLDS_GAME } from "@/data/sonic/crossworlds";
 import { SPLATOON3, splatStageArt } from "@/data/splatoon/splatoon3";
 import { OVERWATCH } from "@/data/heroes/overwatch";
 import { MARVEL_RIVALS } from "@/data/heroes/marvel-rivals";
@@ -174,6 +175,14 @@ export const TIER_TEMPLATES: TierTemplate[] = [
     title: "Kirby Air Riders Machines",
     description: "Rank the Kirby Air Riders machines, Warp Star to the Legendaries.",
     items: shown(AIR_RIDERS.slug, AIR_RIDERS.artReady ? AIR_RIDERS.machines.map((m) => ({ label: m.name, image: `${AIR_RIDERS.assetBase}${m.img}` })) : []),
+  },
+  {
+    slug: "sonic-racing-crossworlds-racers",
+    group: "Sonic Racing: CrossWorlds",
+    title: "Sonic Racing: CrossWorlds Racers",
+    description: "Rank every racer in Sonic Racing: CrossWorlds, from Sonic and Shadow to the guest racers.",
+    // Words only until the racers' art is cleared.
+    items: shown(CROSSWORLDS_GAME.slug, CROSSWORLDS_GAME.racers.map((r) => ({ label: r.name }))),
   },
   {
     slug: "splatoon-3-stages",

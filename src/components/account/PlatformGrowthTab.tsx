@@ -3,8 +3,8 @@
 /**
  * Platform admin ▸ Overview ▸ Growth: signups, who's still around (groups by
  * last visit, each exportable as a list of people who opted in to marketing
- * email), and why people deleted their accounts. Data from
- * /api/admin/lifecycle; the export only ever includes opted-in addresses.
+ * email), why people deleted their accounts and the notes they left. Data
+ * from /api/admin/lifecycle; the export only ever includes opted-in addresses.
  */
 
 import { useEffect, useState } from "react";
@@ -12,6 +12,8 @@ import { Alert, Badge, Button, EmptyState, StatCard, Table, TableBody, TableCell
 import { IconDownload, IconMail, IconUserMinus, IconUserPlus, IconUsers } from "@tabler/icons-react";
 import { LoadingLines } from "@/components/loading/LoadingLines";
 import { AdminHeader, AdminSection, AdminStats, AdminTable } from "@/components/account/admin/AdminKit";
+import { DeletionComments } from "@/components/account/admin/LeaveReasons";
+import type { DeletionComment } from "@/lib/platform/lifecycle";
 
 type ActivitySegment = "active" | "dormant" | "at_risk" | "cold" | "never_seen";
 
@@ -31,6 +33,7 @@ interface Summary {
   churn30d: number;
   churnTotal: number;
   churnReasons: { reason: string; label: string; count: number }[];
+  deletionComments?: DeletionComment[];
   marketingOptIns: number;
   generatedAt: string;
 }
@@ -129,6 +132,8 @@ export function PlatformGrowthTab() {
               </AdminTable>
             )}
           </AdminSection>
+
+          <DeletionComments comments={summary.deletionComments ?? []} />
         </>
       )}
     </div>

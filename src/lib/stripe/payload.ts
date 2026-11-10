@@ -40,6 +40,35 @@ export function subscriptionIdOf(invoice: Stripe.Invoice): string | null {
   return typeof ref === "string" ? ref : ref.id;
 }
 
+export interface SubscriptionCancellation {
+  /** Set to cancel (cancel_at_period_end or a cancel_at date) or already canceled. */
+  ending: boolean;
+  /** When it ends or ended (unix seconds), when known. */
+  cancelAt: number | null;
+  /** The customer portal's reason ("too_expensive", "switched_service", "unused", "other"…), if asked. */
+  feedback: string | null;
+  /** The customer portal's comment box, if filled in. */
+  comment: string | null;
+  /** Why Stripe canceled it: "cancellation_requested", "payment_failed" or "payment_disputed". */
+  reason: string | null;
+}
+
+/**
+ * Whether a subscription is ending and what the customer told the portal about it
+ * (cancellation_details). A scheduled cancel ends at cancel_at, or at the period end when only
+ * cancel_at_period_end is set; a canceled one at ended_at, else canceled_at.
+ */
+export function cancellationOf(sub: Stripe.Subscription): SubscriptionCancellation {
+  const details = (sub as Stripe.Subscription & { cancellation_details?: Stripe.Subscription.CancellationDetails | null }).cancellation_details ?? null;
+  const canceled = sub.status === "canceled" || sub.status === "incomplete_expired";
+  const scheduled = !!sub.cancel_at_period_end || !!sub.cancel_at;
+  const cancelAt = canceled
+    ? sub.ended_at ?? sub.canceled_at ?? sub.cancel_at ?? null
+    : sub.cancel_at ?? (sub.cancel_at_period_end ? periodEndOf(sub) ?? null : null);
+  const comment = typeof details?.comment === "string" && details.comment.trim() ? details.comment.trim() : null;
+  return { ending: canceled || scheduled, cancelAt, feedback: details?.feedback ?? null, comment, reason: details?.reason ?? null };
+}
+
 export interface ShippingAddress { name: string | null; line1: string | null; line2: string | null; city: string | null; state: string | null; postal: string | null; country: string | null }
 
 /** Where a Checkout Session ships: collected_information.shipping_details since 2025-03-31. */

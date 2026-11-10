@@ -1,0 +1,63 @@
+/* Ideas for a game (spaces first wave, 2026-11-09): a game space's Ideas tab (SpaceIdeas), the game picker on the
+   Idea Board's form and the board's game filter. Root font-size is 10px: sizes use the CDS tokens. */
+
+/* ── "We're asking": the tab's one boxed moment, tinted with the game's color ── */
+.space-ask {
+  display: grid; gap: var(--spacing-20);
+  background:
+    linear-gradient(135deg, color-mix(in srgb, var(--space-accent, #2766ec) 10%, var(--background-elevated, #fff)) 0%, var(--background-elevated, #fff) 62%);
+}
+.space-ask__head { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: var(--spacing-16); align-items: start; }
+.space-ask__kicker {
+  margin: 0 0 var(--spacing-4); font-size: var(--font-size-12); font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase;
+  color: var(--text-secondary);
+}
+.space-ask h2 { margin: 0; font-family: var(--font-display); font-size: var(--font-size-24); font-weight: 800; line-height: 1.2; overflow-wrap: anywhere; }
+.space-ask__line { margin: var(--spacing-8) 0 0; color: var(--text-secondary); font-size: var(--font-size-16); line-height: 1.45; max-width: 60ch; }
+.space-ask__starters { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: var(--spacing-8); }
+/* A link around a CDS Chip, as on /ideas: the chip is the look, the link opens the form. */
+.space-ask__chip { display: inline-flex; min-height: 44px; align-items: center; text-decoration: none; border-radius: 999px; }
+.space-ask__chip:focus-visible { outline: 3px solid var(--brand-ink, #2f5bea); outline-offset: 2px; }
+.space-ask__chip .empac-chip { cursor: pointer; font-size: var(--font-size-14); }
+.space-ask__chip:hover .empac-chip { border-color: var(--border-default); background: var(--background-secondary, #f6f7fb); }
+/* Wide screens: the starters line up under the question, past the icon tile. */
+@media (min-width: 600px) { .space-ask__starters { padding-left: calc(4rem + var(--spacing-16)); } }
+@media (max-width: 599px) {
+  .space-ask__head { grid-template-columns: minmax(0, 1fr); gap: var(--spacing-12); }
+  .space-ask h2 { font-size: var(--font-size-20); }
+}
+
+/* ── The game's ideas: rows split by lines, the vote on the left ── */
+.space-ideas { list-style: none; margin: 0; padding: 0; display: grid; }
+.space-idea { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: var(--spacing-16); align-items: start; padding: var(--spacing-16) 0; }
+.space-idea + .space-idea { border-top: 1px solid var(--border-subtle, var(--border-default)); }
+.space-idea:first-child { padding-top: 0; }
+.space-idea:last-child { padding-bottom: 0; }
+.space-idea .idea-vote { min-width: 48px; min-height: 48px; }
+.space-idea--waiting { grid-template-columns: minmax(0, 1fr); }
+.space-idea__main { display: grid; gap: var(--spacing-6, 0.6rem); min-width: 0; }
+.space-idea__title { font-family: var(--font-display); font-size: var(--font-size-17, 1.7rem); font-weight: 800; color: var(--text-primary); text-decoration: none; line-height: 1.3; overflow-wrap: anywhere; }
+.space-idea__title:hover { text-decoration: underline; }
+.space-idea__body {
+  margin: 0; color: var(--text-secondary); font-size: var(--font-size-15, 1.5rem); line-height: 1.45;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}
+.space-idea__meta { margin: 0; display: flex; flex-wrap: wrap; align-items: center; gap: var(--spacing-8) var(--spacing-12); color: var(--text-secondary); font-size: var(--font-size-14); }
+
+/* ── The Idea Board's form: the game picker ── */
+.idea-game__label { font-size: var(--font-size-14); font-weight: 700; color: var(--text-primary); }
+.idea-game__pick { display: flex; align-items: center; gap: var(--spacing-12); }
+.idea-game__pick .labeled-combobox { flex: 1; min-width: 0; }
+.idea-game__cover { flex: none; width: 3.6rem; }
+.idea-game__cover .game-cover { display: block; width: 3.6rem; height: auto; aspect-ratio: 3 / 4; object-fit: cover; border-radius: 0.6rem; }
+.idea-game__hint { font-size: var(--font-size-14); color: var(--text-secondary); }
+
+/* ── The board's game filter (/ideas) ── */
+.ideas-game-filter { display: flex; flex-wrap: wrap; align-items: center; gap: var(--spacing-12); }
+.ideas-game-filter .empac-select { min-width: 24rem; }
+.ideas-game-filter__game { display: inline-flex; align-items: center; gap: var(--spacing-8); font-size: var(--font-size-14); color: var(--text-secondary); }
+.ideas-game-filter__game .game-cover { width: 2.4rem; height: auto; aspect-ratio: 3 / 4; object-fit: cover; border-radius: 0.4rem; }
+.idea-game-tag { display: inline-flex; align-items: center; gap: var(--spacing-6, 0.6rem); font-size: var(--font-size-14); color: var(--text-secondary); text-decoration: none; }
+.idea-game-tag:hover { color: var(--text-primary); text-decoration: underline; }
+.idea-game-tag .game-cover { width: 1.8rem; height: auto; aspect-ratio: 3 / 4; object-fit: cover; border-radius: 0.3rem; }
+@media (max-width: 599px) { .ideas-game-filter .empac-select { min-width: 0; width: 100%; } .ideas-game-filter > * { flex: 1 1 100%; } }

@@ -17,7 +17,7 @@ import { siteActor } from "@/lib/timeTrials/players";
 import { attachShot, fixTime, nudgeMovedUp, removeOwnTime, setVideo, timeById, topTensAround } from "@/lib/timeTrials/store";
 import { noteOwnerUpdate } from "@/lib/timeTrials/asks";
 import { isItems, isVehicle } from "@/lib/timeTrials/categories";
-import { isClassFor } from "@/lib/timeTrials/tracks";
+import { isClassFor, TT_MIN_MS } from "@/lib/timeTrials/tracks";
 import { readFrom } from "@/lib/timeTrials/proof";
 import { keyFromPublicUrl } from "@/lib/storage/r2";
 import { openTicket } from "@/lib/timeTrials/review";
@@ -70,7 +70,7 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
   }
   if (body.action === "fix") {
     if (!(await rateLimit(`tt-fix:${actor.player}`, { max: 20, windowMs: 60 * 60_000 })).ok) return NextResponse.json({ ok: false, error: "slow_down" }, { status: 429 });
-    const timeMs = typeof body.time === "string" ? parseTime(body.time) : null;
+    const timeMs = typeof body.time === "string" ? parseTime(body.time, TT_MIN_MS) : null;
     const cc = Number(body.cc);
     if (timeMs == null) return NextResponse.json({ ok: false, error: "bad_time" }, { status: 400 });
     const before = await timeById(id);

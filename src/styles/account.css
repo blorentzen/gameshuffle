@@ -3390,7 +3390,7 @@ html.dark .gs-platform-icon {
 .admin-table {
   position: relative;
   overflow-x: auto;
-  border: 1px solid var(--border-subtle, var(--border-default));
+  border: 1px solid var(--border-default);
   border-radius: var(--gs-radius-md, 0.9rem);
 }
 .admin-table__link {
@@ -3477,6 +3477,12 @@ html.dark .gs-platform-icon {
 .platform-view__body > .account-card,
 .settings-pane > .account-card { background: none; box-shadow: none; border-radius: 0; }
 .platform-view__body > .account-card + .account-card { margin-top: 0; padding-top: 0; }
+/* Phones: the flat card's side padding left content 20px inside the tabs and back link, squeezing every stat and
+   table to 318px on a 390px screen (admin sweep, 2026-11-09). */
+@media (max-width: 640px) {
+  .platform-view__body > .account-card,
+  .settings-pane > .account-card { padding-inline: 0; }
+}
 
 /* ── Platform admin kit (src/components/account/admin/AdminKit.tsx) ───────
    One header, one stat grid, one section style for every admin screen. */
@@ -3513,8 +3519,13 @@ html.dark .gs-platform-icon {
   .admin-stats-grid .empac-stat-card { padding: var(--spacing-12) var(--spacing-14); }
   .admin-stats-grid .empac-stat-card__icon { display: none; }
   .admin-stats-grid .empac-stat-card__header { margin-bottom: var(--spacing-4); }
-  .admin-stats-grid .empac-stat-card__value { font-size: var(--font-size-28); }
+  .admin-stats-grid .empac-stat-card__value { font-size: var(--font-size-24); }
 }
+/* The change line ("-100% vs the 30 days before") is reading text, so 14px; CDS colours it inline with the 500 shade,
+   which is 3.1:1 on dark, so dark takes the lighter shade. */
+.admin-stats-grid .empac-stat-card__change { font-size: var(--font-size-14); flex-wrap: wrap; }
+.dark .admin-stats-grid .empac-stat-card__change[style*="--error-500"] { color: var(--error-300, #ff8a80) !important; }
+.dark .admin-stats-grid .empac-stat-card__change[style*="--success-500"] { color: var(--success-300, #6fdc9c) !important; }
 
 .admin-section { display: flex; flex-direction: column; gap: var(--spacing-12); min-width: 0; }
 .admin-section__head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--spacing-8) var(--spacing-12); }
@@ -3546,6 +3557,17 @@ html.dark .gs-platform-icon {
   .admin-table .empac-table__cell:first-child { position: sticky; left: 0; z-index: 1; max-width: 45vw; background-color: var(--background-elevated); box-shadow: 1px 0 0 var(--border-default); }
   .admin-table .empac-table__head:first-child { background-color: var(--background-secondary); }
   .admin-table .empac-table--striped .empac-table__row:nth-child(even) .empac-table__cell:first-child { background-color: var(--background-secondary); }
+  /* The pinned cell is at most 45vw, so what's inside wraps to fit it instead of spilling over the next columns (a
+     tool name and its badge on AI usage ran across the numbers, 2026-11-09). Badges and short values stay whole. */
+  .admin-table .empac-table__cell:first-child { overflow-wrap: break-word; }
+  .admin-table .empac-table__cell:first-child :where(span, a, strong, b) { white-space: normal; }
+  .admin-table .empac-table__cell:first-child :where(.empac-badge, .empac-chip, .admin-nowrap) { white-space: nowrap; overflow-wrap: normal; }
+  .admin-table .ai-admin__tool { flex-wrap: wrap; white-space: normal; }
+  /* Columns take their own width (up to 26rem, then wrap) and the table scrolls sideways, instead of squeezing every
+     column to fit 358px: "GS- / 1003", "Oct / 16" and one word per line (admin sweep, 2026-11-09). */
+  .admin-table .empac-table { width: max-content; }
+  .admin-table .empac-table__head,
+  .admin-table .empac-table__cell { max-width: 26rem; }
 }
 /* CDS Table brings its own scroll box; the admin wrapper is the (focusable)
    scroller instead, so drop the inner one and its second border. */
@@ -4188,7 +4210,7 @@ textarea.admin-chaos-json { font-family: var(--font-family-mono, ui-monospace, S
 @media (max-width: 560px) { .shop-admin__row { flex-direction: column; align-items: stretch; } }
 @media (max-width: 480px) { .shop-refund__line { grid-template-columns: minmax(0, 1fr) 7rem; } .shop-refund__amt { grid-column: 1 / -1; text-align: left; } }
 /* Switches: the Circuit launch email panel under the Circuit billing switch. */
-.switches__notice { margin-top: var(--spacing-8); padding: var(--spacing-12); border: 1px solid var(--border-default); border-radius: var(--radius-8, 8px); display: flex; flex-direction: column; gap: var(--spacing-8); align-items: flex-start; }
+.switches__notice { margin-top: var(--spacing-12); padding-top: var(--spacing-12); border-top: 1px solid var(--border-default); display: flex; flex-direction: column; gap: var(--spacing-8); align-items: flex-start; }
 .switches__notice-title { margin: 0; font-weight: 700; font-size: var(--font-size-14); }
 /* Mods ▸ Add mod manually: inputs and Add wrap onto their own lines on phones (the Discord row was 600px wide at 320). */
 .mods-add__row { display: flex; flex-wrap: wrap; gap: var(--spacing-8); align-items: flex-start; }
@@ -4284,7 +4306,7 @@ textarea.admin-chaos-json { font-family: var(--font-family-mono, ui-monospace, S
 .shop-queue__dots i.n { background: var(--primary-500, #2f66ec); box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary-500, #2f66ec) 25%, transparent); }
 .shop-queue__where { display: block; font-size: var(--font-size-14); }
 .shop-queue__needs { display: flex; flex-direction: column; align-items: flex-start; gap: var(--spacing-4); }
-.shop-need { display: inline-block; padding: 3px 10px; border-radius: 999px; font-size: var(--font-size-14); font-weight: 700; line-height: 1.35; }
+.shop-need { display: inline-block; padding: 3px 10px; border-radius: var(--radius-8, 8px); font-size: var(--font-size-14); font-weight: 700; line-height: 1.35; }
 .shop-need--red { background: color-mix(in srgb, #e5533c 16%, transparent); color: var(--error-700, #a3271a); }
 .shop-need--amber { background: color-mix(in srgb, #e0861c 18%, transparent); color: #7a4800; }
 .shop-need--blue { background: color-mix(in srgb, #2f66ec 14%, transparent); color: #1f47b8; }
@@ -4331,3 +4353,28 @@ textarea.admin-chaos-json { font-family: var(--font-family-mono, ui-monospace, S
 /* My Stuff ▸ Shop orders: the order's first picture beside its number. */
 .stuff-order { display: inline-flex; align-items: center; gap: var(--spacing-8); }
 .stuff-order img { width: 4rem; height: 4rem; border-radius: var(--radius-8, 8px); background: #fff; object-fit: cover; border: 1px solid var(--border-default); }
+
+/* Jump links over a long admin screen (Tokens ▸ Levers); sections land clear of the sticky nav. */
+.admin-jump { margin-block: var(--spacing-4) var(--spacing-8); }
+.admin-jump .empac-subnav, .admin-jump .empac-subnav__wrapper { width: auto; background: transparent; padding: 0; overflow: visible; }
+.admin-jump .empac-subnav__container { display: flex; flex-wrap: wrap; gap: var(--spacing-8); padding: 0; margin: 0; background: none; }
+.admin-jump .empac-subnav__item { min-height: 4rem; display: inline-flex; align-items: center; padding: var(--spacing-6, 6px) var(--spacing-14, 14px); border: 1px solid var(--border-default); border-radius: var(--radius-full, 999px); background: var(--background-elevated); color: var(--text-primary); font-size: var(--font-size-14); font-weight: 600; text-decoration: none; }
+.admin-jump .empac-subnav__item:hover { border-color: var(--brand-ink, #2f5bea); }
+.admin-jump .empac-subnav__indicator { display: none; }
+.admin-screen .admin-section[id] { scroll-margin-top: calc(var(--gs-nav-offset, 64px) + 1.6rem); }
+
+/* ── Admin phone sweep, small fixes (2026-11-09) ── */
+/* Row links were 18 to 21px tall: inline padding grows the tap area without moving the lines. */
+.admin-screen a:not(.empac-button) { padding-block: 3px; }
+/* Badges with several words ("Suspension ended Sep 30") are reading text, so 14px. */
+.admin-screen .empac-badge--small { font-size: var(--font-size-14); }
+/* Dark: a blue badge on a table row was the row's own color, so only its text showed. */
+.dark .admin-screen .empac-badge--info { box-shadow: inset 0 0 0 1px color-mix(in srgb, currentColor 40%, transparent); }
+/* A section title wraps above its buttons on a phone instead of squeezing into three lines beside them. */
+.admin-section__head .admin-section__title { flex: 1 1 16rem; min-width: 0; }
+/* A table inside a framed panel keeps one frame (no box in a box). */
+.admin-panel .admin-table { border: 0; border-radius: 0; }
+/* Light: field edges were #e4e4e4 on white (1.3:1); admin forms get an edge you can see. */
+html:not(.dark) .admin-screen :is(.empac-input, .empac-textarea, .empac-select__trigger) { border-color: color-mix(in srgb, var(--text-primary, #161a2e) 32%, transparent); }
+/* More columns to the right: the table's edge fades (AdminTable sets data-more). */
+.admin-table[data-more] { -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 3.2rem), transparent); mask-image: linear-gradient(to right, #000 calc(100% - 3.2rem), transparent); }

@@ -13,8 +13,10 @@ import { useToast } from "@/components/toast/ToastProvider";
 import { EVENTS, track } from "@/lib/analytics/events";
 import { JoinSheet, useThen } from "@/components/games/JoinSheet";
 
-export function SpaceJoin({ space, name, joined: initial, signedIn, size = "medium" }: {
+export function SpaceJoin({ space, name, joined: initial, signedIn, size = "medium", pitch }: {
   space: string; name: string; joined: boolean; signedIn: boolean; size?: "small" | "medium";
+  /** What joining keeps in this game, on the sign-up sheet (the spaces' own line when unset). */
+  pitch?: string;
 }) {
   const router = useRouter();
   const toast = useToast();
@@ -55,7 +57,7 @@ export function SpaceJoin({ space, name, joined: initial, signedIn, size = "medi
         <JoinSheet
           open={ask} onClose={() => setAsk(false)} space={space} action="join"
           heading={`Join the ${name} space`}
-          body="Free. Your times, builds and streaks stay here, and you hear when a cup or a night starts."
+          body={pitch ?? "Free. Your times, builds and streaks stay here, and you hear when a cup or a night starts."}
         />
       )}
     </>

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { Container } from "@empac/cascadeds";
 import { BrowseHero } from "@/components/events/BrowseHero";
+import { DUEL_HERO } from "./hero";
 import { DailiesBar, DailiesProvider } from "@/components/originals/Dailies";
 import { DailyDuel } from "@/components/originals/duel/DailyDuel";
 import { DuelPictureCredit } from "@/components/originals/duel/DuelPictureCredit";
@@ -57,15 +58,7 @@ export default function DailyDuelPage() {
         breadcrumb={{ label: "The Daily Duel", path: "/daily-duel" }}
         faq={FAQ}
       />
-      <BrowseHero
-        eyebrow="A GameShuffle Original"
-        title="The Daily Duel"
-        sub="Pokémon cards, played like a battle from the games, against a new trainer every day."
-        subShort="Pokémon cards, played like a battle from the games."
-        accent="duel"
-        field="duel"
-        compact
-      />
+      <BrowseHero {...DUEL_HERO} />
       <Container className="tool-page daily-page duel-page">
         <DailiesProvider current="duel">
           <DailiesBar current="duel" />

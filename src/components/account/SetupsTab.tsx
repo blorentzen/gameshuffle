@@ -30,7 +30,7 @@ import { AdminRowMenu, AdminScreen, AdminSection } from "@/components/account/ad
 import { StuffRow } from "@/components/account/stuff/StuffList";
 
 /** Types the randomizer can load from ?config= (kart builds have no page of their own). */
-const OPENABLE = new Set(["game-night-setup", "item-set", "party-setup", "smash-setup", "splatoon-setup", "kirby-setup", "stadium-setup"]);
+const OPENABLE = new Set(["game-night-setup", "item-set", "party-setup", "smash-setup", "splatoon-setup", "kirby-setup", "stadium-setup", "sonic-setup"]);
 
 interface SavedConfig {
   id: string;
@@ -149,7 +149,7 @@ export function SetupsTab() {
   // site makes them yet (only dev seed data), so they could be seen but not
   // opened or edited. They come back with Save buttons in the randomizer.
   const types: ConfigType[] = [
-    "game-night-setup", "party-setup", "smash-setup", "splatoon-setup", "kirby-setup", "stadium-setup",
+    "game-night-setup", "party-setup", "smash-setup", "splatoon-setup", "kirby-setup", "sonic-setup", "stadium-setup",
     "kart-build", "item-set",
   ];
   const card = (config: SavedConfig) => (

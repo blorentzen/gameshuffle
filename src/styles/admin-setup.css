@@ -1,0 +1,108 @@
+/* Platform admin ▸ Overview ▸ Setup (src/components/account/PlatformSetupTab.tsx). Built on the admin kit; only the
+   meters, small counts and "Needs a look" rows are its own. Sizes use the CDS tokens (the root is 10px). */
+
+/* Each section's icon tile in its own tone from the shared tile set. */
+.admin-setup__part--twitch .admin-section__icon { background: var(--tile-violet); }
+.admin-setup__part--discord .admin-section__icon { background: var(--tile-blue); }
+.admin-setup__part--accounts .admin-section__icon { background: var(--tile-teal); }
+.admin-setup__part--games .admin-section__icon { background: var(--tile-magenta); }
+.admin-setup__part > .admin-section { gap: var(--spacing-16); }
+
+/* Meters: one framed block of rows (data keeps its frame), each a label, its count and share, and a bar. */
+.admin-setup__meters {
+  list-style: none;
+  margin: 0;
+  padding: var(--spacing-4) var(--spacing-16);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-12, 12px);
+  background: var(--background-primary);
+}
+.admin-setup__meter {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: end;
+  gap: var(--spacing-8) var(--spacing-12);
+  padding: var(--spacing-12) 0;
+}
+.admin-setup__meter + .admin-setup__meter { border-top: 1px solid var(--border-default); }
+.admin-setup__meter-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.admin-setup__meter-label { font-size: var(--font-size-16); line-height: 1.35; color: var(--text-primary); }
+.admin-setup__meter-hint { font-size: var(--font-size-14); line-height: 1.35; color: var(--text-secondary); }
+.admin-setup__meter-nums { display: inline-flex; align-items: baseline; gap: var(--spacing-8); white-space: nowrap; font-variant-numeric: tabular-nums; }
+.admin-setup__meter-count { font-size: var(--font-size-18); font-weight: var(--font-weight-semibold); color: var(--text-primary); }
+.admin-setup__meter-share { min-width: 4ch; text-align: right; font-size: var(--font-size-14); color: var(--text-secondary); }
+.admin-setup__bar { grid-column: 1 / -1; min-width: 0; }
+
+/* Small counts: flat label and number pairs, two across when there's room. */
+.admin-setup__counts {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0 var(--spacing-24);
+  margin: 0;
+}
+@media (min-width: 700px) {
+  .admin-setup__counts { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+.admin-setup__count {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--spacing-12);
+  padding: var(--spacing-10) 0;
+  border-bottom: 1px solid var(--border-default);
+}
+.admin-setup__count dt { min-width: 0; font-size: var(--font-size-14); line-height: 1.35; color: var(--text-secondary); }
+.admin-setup__count dd { margin: 0; font-size: var(--font-size-16); font-weight: var(--font-weight-semibold); font-variant-numeric: tabular-nums; color: var(--text-primary); }
+
+/* Needs a look: flat under its own heading; the rows are a divided CDS List. */
+.admin-setup__look { display: flex; flex-direction: column; gap: var(--spacing-8); min-width: 0; padding-top: var(--spacing-8); }
+.admin-setup__look-title {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-8);
+  margin: 0;
+  font-size: var(--font-size-16);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
+}
+.admin-setup__look-title .empac-badge { font-variant-numeric: tabular-nums; }
+.admin-setup__ok { display: flex; align-items: center; gap: var(--spacing-8); margin: 0; font-size: var(--font-size-14); color: var(--text-secondary); }
+.admin-setup__ok svg { flex: 0 0 auto; color: var(--success-600); }
+.dark .admin-setup__ok svg { color: var(--success-300, #6fdc9c); }
+
+.admin-setup__problems.empac-list { margin: 0; padding: 0; }
+.admin-setup__problem.empac-list__item {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: start;
+  gap: var(--spacing-12);
+  padding: var(--spacing-12) 0;
+}
+.admin-setup__problem .empac-list__item-content { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.admin-setup__problem .empac-list__item-suffix { margin-left: 0; color: inherit; font-size: var(--font-size-14); white-space: nowrap; padding-top: 2px; }
+.admin-setup__problem-name { font-size: var(--font-size-16); font-weight: var(--font-weight-semibold); color: var(--text-primary); overflow-wrap: anywhere; }
+.admin-setup__problem-detail { font-size: var(--font-size-14); color: var(--text-secondary); overflow-wrap: anywhere; }
+.admin-setup__reason { position: relative; display: block; padding-left: var(--spacing-14); font-size: var(--font-size-14); line-height: 1.4; color: var(--text-primary); }
+.admin-setup__reason::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0.5em;
+  width: 6px;
+  height: 6px;
+  border-radius: 2px;
+  background: var(--warning-500);
+}
+/* A tap target of at least 24px for the Open link. */
+.admin-setup__problem .arrow-link { display: inline-flex; align-items: center; min-height: 24px; }
+
+/* Games on Twitch (PlatformTwitchNow): a line about the readings and the filter, then the table. */
+.admin-twitch__bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-12) var(--spacing-24);
+}
+.admin-twitch__meta { flex: 1 1 28rem; min-width: 0; margin: 0; font-size: var(--font-size-14); line-height: 1.45; color: var(--text-secondary); }
+.admin-twitch__ours { display: inline-flex; align-items: center; gap: var(--spacing-8); flex-wrap: wrap; }

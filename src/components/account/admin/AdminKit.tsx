@@ -18,7 +18,7 @@
  *   AdminField   a label tied to its control, with helper or error text below
  */
 
-import { useId, type ReactNode } from "react";
+import { useEffect, useId, useRef, type ReactNode } from "react";
 import { Dropdown, IconButton, type DropdownMenuItem } from "@empac/cascadeds";
 import { IconAlertTriangle, IconCheck, IconDots, IconLoader2 } from "@tabler/icons-react";
 import type { AutosaveStatus } from "@/lib/hooks/useAutosave";
@@ -46,9 +46,9 @@ export function AdminStats({ children, columns = 4, label }: { children: ReactNo
   );
 }
 
-export function AdminSection({ title, intro, actions, icon, iconTone, children }: { title: string; intro?: ReactNode; actions?: ReactNode; icon?: ReactNode; iconTone?: "accent"; children: ReactNode }) {
+export function AdminSection({ title, intro, actions, icon, iconTone, id, children }: { title: string; intro?: ReactNode; actions?: ReactNode; icon?: ReactNode; iconTone?: "accent"; /** For "jump to" links. */ id?: string; children: ReactNode }) {
   return (
-    <section className="admin-section">
+    <section className="admin-section" id={id}>
       <div className="admin-section__head">
         {icon && <span className={`admin-section__icon${iconTone ? ` admin-section__icon--${iconTone}` : ""}`} aria-hidden>{icon}</span>}
         <h2 className="admin-section__title">{title}</h2>
@@ -71,7 +71,21 @@ export function AdminPanel({ title, children, className }: { title?: string; chi
 }
 
 export function AdminTable({ label, children }: { label: string; children: ReactNode }) {
-  return <div className="admin-table" role="region" aria-label={label} tabIndex={0}>{children}</div>;
+  // A table wider than the screen fades at the right edge while there's more to scroll to (Growth's Download column
+  // sat off-screen with no hint, sweep 2026-11-09).
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const mark = () => { el.toggleAttribute("data-more", el.scrollLeft + el.clientWidth < el.scrollWidth - 4); };
+    mark();
+    el.addEventListener("scroll", mark, { passive: true });
+    const watch = new ResizeObserver(mark);
+    watch.observe(el);
+    if (el.firstElementChild) watch.observe(el.firstElementChild);
+    return () => { el.removeEventListener("scroll", mark); watch.disconnect(); };
+  }, []);
+  return <div ref={ref} className="admin-table" role="region" aria-label={label} tabIndex={0}>{children}</div>;
 }
 
 export function AdminRowMenu({ label, items }: { label: string; items: DropdownMenuItem[] }) {

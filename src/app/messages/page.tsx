@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import { MESSAGING_ON } from "@/lib/social/messagingOn";
 
 /**
  * Messaging moved into the Comms Center (/comms?tab=messages). This route is
@@ -11,5 +12,6 @@ export default async function MessagesRedirect({
   searchParams: Promise<{ c?: string }>;
 }) {
   const { c } = await searchParams;
+  if (!MESSAGING_ON) redirect("/comms");
   redirect(c ? `/comms?tab=messages&c=${c}` : "/comms?tab=messages");
 }

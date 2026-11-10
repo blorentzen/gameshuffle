@@ -8,7 +8,7 @@
  * /api/shop/checkout, which checks stock, holds it and opens Stripe Checkout.
  */
 
-import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import { Button, Drawer, IconButton } from "@empac/cascadeds";
 import { IconMinus, IconPlus, IconShoppingCart } from "@tabler/icons-react";
 import { useToast } from "@/components/toast/ToastProvider";
@@ -82,20 +82,40 @@ function readStored(): CartLine[] {
 }
 
 export function ShopCartProvider({ products, children }: { products: ShopProduct[]; children: ReactNode }) {
-  const bySku = useMemo(() => new Map(products.map((p) => [p.sku, p])), [products]);
+  /** Products the cart looked up for its own lines (merch from other pages); the page only sends what it shows. */
+  const [looked, setLooked] = useState<ShopProduct[]>([]);
+  const bySku = useMemo(() => new Map([...looked, ...products].map((p) => [p.sku, p])), [products, looked]);
   const [lines, setLines] = useState<CartLine[]>([]);
   const [loaded, setLoaded] = useState(false);
   const [isOpen, setOpen] = useState(false);
 
-  const clamp = useCallback((list: CartLine[]) => list
-    .map((l) => ({ ...l, quantity: Math.min(l.quantity, lineLimit(bySku.get(l.sku))) }))
-    .filter((l) => l.quantity > 0), [bySku]);
-
-  // Load after mount so the server render and the first browser render match.
+  // Load after mount so the server render and the first browser render match. Lines this page didn't send are looked
+  // up first; if the lookup fails they stay as they are (never dropped for a network blip), and checkout checks them.
   useEffect(() => {
     rememberUtm();
-    void Promise.resolve().then(() => { setLines(clamp(readStored())); setLoaded(true); });
-  }, [clamp]);
+    let gone = false;
+    void (async () => {
+      const stored = readStored();
+      const known = new Map(products.map((p) => [p.sku, p]));
+      const missing = [...new Set(stored.map((l) => l.sku).filter((s) => !known.has(s)))].slice(0, 60);
+      let found: ShopProduct[] | null = [];
+      if (missing.length) {
+        found = await fetch(`/api/shop/products?skus=${encodeURIComponent(missing.join(","))}`)
+          .then((r) => (r.ok ? (r.json() as Promise<{ products?: ShopProduct[] }>) : null))
+          .then((d) => d?.products ?? null)
+          .catch(() => null);
+      }
+      if (gone) return;
+      for (const p of found ?? []) known.set(p.sku, p);
+      const unsure = found === null ? new Set(missing) : new Set<string>();
+      setLooked(found ?? []);
+      setLines(stored
+        .map((l) => (unsure.has(l.sku) ? l : { ...l, quantity: Math.min(l.quantity, lineLimit(known.get(l.sku))) }))
+        .filter((l) => l.quantity > 0));
+      setLoaded(true);
+    })();
+    return () => { gone = true; };
+  }, [products]);
   useEffect(() => {
     if (!loaded) return;
     try { window.localStorage.setItem(STORAGE_KEY, JSON.stringify(lines)); } catch { /* storage off: the cart still works for this visit */ }

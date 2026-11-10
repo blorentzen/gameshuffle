@@ -11,6 +11,7 @@ import { MARVEL_RIVALS } from "@/data/heroes/marvel-rivals";
 import { heroArt } from "@/lib/heroes/art";
 import type { HeroGame } from "@/lib/heroes/types";
 import { OVERWATCH_FACTS, RIVALS_FACTS } from "@/data/originals/daily-facts-heroes";
+import { SONIC_FACTS, SONIC_FIRST_SAY, SONIC_SPECIES_GROUPS } from "@/data/originals/daily-facts-sonic";
 import { ALLSTARS_NODS, ALLSTARS_ROSTER, DEBUT_GAME_SAY, DEBUT_PLATFORM, FIRST_KART_OVERRIDE, FIRST_SMASH_OVERRIDE, KART_FACTS_KEY, PLATFORM_GENERATION, PLATFORM_PHRASE, SERIES_GROUP } from "@/data/originals/daily-allstars";
 import { gsDay } from "@/lib/time/gsClock";
 import { formatTime } from "@/lib/originals/dailies";
@@ -21,7 +22,8 @@ import { formatTime } from "@/lib/originals/dailies";
  * day (a new puzzle at midnight Pacific, src/lib/time/gsClock.ts).
  *
  * The game rotates by weekday (ROTATIONS, in dated eras): Mario Kart 8
- * Deluxe, Mario Kart World, Mario Party and Smash. The Overwatch and Marvel
+ * Deluxe, Mario Kart World, Mario Party and Smash, then All-Stars every day
+ * from Oct 15, 2026, with Sonic on Saturdays from Nov 21. The Overwatch and Marvel
  * Rivals puzzles are built but unscheduled until an era adds them (preview
  * with /daily?puzzle=overwatch-hero in dev). Each guess fills a row of real facts (checked against
  * the wikis, src/data/originals/daily-facts.ts): each column says whether it
@@ -225,6 +227,34 @@ const MR_DEBUT: TraitDef = { label: "Comic debut", short: "Comic debut", kind: "
 const SEASONS = ["Launch", "Season 1", "Season 1.5", "Season 2", "Season 2.5", "Season 3", "Season 3.5", "Season 4", "Season 4.5", "Season 5", "Season 5.5", "Season 6", "Season 6.5", "Season 7", "Season 7.5", "Season 8", "Season 8.5", "Season 9", "Season 9.5", "Season 10"];
 const MR_JOINED: TraitDef = { label: "Joined", short: "Joined", kind: "ordered", order: SEASONS, dirWords: ["later", "earlier"] };
 
+// Sonic (daily-facts-sonic.ts): names only, never art. Species, team, debut year and
+// CrossWorlds are the columns; the first game is the late hint and break mode's.
+const SONIC_SPECIES: TraitDef = { label: "Species", short: "Species", kind: "match", near: sameGroup(SONIC_SPECIES_GROUPS) };
+const SONIC_TEAM: TraitDef = {
+  label: "Team", short: "Team", kind: "match",
+  starter: (v) => (v === "No team" ? "Today's character isn't on a team." : v === "Eggman's side" ? "Today's character is on Eggman's side." : `Today's character is on ${v === "Deadly Six" || v === "Babylon Rogues" ? "the " : ""}${v}.`),
+};
+const CROSSWORLDS: TraitDef = {
+  label: "In CrossWorlds", short: "CrossWorlds", kind: "match",
+  starter: (v) => (v === "Yes" ? "Today's character is a racer in Sonic Racing: CrossWorlds." : "Today's character isn't a racer in Sonic Racing: CrossWorlds."),
+  starterTag: (v) => (v === "Yes" ? "In CrossWorlds" : "Not in CrossWorlds"),
+};
+const FIRST_GAME: TraitDef = { label: "First game", short: "First game", kind: "match" };
+/** When the Sonic puzzle's hints show: the clue after two misses, the first game after four. */
+const SONIC_CLUE_AFTER = 2;
+const SONIC_GAME_AFTER = 4;
+function sonicGameHint(game: string): string {
+  return `Debuted in ${SONIC_FIRST_SAY[game] ?? game}.`;
+}
+
+/**
+ * How many letters of the answer's name the last chance shows free: the first
+ * letter (and a square per letter) when the puzzle has no art to show.
+ */
+export function lastChanceLetters(p: DailyPuzzle): number {
+  return p.reveal === "letters" ? 1 : 0;
+}
+
 /** This puzzle's own clue (about this game), else the older clue shared across puzzles. */
 function clueFor(puzzle: string, name: string, shared: string | null | undefined): string | null {
   return DAILY_CLUES[puzzle]?.[name] ?? shared ?? null;
@@ -331,6 +361,28 @@ export const PUZZLES: Record<string, DailyPuzzle> = {
     arrowNote: "↑ later · ↓ earlier",
     reveal: "blur",
   },
+  // Sonic days (from Sat Nov 21, 2026): the All-Stars shape (five guesses and a last
+  // chance) with no art at all, so the last chance shows the name's first letter and length.
+  "sonic-character": {
+    id: "sonic-character",
+    game: "Sonic",
+    traits: [SONIC_SPECIES, SONIC_TEAM, DEBUT, CROSSWORLDS, FIRST_GAME],
+    characters: Object.entries(SONIC_FACTS).map(([name, f]) => ({
+      name, img: "", clue: f.clue,
+      ladder: [{ after: SONIC_CLUE_AFTER, text: f.clue }, { after: SONIC_GAME_AFTER, text: sonicGameHint(f.firstGame) }],
+      traits: [f.species, f.team, f.debutYear, f.crossWorlds ? "Yes" : "No", f.firstGame],
+    })),
+    // Picked so the first Saturdays open on well-known characters (Amy, Rouge, Shadow).
+    seed: 20261307,
+    starter: [1, 3],
+    // The first game stays for the late hint and break mode; the Daily plays four columns.
+    play: [0, 1, 2, 3],
+    closeNote: "a related species or within 3 years",
+    arrowNote: "↑ later · ↓ earlier",
+    reveal: "letters",
+    guesses: 5,
+    lastChance: true,
+  },
 };
 
 /**
@@ -413,6 +465,14 @@ const ROTATIONS: { from: string; days: string[] }[] = [
     // earlier answer stays exactly as it was.
     from: "2026-10-15",
     days: ["allstars", "allstars", "allstars", "allstars", "allstars", "allstars", "allstars"],
+  },
+  {
+    // Sonic takes Saturday (approved 2026-11-09; the rule: a new game joins a
+    // daily's week before it gets a daily of its own). Only Saturdays change,
+    // so the first changed day is Sat Nov 21: this must be live before then,
+    // or move both dates. All-Stars keeps the other six days.
+    from: "2026-11-16",
+    days: ["allstars", "allstars", "allstars", "allstars", "allstars", "allstars", "sonic-character"],
   },
 ];
 

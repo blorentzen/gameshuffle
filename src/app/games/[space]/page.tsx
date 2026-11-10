@@ -20,10 +20,11 @@ import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/admin";
 import { isStaffRole } from "@/lib/subscription";
 import { gsDay } from "@/lib/time/gsClock";
-import { spaceById, spaceOpen, SPACE_TAB_LABEL, type GameSpace, type SpaceTab } from "@/lib/games/spaces";
-import { spaceCounts, spaceCrews, spaceEvents, spaceHappening, spaceJoined, spacePeople, spaceYou, type SpaceYou } from "@/lib/games/spaceData";
+import { ideasOnly, spaceById, spaceOpen, spaceTabs, SPACE_TAB_LABEL, type GameSpace, type SpaceTab } from "@/lib/games/spaces";
+import { spaceCounts, spaceCrews, spaceEvents, spaceHappening, spaceIdeas, spaceJoined, spacePeople, spaceYou, type SpaceIdeasData, type SpaceYou } from "@/lib/games/spaceData";
+import { SpaceIdeas } from "@/components/games/SpaceIdeas";
 import { recordsThisWeek, climbersThisWeek } from "@/lib/competitive/hub";
-import { trackSummary } from "@/lib/timeTrials/store";
+import { trackSummary, ttGameReady } from "@/lib/timeTrials/store";
 import { ttTrack, trackPath } from "@/lib/timeTrials/tracks";
 import { formatTime } from "@/lib/timeTrials/rules";
 import { describePlayers } from "@/lib/daily/boards";
@@ -71,14 +72,16 @@ import "@/styles/home-room.css";
 import "@/styles/game-space.css";
 
 /** The tabs built so far; a space's others (posts, dailies, road, cards, nights) arrive with their steps. */
-const BUILT: SpaceTab[] = ["now", "you", "rolls", "boards", "events", "lounge", "people", "posts", "dailies", "road", "cards", "nights"];
+const BUILT: SpaceTab[] = ["now", "you", "rolls", "boards", "events", "lounge", "people", "posts", "dailies", "road", "cards", "nights", "ideas"];
 
 export async function generateMetadata({ params }: { params: Promise<{ space: string }> }): Promise<Metadata> {
   const s = spaceById((await params).space);
   if (!s) return {};
   return {
-    title: `${s.name} players, events and boards`,
-    description: `Who's playing ${s.name} on GameShuffle right now, what's coming up, and this week's boards.`,
+    title: ideasOnly(s) ? `${s.name} players and ideas` : `${s.name} players, events and boards`,
+    description: ideasOnly(s)
+      ? `What ${s.name} players want GameShuffle to build next, who's playing and what's coming up.`
+      : `Who's playing ${s.name} on GameShuffle right now, what's coming up, and this week's boards.`,
     robots: { index: false, follow: true },
   };
 }
@@ -127,14 +130,26 @@ export default async function GameSpacePage({ params, searchParams }: { params: 
   if (!open && !isStaffRole(role)) notFound();
   const viewerId = user?.id ?? null;
   // Boards: time trials and the lounge for Mario Kart, this month's GameShuffle points for the rest.
-  // You sits second, right after Now, so it's in view on a phone (journeys picks 2026-11-06, step 6, 1A).
-  const tabs = ["now" as SpaceTab, "you" as SpaceTab, ...s.tabs.filter((t) => t !== "now")]
-    .filter((t) => BUILT.includes(t) && (t !== "lounge" || !!s.lounge?.length) && (t !== "rolls" || !!spaceRoller(s)));
+  // You sits second, right after Now, so it's in view on a phone (journeys picks 2026-11-06, step 6, 1A); spaceTabs
+  // leaves it out where nothing in the game is yours yet, and ideas spaces open on Ideas.
+  const ideasData: SpaceIdeasData | null = s.tabs.includes("ideas") ? await spaceIdeas(s, viewerId).catch(() => null) : null;
+  const tabs = spaceTabs(s)
+    .filter((t) => BUILT.includes(t) && (t !== "lounge" || !!s.lounge?.length) && (t !== "rolls" || !!spaceRoller(s))
+      // Ideas need gs_ideas.game (supabase/ideas-game-m1.sql); until it runs the tab stays out.
+      && (t !== "ideas" || !!ideasData?.ready));
+  // Run a tournament and Host a game night start on this space's game.
+  const createTour = `/tournament/create?game=${encodeURIComponent(s.primary)}`;
 
   const roller = spaceRoller(s);
+  // A time trial board outside Mario Kart (Kirby Air Riders): once its boards are open, Now shows its new records,
+  // Boards gets a Time trials tile and Tools links it; until then its Time trials tool is left out.
+  const boardTt = s.ttBoard && (await ttGameReady(s.ttBoard).catch(() => false)) ? s.ttBoard : null;
+  const ttGame = s.tt ?? boardTt;
+  const tools = s.tools.filter((t) => !s.ttBoard || boardTt || !t.href.startsWith("/time-trials/"));
   // The shop (round two picks 8A, 9A): merch shows while visitors can see the shop; staff see it before.
   const shopShown = (await shopVisibleToVisitors().catch(() => false)) || isStaffRole(role);
-  const merchHere = shopShown && s.id !== "pokemon";
+  // Ideas spaces stay on their question: no merch row yet.
+  const merchHere = shopShown && s.id !== "pokemon" && !ideasOnly(s);
   const [counts, happening, people, crews, events, you, joined, records, climbers, tracks, board, posts, myCard, rolling, rollPosts, season, today] = await Promise.all([
     spaceCounts(s),
     spaceHappening(s, 3).catch(() => [] as Happening[]),
@@ -143,9 +158,9 @@ export default async function GameSpacePage({ params, searchParams }: { params: 
     spaceEvents(s).catch(() => []),
     viewerId ? spaceYou(s, viewerId).catch(() => null) : Promise.resolve(null),
     viewerId ? spaceJoined(s, viewerId).catch(() => false) : Promise.resolve(false),
-    s.tt ? recordsThisWeek(4, [s.tt]) : Promise.resolve([]),
+    ttGame ? recordsThisWeek(4, [ttGame]) : Promise.resolve([]),
     s.lounge?.length ? climbersThisWeek(10, s.lounge) : Promise.resolve(null),
-    s.tt ? trackSummary(s.tt, "shrooms", "any").catch(() => []) : Promise.resolve([]),
+    ttGame ? trackSummary(ttGame, "shrooms", "any").catch(() => []) : Promise.resolve([]),
     s.lounge?.length ? boardRows(s.lounge[0], "everyone", viewerId, 25).catch(() => ({ rows: [], country: null })) : Promise.resolve({ rows: [], country: null }),
     s.tabs.includes("posts") ? listGameFeed({ games: s.games, viewerId, limit: 20 }).catch(() => [] as FeedPost[]) : Promise.resolve([] as FeedPost[]),
     viewerId && s.lounge?.length ? profileMmr(viewerId).catch(() => null) : Promise.resolve(null),
@@ -175,7 +190,7 @@ export default async function GameSpacePage({ params, searchParams }: { params: 
   const topTracks = tracks.filter((t) => t.cc === 150).sort((a, b) => b.players - a.players).slice(0, 12);
   const holders = topTracks.length ? await describePlayers([...new Set(topTracks.map((t) => t.recordPlayer))]).catch(() => new Map()) : new Map();
   const trackRows: RankRow[] = topTracks.flatMap((x) => {
-    const t = ttTrack(s.tt!, x.track);
+    const t = ttTrack(ttGame!, x.track);
     if (!t) return [];
     return [{
       key: `${x.track}-${x.cc}`, name: t.name, href: trackPath(t, x.cc),
@@ -230,10 +245,10 @@ export default async function GameSpacePage({ params, searchParams }: { params: 
       }))} />
     </section>
   );
-  const toolsTile = (
+  const toolsTile = tools.length > 0 && (
     <section className="room-tile room-rail__block" aria-labelledby="sp-tools">
       <div className="room-tile__head"><h2 id="sp-tools">Tools</h2></div>
-      <ul className="space-tools">{s.tools.map((t) => <li key={t.href + t.label}><ArrowLink href={t.href}>{t.label}</ArrowLink></li>)}</ul>
+      <ul className="space-tools">{tools.map((t) => <li key={t.href + t.label}><ArrowLink href={t.href}>{t.label}</ArrowLink></li>)}</ul>
     </section>
   );
 
@@ -265,7 +280,7 @@ export default async function GameSpacePage({ params, searchParams }: { params: 
                   <GhostCard>
                     <p><b>Running something?</b> Tournaments and game nights for {s.short} show here.</p>
                     <div className="space-actions">
-                      <Link href="/tournament/create" className="room-btn room-btn--ghost">Run a tournament</Link>
+                      <Link href={createTour} className="room-btn room-btn--ghost">Run a tournament</Link>
                       <Link href="/game-nights/create" className="room-btn room-btn--ghost">Host a game night</Link>
                     </div>
                   </GhostCard>
@@ -276,7 +291,7 @@ export default async function GameSpacePage({ params, searchParams }: { params: 
             <GhostCards count={3} notice={<>
               <p>Nothing on in {s.short} this month yet. <b>Start something</b> and it shows here for everyone in the space.</p>
               <div className="space-actions">
-                <Link href="/tournament/create" className="room-btn">Run a tournament</Link>
+                <Link href={createTour} className="room-btn">Run a tournament</Link>
                 <Link href="/game-nights/create" className="room-btn room-btn--ghost">Host a game night</Link>
               </div>
             </>} />
@@ -293,7 +308,7 @@ export default async function GameSpacePage({ params, searchParams }: { params: 
           </section>
         )}
       </div>
-      <StickyRail blocks={2 + (crews.length ? 1 : 0) + (railRoll ? 1 : 0)}>
+      <StickyRail blocks={1 + (tools.length ? 1 : 0) + (crews.length ? 1 : 0) + (railRoll ? 1 : 0)}>
         {playingTile}
         {railRoll && <SpaceRolls only="roll" space={s.id} gameName={s.name} rollLabel={s.main.label} initialPosts={[]} currentUserId={viewerId} full={rollFull} />}
         {crewsTile("sp-crews")}
@@ -345,7 +360,20 @@ export default async function GameSpacePage({ params, searchParams }: { params: 
     </div>
   );
 
-  const boardsPanel = !s.tt && !s.lounge?.length ? <SeasonBoard s={s} viewerId={viewerId} /> : (
+  // A time trial board outside Mario Kart (Kirby Air Riders): its most raced courses in their own tile, under the season
+  // board the space already had.
+  const ttTile = boardTt ? (
+    <section className="room-tile" aria-labelledby="sp-tt">
+      <div className="room-tile__head">
+        <h2 id="sp-tt">Time trials</h2>
+        <ArrowLink href={`/time-trials/${s.id}`} className="room-tile__more">Every course&apos;s board</ArrowLink>
+      </div>
+      {trackRows.length ? <RankList numbered={false} rows={trackRows} label="Most raced courses" /> : (
+        <GhostRows count={3} places={false} notice={<p>No Time Attack times here yet. <b>Race a course and add your time</b> with a screenshot of the result, and it&apos;s on the board.</p>} />
+      )}
+    </section>
+  ) : null;
+  const boardsPanel = ttTile && !s.tt && !s.lounge?.length ? <div className="space-stack"><SeasonBoard s={s} viewerId={viewerId} />{ttTile}</div> : !s.tt && !s.lounge?.length ? <SeasonBoard s={s} viewerId={viewerId} /> : (
     <section className="room-tile space-panel" aria-label="Boards">
       <SpaceSubTabs tabs={[
         ...(trackRows.length ? [{ id: "tt", label: "Time trials", content: (
@@ -368,7 +396,7 @@ export default async function GameSpacePage({ params, searchParams }: { params: 
   const eventsPanel = (
     <div className="space-stack">
       <div className="space-actions">
-        <Link href="/tournament/create" className="room-btn">Run a tournament</Link>
+        <Link href={createTour} className="room-btn">Run a tournament</Link>
         <Link href="/game-nights/create" className="room-btn room-btn--ghost">Host a game night</Link>
       </div>
       {events.length ? cards(events, `space-${s.id}-events`) : <p className="room-tile__note">Nothing coming up in the next month yet.</p>}
@@ -442,20 +470,27 @@ export default async function GameSpacePage({ params, searchParams }: { params: 
     rolls: roller ? (
       <SpaceRolls space={s.id} gameName={s.name} rollLabel={s.main.label} initialPosts={rollPosts} currentUserId={viewerId} full={rollFull} />
     ) : null,
+    ideas: ideasData?.ready ? <SpaceIdeas s={s} data={ideasData} /> : null,
   };
   const items: SpaceTabItem[] = tabs.flatMap((t) => (panel[t] ? [{ id: t, label: SPACE_TAB_LABEL[t], content: panel[t] }] : []));
   const signedIn = !!viewerId;
   const accent = { "--space-accent": s.accent } as CSSProperties;
+  // What joining keeps, said for this game (the sign-up sheet's line); the first five keep the sheet's own line.
+  const joinPitch = s.join;
 
   return (
     <main className="space-page" style={accent}>
       {/* A brand-new account back from the sign-up sheet: "What brings you here?" (journeys 4A). */}
       {signedIn && <NewMemberSheet />}
-      <header className="space-cover" aria-hidden="true">
-        {s.hero && (
+      <header className={`space-cover${!s.hero && s.box ? " space-cover--box" : ""}`} aria-hidden="true">
+        {s.hero ? (
           // eslint-disable-next-line @next/next/no-img-element -- the game's key art (ours or our CDN)
           <img className="space-cover__img" src={s.hero} alt="" />
-        )}
+        ) : s.box ? (
+          // No key art (the ideas spaces, the fighting games): the box art, blurred, is the band (mockup 2026-11-09).
+          // eslint-disable-next-line @next/next/no-img-element -- the publisher's cover (box art)
+          <img className="space-cover__img space-cover__img--box" src={s.box} alt="" />
+        ) : null}
       </header>
       <section className="space-id" id="space-id" aria-labelledby="space-name">
         <Container>
@@ -472,7 +507,7 @@ export default async function GameSpacePage({ params, searchParams }: { params: 
               </p>
             </div>
             <div className="space-id__acts">
-              <SpaceJoin space={s.id} name={s.name} joined={joined} signedIn={signedIn} />
+              <SpaceJoin space={s.id} name={s.name} joined={joined} signedIn={signedIn} pitch={joinPitch} />
               <Link href={roller ? "?tab=rolls" : s.main.href} scroll={false} className="room-btn room-btn--ghost space-id__roll">{s.main.label}</Link>
             </div>
           </div>
@@ -485,7 +520,7 @@ export default async function GameSpacePage({ params, searchParams }: { params: 
           <img src={s.box} alt="" className="space-bar__box" />
         )}
         <b className="space-bar__name">{s.name}</b>
-        <SpaceJoin space={s.id} name={s.name} joined={joined} signedIn={signedIn} size="small" />
+        <SpaceJoin space={s.id} name={s.name} joined={joined} signedIn={signedIn} size="small" pitch={joinPitch} />
       </SpaceTitleBar>
       <Container>
         <div className="space-body">

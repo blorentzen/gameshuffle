@@ -12,6 +12,7 @@ import { Button } from "@empac/cascadeds";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { useMessenger } from "@/components/social/MessengerProvider";
 import { useToast } from "@/components/toast/ToastProvider";
+import { MESSAGING_ON } from "@/lib/social/messagingOn";
 
 export function MessageButton({ targetUserId }: { targetUserId: string }) {
   const { user } = useAuth();
@@ -19,7 +20,8 @@ export function MessageButton({ targetUserId }: { targetUserId: string }) {
   const toast = useToast();
   const [busy, setBusy] = useState(false);
 
-  if (!user || user.id === targetUserId) return null;
+  // Messaging is shelved (MESSAGING_ON): no button.
+  if (!MESSAGING_ON || !user || user.id === targetUserId) return null;
 
   async function start() {
     setBusy(true);

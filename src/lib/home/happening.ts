@@ -182,8 +182,9 @@ async function records(db: Db): Promise<Happening[]> {
     const who = await playerName(db, t.player);
     if (!who) continue;
     out.push({
-      id: `r:${key}`, world: "compete", kicker: "New record", title: `${track.name}, ${t.cc}cc`, line: `${who}, ${fmtTime(t.time_ms)}`,
-      href: trackPath(track, t.cc as 150 | 200), art: track.image ? { kind: "img", src: track.image } : gameArt(t.game === "mk8dx" ? "mario-kart-8-deluxe" : "mario-kart-world") ?? { kind: "tone", tone: "teal" }, weight: 2,
+      // Kirby Air Riders has no speed class: its game's name instead.
+      id: `r:${key}`, world: "compete", kicker: "New record", title: `${track.name}, ${t.game === "kar" ? "Kirby Air Riders" : `${t.cc}cc`}`, line: `${who}, ${fmtTime(t.time_ms)}`,
+      href: trackPath(track, t.cc as 150 | 200), art: track.image ? { kind: "img", src: track.image } : gameArt(t.game === "mk8dx" ? "mario-kart-8-deluxe" : t.game === "kar" ? "kirby-air-riders" : "mario-kart-world") ?? { kind: "tone", tone: "teal" }, weight: 2,
     });
   }
   return out;

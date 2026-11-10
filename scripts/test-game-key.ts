@@ -52,7 +52,9 @@ for (const s of GAME_SPACES) {
   eq(spacePath(s), `/games/${s.id}`, `path ${s.id}`);
   ok(s.tools.every((t) => t.href.startsWith("/")), `${s.id} tools are ours`);
   ok(s.games.includes(s.primary), `${s.id} primary is one of its games`);
-  eq(s.tabs[0], "now", `${s.id} opens on Now`);
+  // Spaces with tools open on Now; an ideas space with no tools yet opens on Ideas (spaces first wave, 2026-11-09).
+  eq(s.tabs[0], s.ideas && !s.tools.length ? "ideas" : "now", `${s.id} opens on ${s.ideas && !s.tools.length ? "Ideas" : "Now"}`);
+  ok(!s.ideas || s.tabs.includes("ideas"), `${s.id} has its Ideas tab`);
   eq(new Set(s.tabs).size, s.tabs.length, `${s.id} tabs unique`);
   eq(spaceOpen(s, "2026-11-05"), s.opens !== null && s.opens <= "2026-11-05", `${s.id} open rule`);
 }
@@ -61,7 +63,8 @@ eq(spaceFor("mkworld24p")?.id, "mario-kart-world", "world code to space");
 eq(spaceFor("Pokémon Stadium 2")?.id, "pokemon", "typed Pokémon game to space");
 eq(spaceFor("mario-party")?.id, "mario-party", "live night slug to space");
 eq(spaceFor("Jamboree")?.id, "mario-party", "alias to space");
-eq(spaceFor("Splatoon 3"), null, "no space yet");
+eq(spaceFor("Splatoon 3")?.id, "splatoon-3", "Splatoon has its space (first wave)");
+eq(spaceFor("Golf With Your Friends"), null, "no space yet");
 eq(spaceOpen({ ...GAME_SPACES[0], opens: "2026-11-10" }, "2026-11-09"), false, "before it opens");
 eq(spaceOpen({ ...GAME_SPACES[0], opens: "2026-11-10" }, "2026-11-10"), true, "the day it opens");
 

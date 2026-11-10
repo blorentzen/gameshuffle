@@ -6,7 +6,7 @@
 import { createElement } from "react";
 import {
   IconAbc, IconArrowsShuffle, IconBallFootball, IconBuildingBank, IconBulb, IconChristmasTree, IconDeviceGamepad2, IconDice5, IconFlask, IconGhost2, IconMovie, IconMushroom, IconMusic,
-  IconPhoto, IconPokeball, IconShieldHalf, IconStars, IconSteeringWheel, IconSword, IconToolsKitchen2, IconTriangle, IconWorld, type Icon,
+  IconPhoto, IconPokeball, IconRun, IconShieldHalf, IconStars, IconSteeringWheel, IconSword, IconToolsKitchen2, IconTriangle, IconWorld, type Icon,
 } from "@tabler/icons-react";
 
 export const FIRE_ICONS: Record<string, Icon> = {
@@ -30,6 +30,7 @@ export const FIRE_ICONS: Record<string, Icon> = {
   mushroom: IconMushroom,
   triangle: IconTriangle,
   stars: IconStars,
+  run: IconRun,
   ghost: IconGhost2,
   tree: IconChristmasTree,
 };
