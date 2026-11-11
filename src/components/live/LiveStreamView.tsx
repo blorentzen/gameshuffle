@@ -54,6 +54,7 @@ import { LiveViewerCount } from "./LiveViewerCount";
 import { LivePollCard } from "./LivePollCard";
 import { LiveBingoCard } from "./LiveBingoCard";
 import { LiveSpeedrunCard } from "./LiveSpeedrunCard";
+import { LiveRunCard } from "./LiveRunCard";
 import { LiveBreakCard } from "./LiveBreakCard";
 import { LiveSeriesCard } from "@/components/series/LiveSeriesCard";
 import { LiveTriviaCard } from "./LiveTriviaCard";
@@ -222,13 +223,14 @@ export function LiveStreamView({
           {/* Bingo is community-scoped, so a streamer can run it without a GameShuffle session. */}
           <LiveSeriesCard streamerSlug={streamer.slug} streamerName={streamerName} />
           <LiveSiteHost streamerSlug={streamer.slug}>
+            {/* A speedrun needs no GameShuffle stream: the run on top, its "PB this run" bet under it. */}
+            <LiveRunCard streamerSlug={streamer.slug} betHint="below" />
+            <LiveSpeedrunCard streamerSlug={streamer.slug} hideRun />
             <LiveBreakCard communityId={initialLeaderboard.communityId} />
             <LiveTriviaCard communityId={initialLeaderboard.communityId} />
             <LiveChatBrainCard communityId={initialLeaderboard.communityId} />
             <LiveBingoCard communityId={initialLeaderboard.communityId} />
             <LiveDraftCard communityId={initialLeaderboard.communityId} />
-            {/* A speedrunner's "PB this run" prediction needs no GameShuffle stream either. */}
-            <LiveSpeedrunCard streamerSlug={streamer.slug} />
           </LiveSiteHost>
           {upcoming && (
             <UpcomingLobbyCard streamerName={streamerName} upcoming={upcoming} />
@@ -708,6 +710,8 @@ function LiveStreamShell({ streamer, sessionState, initialLeaderboard, initialTa
 
         <LiveSeriesCard streamerSlug={streamer.slug} streamerName={streamer.displayName ?? streamer.twitchHandle ?? streamer.slug} />
         <LiveSiteHost streamerSlug={streamer.slug}>
+          <LiveRunCard streamerSlug={streamer.slug} betHint="below" />
+          <LiveSpeedrunCard streamerSlug={streamer.slug} hideRun />
           <LiveBreakCard communityId={initialLeaderboard.communityId} />
           <LiveTriviaCard communityId={initialLeaderboard.communityId} />
           <LiveChatBrainCard communityId={initialLeaderboard.communityId} />

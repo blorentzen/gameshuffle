@@ -186,3 +186,14 @@ export function cleanSegments(input: unknown): Segment[] | null {
 export function sameNames(a: readonly Segment[], b: readonly Segment[]): boolean {
   return a.length === b.length && a.every((s, i) => s.name === b[i].name);
 }
+
+const hasSegmentTimes = (segs: readonly Segment[]) => segs.some((s) => s.pbMs != null || s.bestMs != null);
+
+/**
+ * Whether the site's splits replace the relay's (remote mode): a different list, or the same names with times where the
+ * relay has none. The relay's own times otherwise win (it saw the latest PB first), unless the site switched runs
+ * (`force`, My runs): then another run's times never stay, even when the names match (150cc and 200cc share tracks).
+ */
+export function replacesSegments(cur: readonly Segment[], next: readonly Segment[], force = false): boolean {
+  return force || !cur.length || !sameNames(next, cur) || (!hasSegmentTimes(cur) && hasSegmentTimes(next));
+}

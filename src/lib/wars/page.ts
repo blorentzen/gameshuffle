@@ -13,10 +13,10 @@ function slugPart(tag: string): string {
 /** The start of a war's id, as the page's address carries it. */
 export const warShort = (id: string) => id.replace(/-/g, "").slice(0, WAR_SHORT_LENGTH).toLowerCase();
 
-export function warPagePath(war: { id: string; us: { tag: string }; them: { tag: string } }): string {
-  const a = slugPart(war.us.tag);
-  const b = slugPart(war.them.tag);
-  return `/wars/${a && b ? `${a}-vs-${b}-` : ""}${warShort(war.id)}`;
+export function warPagePath(war: { id: string; us: { tag: string }; them: { tag: string }; others?: { tag: string }[] }): string {
+  // Every team's tag (several teams too: kc-vs-nor-vs-pbm), when each has letters to show.
+  const parts = [war.us, war.them, ...(war.others ?? [])].map((t) => slugPart(t.tag));
+  return `/wars/${parts.every(Boolean) ? `${parts.join("-vs-")}-` : ""}${warShort(war.id)}`;
 }
 
 /** The war's short id from a page address segment, or null. */

@@ -1,5 +1,6 @@
 /**
- * Is LiveSplit One talking to the relay? The setup screen asks every few seconds (signed in, the runner's own).
+ * Is a timer talking to the relay, and which one (GameShuffle for LiveSplit says who it is; LiveSplit One doesn't)?
+ * The setup screen asks every few seconds (signed in, the runner's own).
  *   GET → SpeedrunStatus, or { reason } with 503 when the database or the relay's settings aren't there yet.
  */
 
@@ -8,7 +9,7 @@ import { createClient } from "@/lib/supabase/server";
 import { rateLimit } from "@/lib/ratelimit";
 import { speedrunEnvOrNull } from "@/lib/speedrun/env";
 import { relayState } from "@/lib/speedrun/relay";
-import { setupFor, speedrunReady } from "@/lib/speedrun/store";
+import { gameName, setupFor, speedrunReady } from "@/lib/speedrun/store";
 import type { SpeedrunStatus } from "@/lib/speedrun/types";
 
 export const runtime = "nodejs";
@@ -34,6 +35,8 @@ export async function GET() {
     last: st?.last?.kind ?? null,
     lastAgoMs: st?.last && st.at ? Math.max(0, Date.now() - st.at) : null,
     splits: st?.segments.length ?? setup.run.length,
+    timer: st?.connected ? (res.ok && res.timer ? "livesplit" : "lso") : null,
+    fill: { game: gameName(setup.game), category: setup.category ?? "", attempts: setup.attempts, timer: setup.settings.timer },
   };
   return NextResponse.json(status, { headers: { "cache-control": "no-store" } });
 }

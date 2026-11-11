@@ -3,21 +3,26 @@ import Link from "next/link";
 import { Breadcrumb, Container } from "@empac/cascadeds";
 import { AuthAwareCTA } from "@/components/marketing/AuthAwareCTA";
 import { FaqList } from "@/components/marketing/FaqList";
-import { CHAT_GAMES_CHECKED, CHAT_GAMES_FAQ, CHAT_GAMES_GUIDE } from "@/data/chat-games";
+import { CHAT_GAMES_CHECKED, CHAT_GAMES_FAQ, chatGamesGuide } from "@/data/chat-games";
+import { speedrunListed } from "@/lib/speedrun/listing";
 import { SITE_URL } from "@/lib/seo";
 import "@/styles/chat-games.css";
 
 const PATH = "/twitch-chat-games";
-const TITLE = `Twitch Chat Games: ${CHAT_GAMES_GUIDE.length} Games Your Chat Can Play`;
+const titleFor = (n: number) => `Twitch Chat Games: ${n} Games Your Chat Can Play`;
 const DESCRIPTION = "Games your Twitch chat can play while you stream: survey boards, trivia, bingo, polls, drafts and viewer battles, with the command that starts each.";
 
-export const metadata: Metadata = {
-  title: TITLE,
-  description: DESCRIPTION,
-  alternates: { canonical: `${SITE_URL}${PATH}` },
-  openGraph: { title: TITLE, description: DESCRIPTION, url: `${SITE_URL}${PATH}`, siteName: "GameShuffle", type: "article" },
-  twitter: { card: "summary_large_image", title: TITLE, description: DESCRIPTION },
-};
+// The speedrun game joins once the speedrun overlay is listed (launch picks 2026-11-10), so the count follows the switch.
+export async function generateMetadata(): Promise<Metadata> {
+  const TITLE = titleFor(chatGamesGuide(await speedrunListed()).length);
+  return {
+    title: TITLE,
+    description: DESCRIPTION,
+    alternates: { canonical: `${SITE_URL}${PATH}` },
+    openGraph: { title: TITLE, description: DESCRIPTION, url: `${SITE_URL}${PATH}`, siteName: "GameShuffle", type: "article" },
+    twitter: { card: "summary_large_image", title: TITLE, description: DESCRIPTION },
+  };
+}
 
 /**
  * /twitch-chat-games: the chat games guide (search pages round, picks
@@ -25,7 +30,9 @@ export const metadata: Metadata = {
  * command that starts it and a picture of it on stream; ends on GS Pro.
  * Copy in src/data/chat-games.ts.
  */
-export default function TwitchChatGamesPage() {
+export default async function TwitchChatGamesPage() {
+  const CHAT_GAMES_GUIDE = chatGamesGuide(await speedrunListed());
+  const TITLE = titleFor(CHAT_GAMES_GUIDE.length);
   const url = `${SITE_URL}${PATH}`;
   const jsonLd = {
     "@context": "https://schema.org",

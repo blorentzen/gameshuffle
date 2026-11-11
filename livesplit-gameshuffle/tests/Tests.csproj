@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- The add-on's protocol code (shared/) checked on any computer, without LiveSplit. Unit checks:
+       dotnet run project livesplit-gameshuffle/tests
+       A made-up timer through a running relay (see README):
+       dotnet run project livesplit-gameshuffle/tests, then: live wsBase timerToken relayHttp relayId secret -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>disable</Nullable>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <LangVersion>latest</LangVersion>
+    <RootNamespace>GameShuffle.Link.Tests</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="../shared/*.cs" />
+  </ItemGroup>
+</Project>

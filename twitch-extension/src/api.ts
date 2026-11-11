@@ -206,6 +206,8 @@ export async function liveApi(path: string, init?: RequestInit): Promise<Record<
       return { ok: true, game: s.bingo, myCard: me?.bingoCard ?? null, signedIn };
     case "drafts":
       return { ok: true, draft: s.draft, you: s.draft?.mode === "captains" && signedIn ? { onClock: !!me?.captainOnClock, streamer: false } : null };
+    case "live": // /api/live/<slug>/run: the run card
+      return seg[3] === "run" ? { ok: true, run: s.run ?? null } : null;
     default:
       return null;
   }

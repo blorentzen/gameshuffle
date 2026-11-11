@@ -86,13 +86,40 @@ async function extraFor(id: string): Promise<Extra> {
  * has the same number of laps recorded. Null when this time is that time, or nobody's laps are recorded.
  */
 async function splitsFor(t: TtTimeRow, board: TtVehicle, laps: number[] | null): Promise<TtTimeDetail["splits"]> {
-  if (!laps?.length || !(await round3Ready())) return null;
+  return lapsAgainst({ timeId: t.id, game: t.game, track: t.track, cc: t.cc, items: t.items, board, laps });
+}
+
+type BoardQuery = { game: TtGame; track: string; cc: TtClass; items: TtItems; board: TtVehicle };
+
+/** A board's times (the open board counts every vehicle; Inside drift counts the Yoshi Bike too). */
+function boardTimes(q: BoardQuery) {
   const db = createServiceClient();
-  const vehicles = board === "any" ? null : board === "inside_drift" ? ["inside_drift", "yoshi_bike"] : [board];
-  const base = () => {
-    const q = db.from("tt_times").select("id, player, time_ms, laps").eq("game", t.game).eq("track", t.track).eq("cc", t.cc).eq("items", t.items).eq("status", "ok");
-    return vehicles ? q.in("vehicle", vehicles) : q;
-  };
+  const vehicles = q.board === "any" ? null : q.board === "inside_drift" ? ["inside_drift", "yoshi_bike"] : [q.board];
+  const base = db.from("tt_times").select("id, player, time_ms, laps").eq("game", q.game).eq("track", q.track).eq("cc", q.cc).eq("items", q.items).eq("status", "ok");
+  return vehicles ? base.in("vehicle", vehicles) : base;
+}
+
+/**
+ * The record's laps on a board, when it has them (Discord's /tt track, doc asks pick 4, 2026-11-10).
+ */
+export async function recordLaps(q: BoardQuery): Promise<{ name: string; timeMs: number; laps: number[] } | null> {
+  if (!(await round3Ready())) return null;
+  const { data } = await boardTimes(q).order("time_ms").order("created_at").limit(1).maybeSingle();
+  const r = data as { player: string; time_ms: number; laps: number[] | null } | null;
+  if (!r?.laps?.length) return null;
+  const who = (await describePlayers([r.player])).get(r.player);
+  return { name: who?.name ?? "A player", timeMs: r.time_ms, laps: r.laps };
+}
+
+/**
+ * Laps to put beside a time's (the site's time window, and a new best in Discord): the board's record when it has
+ * laps, else the fastest time on the board with the same number of laps. Null for that time itself, or no laps.
+ */
+export async function lapsAgainst(q: BoardQuery & { timeId: string | null; laps: number[] | null }): Promise<TtTimeDetail["splits"]> {
+  const laps = q.laps;
+  if (!laps?.length || !(await round3Ready())) return null;
+  const t = { id: q.timeId };
+  const base = () => boardTimes(q);
   const [{ data: rec }, { data: lapped }] = await Promise.all([
     base().order("time_ms").order("created_at").limit(1).maybeSingle(),
     base().not("laps", "is", null).order("time_ms").order("created_at").limit(20),

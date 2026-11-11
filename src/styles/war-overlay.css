@@ -44,7 +44,7 @@ html.war-obs-route, html.war-obs-route body { background: transparent !important
 .wo__pip { height: calc(var(--u) * 12); border-radius: 999px; background: var(--wo-track); }
 .wo__pip.is-win { background: var(--wo-win); } .wo__pip.is-loss { background: var(--wo-loss); } .wo__pip.is-tie { background: #6c7a8a; }
 .wo__pip.is-new { animation: wo-flash 1.2s ease-out; }
-.wo__places { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: calc(var(--u) * 5); }
+.wo__places { display: grid; grid-template-columns: repeat(var(--wo-cols, 12), minmax(0, 1fr)); gap: calc(var(--u) * 5); }
 .wo__places i { font: 700 calc(var(--u) * 19)/1 "Gabarito", sans-serif; font-style: normal; text-align: center; padding: calc(var(--u) * 6) 0; border-radius: calc(var(--u) * 6); background: var(--wo-track); color: var(--wo-soft); }
 .wo__places i.is-lit { background: var(--wo-a); color: var(--wo-a-ink); }
 .wo__race, .wo__line { font: 600 calc(var(--u) * 26)/1.25 "Outfit", sans-serif; color: var(--wo-mute); }

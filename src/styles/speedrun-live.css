@@ -33,3 +33,57 @@ html.dark .lsrp-d.is-behind { color: #ffb3bd; }
 .lsrp-mini { display: grid; gap: var(--spacing-6, .6rem); justify-items: start; padding-top: var(--spacing-16); border-top: 1px solid var(--border-subtle); }
 .lsrp-mini b { font-size: var(--font-size-16); line-height: 1.35; }
 .lsrp-mini p { margin: 0; font-size: var(--font-size-14); color: var(--text-secondary); line-height: 1.45; }
+
+/* ─── The run card (LiveRunCard; speedrun Twitch and Discord picks 2026-11-10, approved mockup): the run as the stream
+   shows it, on the live page and the Twitch extension's card. ─── */
+.live-run { display: block; container-type: inline-size; }
+.lrun.empac-card { width: 100%; }
+.lrun__in { display: grid; gap: var(--spacing-12); padding: var(--spacing-16) var(--spacing-16) var(--spacing-12); }
+.lrun__head, .lrun__body { display: grid; gap: var(--spacing-12); align-content: start; min-width: 0; }
+.lrun__top { display: flex; justify-content: space-between; align-items: baseline; gap: var(--spacing-8); }
+.lrun__eye { font-size: var(--font-size-12); font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--brand-ink, var(--text-link)); }
+.lrun__att { font-size: var(--font-size-14); color: var(--text-secondary); font-variant-numeric: tabular-nums; }
+.lrun__title { margin: calc(var(--spacing-4) * -1) 0 0; font-family: var(--font-display); font-size: var(--font-size-18); font-weight: 700; line-height: 1.25; text-wrap: balance; }
+.lrun__now { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--spacing-4) var(--spacing-12); }
+.lrun__clock { font-family: var(--font-display); font-size: var(--font-size-40, 4rem); font-weight: 800; line-height: 1; font-variant-numeric: tabular-nums; letter-spacing: -.01em; color: var(--text-primary); }
+.lrun__clock.is-ahead { color: #137a4b; }
+.lrun__clock.is-behind { color: #b42335; }
+.lrun__split { display: grid; gap: var(--spacing-2, .2rem); font-size: var(--font-size-16); min-width: 0; }
+.lrun__split b { font-weight: 700; overflow-wrap: anywhere; }
+.lrun__split .lrun-d { justify-content: flex-start; }
+.lrun-d { display: inline-flex; align-items: center; justify-content: flex-end; gap: var(--spacing-2, .2rem); font-size: var(--font-size-14); font-weight: 700; font-variant-numeric: tabular-nums; }
+.lrun-d.is-ahead { color: #137a4b; }
+.lrun-d.is-behind { color: #b42335; }
+.lrun-d.is-gold { color: #8a5a00; }
+.lrun__pace { display: inline-flex; align-items: center; gap: var(--spacing-6, .6rem); justify-self: start; padding: .2rem var(--spacing-10, 1rem); border-radius: 999px; font-size: var(--font-size-12); font-weight: 700; color: #0f6b3d; background: #e3f6ec; }
+.lrun__list { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--border-subtle); }
+.lrun__list li { display: grid; grid-template-columns: 2rem minmax(0, 1fr) auto 8.4rem; gap: var(--spacing-8); align-items: center; padding: var(--spacing-6, .6rem) 0; border-bottom: 1px solid var(--border-subtle); font-size: var(--font-size-14); font-variant-numeric: tabular-nums; }
+.lrun__name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.lrun__grp { margin-left: var(--spacing-8); font-size: var(--font-size-12); font-weight: 600; color: var(--text-secondary); }
+.lrun__time { text-align: right; color: var(--text-secondary); }
+.lrun__list li.is-done .lrun__time { color: var(--text-primary); }
+.lrun__list li.is-cur { margin: 0 calc(var(--spacing-8) * -1); padding: var(--spacing-6, .6rem) var(--spacing-8); border-radius: var(--radius-md, .8rem); border-bottom-color: transparent; background: color-mix(in srgb, var(--brand-ink, #1f4fd6) 10%, transparent); font-weight: 700; }
+.lrun__ic { display: grid; place-items: center; width: 1.8rem; height: 1.8rem; color: var(--text-secondary); }
+.lrun__list li.is-done .lrun__ic { color: #137a4b; }
+.lrun__list li.is-cur .lrun__ic { color: var(--brand-ink, var(--text-link)); }
+.lrun__foot { display: flex; flex-wrap: wrap; justify-content: space-between; gap: var(--spacing-4) var(--spacing-12); font-size: var(--font-size-14); color: var(--text-secondary); }
+.lrun__foot b { color: var(--text-primary); font-variant-numeric: tabular-nums; }
+.lrun__note { margin: 0; font-size: var(--font-size-14); color: var(--text-secondary); line-height: 1.45; }
+html.dark .lrun__clock.is-ahead, html.dark .lrun-d.is-ahead, html.dark .lrun__list li.is-done .lrun__ic { color: #8ff0bb; }
+html.dark .lrun__clock.is-behind, html.dark .lrun-d.is-behind { color: #ffb3bd; }
+html.dark .lrun-d.is-gold { color: #ffd166; }
+html.dark .lrun__pace { color: #8ff0bb; background: rgba(46, 204, 113, .16); }
+/* Wide (a desktop live page): the clock beside the splits instead of rows stretched across the page. */
+@container (min-width: 720px) {
+  .lrun__in { grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr); column-gap: var(--spacing-32); padding: var(--spacing-20); }
+  .lrun__note { grid-column: 1 / -1; }
+}
+/* Narrow (a phone, the Twitch extension's 320px card): the time over its gap in one column, so names keep their room. */
+@container (max-width: 420px) {
+  .lrun__list li { grid-template-columns: 2rem minmax(0, 1fr) auto; grid-template-areas: "ic name time" "ic name d"; row-gap: 0; }
+  .lrun__ic { grid-area: ic; }
+  .lrun__name { grid-area: name; }
+  .lrun__time { grid-area: time; }
+  .lrun__list .lrun-d { grid-area: d; font-size: var(--font-size-12); }
+  .lrun__list .lrun-d:empty { display: none; }
+}

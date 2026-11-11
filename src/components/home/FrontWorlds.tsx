@@ -80,7 +80,7 @@ export function frontWorldRows(): Partial<Record<PillarId, ReactNode>> {
     ],
     stream: [
       { title: "Games for your chat", line: "Rolls, polls, bingo and trivia on your overlay, with GS Pro.", href: "/for-streamers", icon: IconBroadcast, tone: "magenta" },
-      { title: "Twitch chat games", line: "Twelve games your chat can play, and how to start each one.", href: "/twitch-chat-games", icon: IconMessageCircle, tone: "violet" },
+      { title: "Twitch chat games", line: "Games your chat can play, and how to start each one.", href: "/twitch-chat-games", icon: IconMessageCircle, tone: "violet" },
       { title: "GameShuffle for Discord", line: "The dailies, trivia and go-live alerts in your server.", href: "/discord", icon: IconBrandDiscord, tone: "blue" },
       { title: "Just starting out", line: "What to set up first for your first streams.", href: "/for-streamers/aspiring", icon: IconSparkles, tone: "teal" },
     ],

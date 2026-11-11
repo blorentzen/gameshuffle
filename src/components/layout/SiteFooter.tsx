@@ -58,7 +58,11 @@ const SOCIAL_LINKS = [
  * the dumping problem the pillars exist to fix. The long tail lives on the
  * pillar landing pages (/tools, /apps), which "All free tools" points at.
  */
-const sectionsFor = (shop: boolean) => [
+type FooterFlags = { shop: boolean; speedrun: boolean };
+/** A destination for everyone, or for everyone once its switch is on (the shop, the speedrun overlay). */
+const shows = (i: { audience?: string }, f: FooterFlags) => !i.audience || i.audience === "everyone" || (i.audience === "shop" && f.shop) || (i.audience === "speedrun" && f.speedrun);
+
+const sectionsFor = (f: FooterFlags) => [
   ...PILLARS.map((p) => ({
     title: p.label,
     links: p.groups.flatMap((g) => g.items)
@@ -66,13 +70,13 @@ const sectionsFor = (shop: boolean) => [
       // meet while logged out; secondary ones would unbalance the columns,
       // unless an item asks for a footer spot (`footer: true`). Merch shows
       // once visitors can see the shop.
-      .filter((i) => (!i.secondary || i.footer) && !i.noFooter && (!i.audience || i.audience === "everyone" || (i.audience === "shop" && shop)))
+      .filter((i) => (!i.secondary || i.footer) && !i.noFooter && shows(i, f))
       .map((i) => ({ label: i.label, href: i.href })),
   })),
   ...FOOTER_EXTRA.filter((g) => g.heading !== "Legal").map((g) => ({
     title: g.heading,
     links: g.items
-      .filter((i) => !i.audience || i.audience === "everyone" || (i.audience === "shop" && shop))
+      .filter((i) => shows(i, f))
       .map((i) => ({ label: i.label, href: i.href })),
   })),
 ];
@@ -97,10 +101,9 @@ const BOTTOM_LINKS = [
  * spare slot (`trustBadges`, under the brand block) and CSS shows one or the
  * other by width (account.css), never both.
  */
-const SECTIONS = sectionsFor(false);
-const SECTIONS_WITH_SHOP = sectionsFor(true);
+type Sections = ReturnType<typeof sectionsFor>;
 
-const folded = (sections: typeof SECTIONS) => (
+const folded = (sections: Sections) => (
   <Accordion
     className="site-footer__fold"
     variant="flush"
@@ -119,11 +122,18 @@ const folded = (sections: typeof SECTIONS) => (
   />
 );
 
-const FOLDED_SECTIONS = folded(SECTIONS);
-const FOLDED_SECTIONS_WITH_SHOP = folded(SECTIONS_WITH_SHOP);
+/** Each switch combination's columns and folded copy, made once per server instance. */
+const built = new Map<string, { sections: Sections; folded: ReturnType<typeof folded> }>();
+function footerFor(f: FooterFlags) {
+  const key = `${f.shop}|${f.speedrun}`;
+  let hit = built.get(key);
+  if (!hit) { const sections = sectionsFor(f); hit = { sections, folded: folded(sections) }; built.set(key, hit); }
+  return hit;
+}
 
 /** `shop`: visitors can see the shop, so Merch joins the Community column (src/lib/nav/pillars.ts COMMUNITY_LINKS). */
-export function SiteFooter({ shop = false }: { shop?: boolean }) {
+export function SiteFooter({ shop = false, speedrun = false }: { shop?: boolean; speedrun?: boolean }) {
+  const parts = footerFor({ shop, speedrun });
   const year = new Date().getFullYear();
 
   return (
@@ -149,10 +159,10 @@ export function SiteFooter({ shop = false }: { shop?: boolean }) {
         </span>
       }
       description="Free games and tools for players, game nights, competitive Mario Kart, Pokémon fans and streamers: daily games, randomizers, tournaments and stream tools."
-      sections={shop ? SECTIONS_WITH_SHOP : SECTIONS}
+      sections={parts.sections}
       socialLinks={SOCIAL_LINKS}
       contactInfo={{ email: "support@gameshuffle.co" }}
-      trustBadges={shop ? FOLDED_SECTIONS_WITH_SHOP : FOLDED_SECTIONS}
+      trustBadges={parts.folded}
       copyright={`© ${year} GameShuffle`}
       bottomLinks={BOTTOM_LINKS}
     />

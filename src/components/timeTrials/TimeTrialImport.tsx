@@ -25,6 +25,7 @@ import type { CheckRow } from "@/lib/timeTrials/importRows";
 import { gamePath, TT_GAMES, TT_GAME_ORDER, ttCups, ttTrack, type TtClass, type TtGame } from "@/lib/timeTrials/tracks";
 import { TtAddShot } from "./TtAddShot";
 import type { TtItems } from "@/lib/timeTrials/categories";
+import { fitPicture } from "@/lib/images/shrink";
 
 const ERRORS: Record<string, string> = {
   empty: "Paste your times or add screenshots first.",
@@ -130,7 +131,9 @@ export function TimeTrialImport({ discordAppId, draftId }: { discordAppId: strin
     try {
       const form = new FormData();
       form.set("game", game);
-      for (const f of list) form.append("files", f);
+      // They all go in one request, which Vercel turns away over 4.5 MB: each picture gets an equal share.
+      const share = Math.floor((4 * 1024 * 1024 - 64 * 1024) / list.length);
+      for (const f of list) form.append("files", await fitPicture(f, share));
       const res = await fetch("/api/time-trials/import", { method: "POST", body: form });
       take((await res.json().catch(() => ({ error: "failed" }))) as Got, "screenshots");
     } finally {

@@ -285,6 +285,8 @@ export interface RecapEmbedArgs {
   endedAt: string;
   /** The night's lounge run (GS Pro MMR card owners), when there was one. */
   lounge?: { name: string; value: string; inline: boolean } | null;
+  /** The night's speedrun attempts ("Speedrun tonight"), when there were any. */
+  speedrun?: { name: string; value: string; inline: boolean } | null;
 }
 
 function formatDuration(seconds: number): string {
@@ -344,6 +346,7 @@ export function recapEmbed(args: RecapEmbedArgs): DiscordEmbed {
     { name: "Shuffles", value: String(args.shuffleCount), inline: true },
   ];
   if (args.lounge) fields.push(args.lounge);
+  if (args.speedrun) fields.push(args.speedrun);
   if (args.liveUrl) {
     fields.push({
       name: "Recap",

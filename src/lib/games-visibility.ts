@@ -50,11 +50,12 @@ export const ROAD_PUBLIC = true;
 export const roadShown = () => ROAD_PUBLIC || process.env.NODE_ENV !== "production";
 
 /**
- * Speedrunning (/speedrun, the OBS overlay at /run/<token>; picks 2026-11-09). Off until the relay (a Cloudflare
- * Worker, speedrun-relay/) runs in production: off = production 404s /speedrun and leaves it out of the Compete menu,
- * the Studio's tools and the sitemap. Development and the dev site always show it.
+ * Speedrunning (/speedrun, the OBS overlay at /run/<token>; picks 2026-11-09, launch picks 2026-11-10). On since the
+ * launch release: /speedrun, the Studio's Speedrun tool and the sitemap. Off = production 404s /speedrun and leaves
+ * it out of all three. The menus, footer, For streamers pages and chat games guide wait for the speedrun_listed switch
+ * (src/lib/speedrun/listing.ts) after a quiet week. Development and the dev site always show everything.
  */
-export const SPEEDRUN_PUBLIC = false;
+export const SPEEDRUN_PUBLIC = true;
 /** Speedrunning can be seen here (always outside production). */
 export const speedrunShown = () => SPEEDRUN_PUBLIC || !isProduction;
 

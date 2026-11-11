@@ -3,7 +3,41 @@
 
 export type Phase = "idle" | "running" | "paused" | "ended";
 export type LastKind = "start" | "split" | "skip" | "undo" | "reset" | "finish" | "pause" | "resume";
-export type HookEvent = "start" | "split" | "skip" | "undo" | "reset" | "finish" | "connect" | "disconnect";
+export type HookEvent = "start" | "split" | "skip" | "undo" | "reset" | "finish" | "connect" | "disconnect" | "info";
+
+/**
+ * What GameShuffle's desktop LiveSplit add-on says about its splits file (LiveSplit One sends nothing like it). game,
+ * category and attempts are null when the runner turned sharing off; runKey changes when the splits change.
+ */
+export interface TimerInfo {
+  addon: string;
+  game: string | null;
+  category: string | null;
+  attempts: number | null;
+  runKey: string | null;
+  remote: boolean;
+}
+
+const text = (v: unknown, max: number): string | null => {
+  if (typeof v !== "string") return null;
+  const s = v.replace(/\s+/g, " ").trim().slice(0, max);
+  return s || null;
+};
+
+/** The add-on's message, tidied; null when it isn't one. */
+export function cleanInfo(raw: Record<string, unknown>): TimerInfo | null {
+  const addon = text(raw.addon, 20);
+  if (!addon) return null;
+  const n = raw.attempts;
+  return {
+    addon,
+    game: text(raw.game, 120),
+    category: text(raw.category, 120),
+    attempts: typeof n === "number" && Number.isInteger(n) && n >= 0 && n <= 1_000_000 ? n : null,
+    runKey: text(raw.runKey, 40),
+    remote: raw.remote !== false,
+  };
+}
 
 export interface Segment {
   name: string;

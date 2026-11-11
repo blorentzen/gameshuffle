@@ -13,6 +13,7 @@ import { IconAlertTriangle, IconCamera, IconChevronRight, IconMapPin, IconMessag
 import { Select } from "@/components/ui/Select";
 import { useToast } from "@/components/toast/ToastProvider";
 import { PROBLEMS, type Problem, type Wants } from "@/lib/store/orderStage";
+import { fitPicture } from "@/lib/images/shrink";
 
 export interface HelpItem { sku: string; name: string; detail: string | null; image: string | null }
 
@@ -87,10 +88,12 @@ function ProblemForm({ code, items, onClose }: { code: string; items: HelpItem[]
   const previews = useMemo(() => photos.map((p) => URL.createObjectURL(p)), [photos]);
   useEffect(() => () => previews.forEach((u) => URL.revokeObjectURL(u)), [previews]);
   const ready = !!sku && !!problem && (!needsPhoto || photos.length > 0);
-  const submit = () => {
+  const submit = async () => {
     const f = new FormData();
     f.set("kind", "problem"); f.set("sku", sku); f.set("problem", problem); f.set("wants", wants); f.set("body", body);
-    for (const p of photos) f.append("photos", p);
+    // The photos go in one request, which Vercel turns away over 4.5 MB: each phone photo gets an equal share.
+    const share = Math.floor((4 * 1024 * 1024 - 64 * 1024) / Math.max(1, photos.length));
+    for (const p of photos) f.append("photos", await fitPicture(p, share));
     void send(f, "Sent. We'll reply by email.");
   };
   return (

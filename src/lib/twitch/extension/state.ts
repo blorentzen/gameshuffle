@@ -16,6 +16,7 @@ import "server-only";
  * Predictions are deliberately not here (Twitch's rules; the picks said no).
  */
 
+import { liveRunBody, type LiveRunBody } from "@/lib/speedrun/liveRun";
 import { createServiceClient } from "@/lib/supabase/admin";
 import { getOpenPollForCommunity, tally } from "@/lib/polls/store";
 import type { Poll, PollTally } from "@/lib/polls/types";
@@ -54,6 +55,8 @@ export interface ExtPublicState {
   brain: Omit<BrainLiveView, "you"> | null;
   draft: StreamDraftView | null;
   picks: ExtPicks | null;
+  /** The runner's speedrun while it's going and two minutes after (the run card, on top of the stack). */
+  run: LiveRunBody | null;
   /** The channel's leaderboard, only when nothing is running. */
   leaderboard: LeaderboardRow[] | null;
   at: string;
@@ -110,11 +113,18 @@ export async function publicState(ch: ExtChannel): Promise<ExtPublicState> {
   const hit = publicCache.get(ch.broadcasterId);
   if (hit && Date.now() - hit.at < 1500) return hit.value;
   const channel = { name: ch.name, slug: ch.slug, connected: !!ch.communityId, pro: ch.pro, live: ch.live };
-  const empty: ExtPublicState = { channel, poll: null, bingo: null, trivia: null, brk: null, brain: null, draft: null, picks: null, leaderboard: null, at: new Date().toISOString() };
-  if (!ch.communityId || !ch.ownerUserId) return empty;
+  const empty: ExtPublicState = { channel, poll: null, bingo: null, trivia: null, brk: null, brain: null, draft: null, picks: null, run: null, leaderboard: null, at: new Date().toISOString() };
+  if (!ch.ownerUserId) return empty;
+  // A speedrun needs only the runner's account; everything else runs in their community.
+  if (!ch.communityId) {
+    const run = await safe("run", () => liveRunBody(ch.ownerUserId!));
+    const value = { ...empty, run };
+    publicCache.set(ch.broadcasterId, { at: Date.now(), value });
+    return value;
+  }
   const communityId = ch.communityId, owner = ch.ownerUserId;
 
-  const [poll, bingo, trivia, brk, brain, draft, picks] = await Promise.all([
+  const [poll, bingo, trivia, brk, brain, draft, picks, run] = await Promise.all([
     safe("poll", async () => {
       const p = await getOpenPollForCommunity(communityId);
       return p && p.kind !== "draft" ? { poll: p, tally: await tally(p.id) } : null;
@@ -140,10 +150,11 @@ export async function publicState(ch: ExtChannel): Promise<ExtPublicState> {
       return d ? draftViewOf(await tickDraft(d)) : null;
     }),
     safe("picks", () => readPicks(owner)),
+    safe("run", () => liveRunBody(owner)),
   ]);
-  const idle = !poll && !bingo && !trivia && !brk && !brain && !draft && !picks;
+  const idle = !poll && !bingo && !trivia && !brk && !brain && !draft && !picks && !run;
   const leaderboard = idle ? await safe("leaderboard", () => getLeaderboard({ kind: "combined", communityId, limit: 5 })) : null;
-  const value: ExtPublicState = { channel, poll, bingo, trivia, brk, brain, draft, picks, leaderboard, at: new Date().toISOString() };
+  const value: ExtPublicState = { channel, poll, bingo, trivia, brk, brain, draft, picks, run, leaderboard, at: new Date().toISOString() };
   publicCache.set(ch.broadcasterId, { at: Date.now(), value });
   if (publicCache.size > 2000) publicCache.delete(publicCache.keys().next().value!);
   return value;

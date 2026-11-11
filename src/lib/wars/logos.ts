@@ -150,3 +150,17 @@ export async function liveWarsWithTag(guildId: string, tag: string): Promise<str
   const { data } = await createServiceClient().from("wars").select("id, us_tag, them_tag").eq("guild_id", guildId).eq("status", "live");
   return ((data ?? []) as { id: string; us_tag: string; them_tag: string }[]).filter((w) => [w.us_tag, w.them_tag].some((t) => t.toLowerCase() === tag.toLowerCase())).map((w) => w.id);
 }
+
+/**
+ * A logo for one table only (doc asks pick 1, 2026-11-10: Add logos ▸ "Just this table", and logo links pasted from
+ * Discord): squared, checked like any logo and stored, but never made the tag's logo. Its link goes in the table's text.
+ */
+export async function uploadTableLogo(input: { guildId: string; image: Uint8Array; by: { id: string }; userId: string | null }): Promise<{ ok: true; url: string } | { ok: false; error: "storage_off" | "bad_image" | "refused"; reason?: string }> {
+  if (!isR2Configured()) return { ok: false, error: "storage_off" };
+  const webp = await sharp(input.image, { animated: false }).rotate().resize(256, 256, { fit: "contain", background: { r: 0, g: 0, b: 0, alpha: 0 } }).webp({ quality: 90 }).toBuffer().catch(() => null);
+  if (!webp) return { ok: false, error: "bad_image" };
+  const check = await checkImage(webp, { use: "team logo", userId: input.userId, capKey: input.userId ? `u:${input.userId}` : `d:${input.by.id}` });
+  if (check.verdict === "refuse") return { ok: false, error: "refused", reason: check.reason };
+  const url = await uploadToR2(`war-logos/${input.guildId}/table-${randomBytes(8).toString("hex")}.webp`, new Uint8Array(webp), "image/webp");
+  return { ok: true, url };
+}

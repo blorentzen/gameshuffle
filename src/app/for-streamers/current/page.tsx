@@ -9,7 +9,8 @@ import { AutoplayCarousel } from "@/components/marketing/AutoplayCarousel";
 import { Reveal } from "@/components/marketing/Reveal";
 import { ProSpotlight } from "@/components/marketing/ProSpotlight";
 import { PlatformShot, OverlayShot, TokenShot, MarketShot } from "@/components/marketing/ProFeatureShots";
-import { STREAMER_TOOLKIT } from "@/data/streamer-toolkit";
+import { streamerToolkit } from "@/data/streamer-toolkit";
+import { speedrunListed } from "@/lib/speedrun/listing";
 import { MarketingHeroField } from "@/components/marketing/MarketingHeroField";
 import { EVENTS, tagged } from "@/lib/analytics/events";
 
@@ -30,7 +31,8 @@ export const metadata: Metadata = {
   alternates: { canonical: "https://www.gameshuffle.co/for-streamers/current" },
 };
 
-export default function CurrentStreamersPage() {
+export default async function CurrentStreamersPage() {
+  const STREAMER_TOOLKIT = streamerToolkit(await speedrunListed());
   return (
     <main style={{ background: PAGE_BG }}>
       <MarketingJsonLd

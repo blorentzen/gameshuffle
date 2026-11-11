@@ -10,6 +10,7 @@ import { Button } from "@empac/cascadeds";
 import { IconCircleCheck, IconClockHour4, IconPhotoUp } from "@tabler/icons-react";
 import { LoadingLines } from "@/components/loading/LoadingLines";
 import { GIF_MAX_BYTES, GIF_TYPES, type MyGif } from "@/lib/gifs/rules";
+import { DIRECT_MAX, sendInParts } from "@/lib/uploads/parts";
 import { GifImage } from "./GifImage";
 import { GifDetailsForm } from "./GifDetailsForm";
 
@@ -39,9 +40,18 @@ export function GifUpload({ onUploaded, onUse }: { onUploaded?: (gif: MyGif) => 
     if (!(GIF_TYPES as readonly string[]).includes(file.type)) return setError(ERRORS.bad_type);
     if (file.size > GIF_MAX_BYTES) return setError(ERRORS.too_big);
     setBusy(true);
-    const body = new FormData();
-    body.append("file", file);
-    const res = await fetch("/api/gifs", { method: "POST", body }).catch(() => null);
+    // Over 4 MB it goes up in parts: one request that big never reaches us (Vercel's 4.5 MB limit).
+    let res: Response | null;
+    if (file.size > DIRECT_MAX) {
+      const sent = await sendInParts(file);
+      res = "error" in sent
+        ? new Response(JSON.stringify(sent), { status: 400 })
+        : await fetch("/api/gifs", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(sent) }).catch(() => null);
+    } else {
+      const body = new FormData();
+      body.append("file", file);
+      res = await fetch("/api/gifs", { method: "POST", body }).catch(() => null);
+    }
     const j = (await res?.json().catch(() => null)) as { gif?: MyGif; error?: string; reason?: string | null; limit?: number } | null;
     setBusy(false);
     if (res?.ok && j?.gif) {
@@ -51,7 +61,7 @@ export function GifUpload({ onUploaded, onUse }: { onUploaded?: (gif: MyGif) => 
     }
     if (j?.error === "refused") return setError(`We can't take that GIF: ${j.reason || "it breaks our rules for what's shown on GameShuffle"}.`);
     if (j?.error === "full") return setError(`You have ${j.limit ?? 25} GIFs, the most you can keep. Delete one in Profile ▸ GIFs to make room.`);
-    setError(ERRORS[j?.error ?? ""] ?? "Couldn't upload that. Try again.");
+    setError(ERRORS[j?.error ?? (res?.status === 413 ? "too_big" : "")] ?? "Couldn't upload that. Try again.");
   };
 
   if (gif) {

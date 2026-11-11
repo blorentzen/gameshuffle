@@ -5,10 +5,11 @@
  * Pure and client-safe; tests in scripts/test-speedrun.ts.
  */
 
-import type { RelayEvent, RelaySegment, RelayState, SpeedrunLook, SpeedrunSettings, SpeedrunStats } from "./types";
+import type { RelayEvent, RelaySegment, RelayState, SpeedrunLook, SpeedrunSettings, SpeedrunStats, SpeedrunTimerSettings, TimerInfo } from "./types";
+import { cleanStyle, DEFAULT_SPEEDRUN_STYLE } from "./look";
 
 export const DEFAULT_STATS: SpeedrunStats = { pb: true, sob: true, attempts: true, prevSegment: false, pace: false };
-export const DEFAULT_LOOK: SpeedrunLook = { layout: "column", position: "bottom", stats: DEFAULT_STATS, theme: null, line: null };
+export const DEFAULT_LOOK: SpeedrunLook = { layout: "column", position: "bottom", stats: DEFAULT_STATS, ...DEFAULT_SPEEDRUN_STYLE, line: null };
 
 export const CATEGORY_MAX = 80;
 export const GAME_MAX = 80;
@@ -23,8 +24,7 @@ export function cleanLook(input: unknown): SpeedrunLook {
     layout: o.layout === "strip" ? "strip" : "column",
     position: o.position === "top" ? "top" : "bottom",
     stats: { pb: flag("pb"), sob: flag("sob"), attempts: flag("attempts"), prevSegment: flag("prevSegment"), pace: flag("pace") },
-    theme: typeof o.theme === "string" && /^[a-z0-9-]{1,24}$/.test(o.theme) ? o.theme : null,
-    line: typeof o.line === "string" && o.line.trim() ? o.line.trim().slice(0, 40) : null,
+    ...cleanStyle(o),
   };
 }
 
@@ -263,10 +263,13 @@ export function baseForAttempts(n: number, current: { attempts: number; base: nu
 
 /** Reply waits on offer (seconds). 60 at most: the delayed lines run inside the webhook's own time. */
 export const REPLY_DELAYS = [0, 2, 5, 10, 15, 20, 30, 45, 60] as const;
+export const DEFAULT_TIMER: SpeedrunTimerSettings = { choice: "livesplit", auto: { game: false, category: false }, typedAttempts: false, from: null };
+
 export const DEFAULT_SETTINGS: SpeedrunSettings = {
   prediction: { on: false, lockSplit: null },
   commands: { pb: true, pace: true, splits: true },
   replyDelay: 5,
+  timer: DEFAULT_TIMER,
 };
 export const SPLITS_MAX = 500;
 export const SPLIT_NAME_MAX = 120;
@@ -283,16 +286,98 @@ export function cleanSettings(input: unknown): SpeedrunSettings {
     prediction: { on: flag(p.on, false), lockSplit: lock },
     commands: { pb: flag(c.pb, true), pace: flag(c.pace, true), splits: flag(c.splits, true) },
     replyDelay: delay,
+    timer: cleanTimerSettings(o.timer),
   };
+}
+
+function cleanTimerSettings(input: unknown): SpeedrunTimerSettings {
+  const t = input && typeof input === "object" ? (input as Record<string, unknown>) : {};
+  const a = t.auto && typeof t.auto === "object" ? (t.auto as Record<string, unknown>) : {};
+  const f = t.from && typeof t.from === "object" ? (t.from as Record<string, unknown>) : null;
+  const n = f?.attempts;
+  return {
+    choice: t.choice === "lso" ? "lso" : "livesplit",
+    auto: { game: a.game === true, category: a.category === true },
+    typedAttempts: t.typedAttempts === true,
+    from: f
+      ? {
+          game: infoText(f.game, GAME_TEXT_MAX),
+          category: cleanCategory(f.category),
+          attempts: typeof n === "number" && Number.isInteger(n) && n >= 0 ? Math.min(n, ATTEMPTS_MAX) : null,
+          at: typeof f.at === "string" ? f.at.slice(0, 40) : "",
+        }
+      : null,
+  };
+}
+
+const GAME_TEXT_MAX = 120;
+const infoText = (v: unknown, max: number): string | null => {
+  if (typeof v !== "string") return null;
+  const s = v.replace(/\s+/g, " ").trim().slice(0, max);
+  return s || null;
+};
+
+/** The add-on's message as the relay passes it on, tidied; null when it isn't one. */
+export function cleanTimerInfo(raw: unknown): TimerInfo | null {
+  if (!raw || typeof raw !== "object") return null;
+  const r = raw as Record<string, unknown>;
+  const addon = infoText(r.addon, 20);
+  if (!addon) return null;
+  const n = r.attempts;
+  return {
+    addon,
+    game: infoText(r.game, GAME_TEXT_MAX),
+    category: cleanCategory(r.category),
+    attempts: typeof n === "number" && Number.isInteger(n) && n >= 0 && n <= ATTEMPTS_MAX ? n : null,
+    runKey: infoText(r.runKey, 40),
+    remote: r.remote !== false,
+  };
+}
+
+/**
+ * What LiveSplit's info changes on a setup (pick 2, 2026-11-10): game and category when the runner never typed them
+ * (or LiveSplit filled them before), the attempt count when they never typed one and LiveSplit's is higher (the count
+ * never goes down: saved attempts are numbered by it). `stored` turns a game name into what the setup keeps (a catalog
+ * key or the name). Returns only what changed.
+ */
+export function applyTimerInfo(
+  cur: { game: string | null; category: string | null; attempts: number; attemptBase: number; settings: SpeedrunSettings },
+  info: TimerInfo,
+  stored: (name: string) => string | null,
+  now: string,
+): { game?: string | null; category?: string | null; attempts?: number; attemptBase?: number; settings: SpeedrunSettings } {
+  const t = cur.settings.timer;
+  const shared = info.game != null || info.category != null || info.attempts != null;
+  const timer: SpeedrunTimerSettings = { ...t, auto: { ...t.auto }, from: shared ? { game: info.game, category: info.category, attempts: info.attempts, at: now } : null };
+  const out: ReturnType<typeof applyTimerInfo> = { settings: { ...cur.settings, timer } };
+  if (info.game) {
+    const g = stored(info.game);
+    if (g && (cur.game == null || t.auto.game) && g !== cur.game) {
+      out.game = g;
+      timer.auto.game = true;
+    }
+  }
+  if (info.category && (cur.category == null || t.auto.category) && info.category !== cur.category) {
+    out.category = info.category;
+    timer.auto.category = true;
+  }
+  if (info.attempts != null && !t.typedAttempts && info.attempts > cur.attempts) {
+    out.attempts = info.attempts;
+    out.attemptBase = baseForAttempts(info.attempts, { attempts: cur.attempts, base: cur.attemptBase });
+  }
+  return out;
 }
 
 /** A partial change on top of the saved settings (what the setup screen sends). */
 export function mergeSettings(cur: SpeedrunSettings, patch: unknown): SpeedrunSettings {
   const o = patch && typeof patch === "object" ? (patch as Record<string, unknown>) : {};
+  // Of the timer settings the page only picks which timer leads; where values came from is the server's to say.
+  const t = o.timer && typeof o.timer === "object" ? (o.timer as Record<string, unknown>) : {};
   return cleanSettings({
     prediction: { ...cur.prediction, ...(o.prediction && typeof o.prediction === "object" ? o.prediction : {}) },
     commands: { ...cur.commands, ...(o.commands && typeof o.commands === "object" ? o.commands : {}) },
     replyDelay: o.replyDelay ?? cur.replyDelay,
+    timer: { ...cur.timer, choice: t.choice === "lso" || t.choice === "livesplit" ? t.choice : cur.timer.choice },
   });
 }
 
@@ -304,6 +389,27 @@ export function cleanSplitNames(input: unknown): string[] | null {
     .map((l) => (typeof l === "string" ? l.replace(/\s+/g, " ").trim().slice(0, SPLIT_NAME_MAX) : ""))
     .filter(Boolean);
   return names.length && names.length <= SPLITS_MAX ? names : null;
+}
+
+/**
+ * A runner's LiveSplit file as the browser read it (`readLss`), checked: names tidied, times whole ms from 0 to 100
+ * hours (anything else is dropped to "no time"), 500 splits at most. Null when there are no splits.
+ */
+export function cleanImportedRun(input: unknown): { segments: RelaySegment[]; game: string | null; category: string | null; attempts: number } | null {
+  if (!input || typeof input !== "object") return null;
+  const o = input as Record<string, unknown>;
+  if (!Array.isArray(o.segments) || !o.segments.length || o.segments.length > SPLITS_MAX) return null;
+  const time = (v: unknown) => (typeof v === "number" && Number.isFinite(v) && v >= 0 && v < 360_000_000 ? Math.floor(v) : null);
+  const segments: RelaySegment[] = [];
+  for (const raw of o.segments) {
+    const r = (raw && typeof raw === "object" ? raw : {}) as Record<string, unknown>;
+    const name = typeof r.name === "string" ? r.name.replace(/\s+/g, " ").trim().slice(0, SPLIT_NAME_MAX) : "";
+    if (!name) return null;
+    segments.push({ name, pbMs: time(r.pbMs), bestMs: time(r.bestMs) });
+  }
+  const text = (v: unknown, max: number) => (typeof v === "string" && v.trim() ? v.replace(/\s+/g, " ").trim().slice(0, max) : null);
+  const n = typeof o.attempts === "number" && Number.isFinite(o.attempts) ? Math.floor(o.attempts) : 0;
+  return { segments, game: text(o.game, GAME_MAX), category: text(o.category, CATEGORY_MAX), attempts: Math.min(ATTEMPTS_MAX, Math.max(0, n)) };
 }
 
 /** The run for typed names: a split keeps its times when the name is unchanged in the same place, else starts fresh. */
@@ -320,6 +426,31 @@ export function lockAfter(n: number, chosen: number | null): number | null {
   if (n < 3) return null;
   const want = chosen ?? Math.round(n / 4);
   return Math.min(Math.max(want, 2), n - 1);
+}
+
+/** How long a finished or reset run stays on the card. */
+export const RUN_SHOWN_AFTER_MS = 2 * 60_000;
+
+/** Whether a run is worth the run card now: going, or finished or reset in the last two minutes. */
+export function runShown(st: RelayState, now: number): boolean {
+  if (st.phase === "running" || st.phase === "paused") return true;
+  const ended = st.phase === "ended" || (st.phase === "idle" && st.last?.kind === "reset");
+  return ended && now - st.at < RUN_SHOWN_AFTER_MS;
+}
+
+/** The run card's five rows (live page, Twitch extension): two splits before the one being run, it, and two after. */
+export function runCardRows(count: number, current: number, size = 5): number[] {
+  if (count <= size) return Array.from({ length: count }, (_, i) => i);
+  const start = Math.max(0, Math.min(current - 2, count - size));
+  return Array.from({ length: size }, (_, i) => start + i);
+}
+
+/** "On PB pace" on the run card: ahead of PB with a quarter of the run left, in a run of four splits or more. */
+export function onPbPace(st: RelayState): boolean {
+  const n = st.segments.length;
+  if (st.phase !== "running" || n < 4) return false;
+  const d = lastDelta(st);
+  return !!d && d.ms < 0 && splitsDone(st) >= Math.ceil(n * 0.75);
 }
 
 /** Splits done so far in this attempt (the index of the split being run, or every split once it ended). */

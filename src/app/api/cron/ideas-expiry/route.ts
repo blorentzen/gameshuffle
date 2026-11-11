@@ -3,11 +3,15 @@
  *
  * Sweeps public ideas past their 60-day window into `expired` (§5.3). The lazy
  * read-filter in the store is the correctness guarantee; this keeps the data
- * clean. Auth: Vercel Cron sends `Authorization: Bearer <CRON_SECRET>`.
+ * clean. Also clears upload parts nobody came back for (src/lib/uploads/parts.ts:
+ * a browser that stopped halfway leaves them in storage) once they're a day old.
+ * Auth: Vercel Cron sends `Authorization: Bearer <CRON_SECRET>`.
  */
 
 import { NextResponse, type NextRequest } from "next/server";
 import { createServiceClient } from "@/lib/supabase/admin";
+import { isR2Configured, sweepR2 } from "@/lib/storage/r2";
+import { PARTS_PREFIX } from "@/lib/uploads/partsServer";
 
 export const runtime = "nodejs";
 
@@ -30,6 +34,7 @@ export async function GET(request: NextRequest) {
     .lt("expires_at", new Date().toISOString())
     .select("id");
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-  return NextResponse.json({ ok: true, expired: (data ?? []).length });
+  const parts = isR2Configured() ? await sweepR2(PARTS_PREFIX, new Date(Date.now() - 24 * 60 * 60_000)) : 0;
+  if (error) return NextResponse.json({ error: error.message, parts }, { status: 500 });
+  return NextResponse.json({ ok: true, expired: (data ?? []).length, parts });
 }

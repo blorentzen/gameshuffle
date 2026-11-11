@@ -13,6 +13,7 @@ import { IconCamera } from "@tabler/icons-react";
 import { useToast } from "@/components/toast/ToastProvider";
 import { formatTime } from "@/lib/timeTrials/rules";
 import type { TtGame } from "@/lib/timeTrials/tracks";
+import { fitPicture } from "@/lib/images/shrink";
 
 const UPLOAD_ERRORS: Record<string, string> = {
   bad_type: "Use a PNG, JPEG or WebP picture.",
@@ -32,7 +33,8 @@ export function TtAddShot({ timeId, game, timeMs, onDone, size = "small" }: {
     setBusy(true);
     try {
       const form = new FormData();
-      form.append("file", file);
+      // Vercel turns away requests over 4.5 MB: a phone photo of the screen is made smaller first.
+      form.append("file", await fitPicture(file));
       form.append("game", game);
       const res = await fetch("/api/time-trials/read", { method: "POST", body: form });
       const j = (await res.json().catch(() => ({}))) as { ok?: boolean; proofUrl?: string; readToken?: string; read?: { timeMs: number | null } | null; error?: string };

@@ -9,11 +9,13 @@ import { newRelayId, parseToken, sameString, signBody, signToken, verifyBody, ve
 import { clockParts, fmtClock, fmtDelta, parseLsTime } from "../src/lib/speedrun/time";
 import {
   DEFAULT_LOOK, attemptPlan, baseForAttempts, cleanCategory, cleanLook, currentIndex, deltas, idleState, isNewPb, isRelayState,
-  keepSegments, lastDelta, momentFor, pace, prevSegment, segmentLengths, sumOfBest, ticks, timeBefore, visibleRows,
+  keepSegments, lastDelta, momentFor, onPbPace, pace, prevSegment, runCardRows, runShown, RUN_SHOWN_AFTER_MS, segmentLengths, sumOfBest, ticks, timeBefore, visibleRows,
 } from "../src/lib/speedrun/rules";
 import { demoAfterReset, demoState } from "../src/lib/speedrun/demo";
+import { DEFAULT_SPEEDRUN_STYLE, freeSpeedrunLook, speedrunPaidUsed, speedrunVars } from "../src/lib/speedrun/look";
 import {
-  DEFAULT_SETTINGS, cleanSettings, cleanSplitNames, lockAfter, mergeSettings, predictionAction, segmentsForNames, splitsDone,
+  DEFAULT_SETTINGS, applyTimerInfo, cleanSettings, cleanSplitNames, cleanTimerInfo, lockAfter, mergeSettings, predictionAction, segmentsForNames,
+  splitsDone,
 } from "../src/lib/speedrun/rules";
 import {
   CHAT_MAX, PREDICTION_REFUND_LINE, chatCalledIt, paceLine, payoutIfWon, pbLine, predictionLockLine, predictionOpenLine,
@@ -21,6 +23,11 @@ import {
 } from "../src/lib/speedrun/chat";
 import { parimutuel } from "../src/lib/economy/markets/parimutuel";
 import type { RelayState } from "../src/lib/speedrun/types";
+import { groupedNames, groupsOf, namesToGroups, readSplitName, shownName, shownState } from "../src/lib/speedrun/splitGroups";
+import { lssFileName, lssTime, readLss, writeLss } from "../src/lib/speedrun/lss";
+import { FRLG_GYMS, buildTemplate, numberedSplits, templatesFor } from "../src/lib/speedrun/templates";
+import { cleanImportedRun } from "../src/lib/speedrun/rules";
+import frlgRun from "../src/data/pokemon/frlg-run.json";
 
 let pass = 0, fail = 0;
 const eq = (a: unknown, b: unknown, m: string) => {
@@ -209,10 +216,27 @@ async function main() {
   eq(DEFAULT_LOOK.stats, { pb: true, sob: true, attempts: true, prevSegment: false, pace: false }, "PB, sum of best and attempts by default (picks)");
   eq(DEFAULT_LOOK.layout, "column", "the Column by default");
   eq(DEFAULT_LOOK.position, "bottom", "the Strip sits at the bottom by default");
-  eq(cleanLook({ layout: "strip", position: "top", stats: { pace: true, pb: "yes" } }), { layout: "strip", position: "top", stats: { pb: true, sob: true, attempts: true, prevSegment: false, pace: true }, theme: null, line: null }, "partial look");
+  eq(cleanLook({ layout: "strip", position: "top", stats: { pace: true, pb: "yes" } }), { layout: "strip", position: "top", stats: { pb: true, sob: true, attempts: true, prevSegment: false, pace: true }, ...DEFAULT_SPEEDRUN_STYLE, line: null }, "partial look");
   eq(cleanLook({ layout: "sideways", position: "left" }).layout, "column", "an unknown layout");
-  eq(cleanLook({ theme: "Neon!" }).theme, null, "an odd theme id");
-  eq(cleanLook({ theme: "neon" }).theme, "neon", "a theme id");
+  {
+    const paid = cleanLook({ colors: "custom", custom: ["#112233", "#445566"], fill: "dots", font: "bebas", border: "two", brand: "off", surface: "light" });
+    eq(speedrunPaidUsed(paid), ["your two colors", "dots behind it", "Bebas Neue", "a two-color border", "no GameShuffle line"], "paid choices named");
+    const free = freeSpeedrunLook(paid);
+    eq([free.colors, free.fill, free.font, free.border, free.brand, free.surface], ["gs", "glyphs", "rubik", "none", "inside", "light"], "the free version keeps the free choices");
+    eq(speedrunPaidUsed(free), [], "and has nothing paid");
+    eq(speedrunPaidUsed(cleanLook({ colors: "accent", accent: "#FF8800", fill: "solid", font: "gabarito", brand: "mark", surface: "glass" })), [], "your color, solid, GameShuffle's font, the mark: free");
+    eq(cleanLook({ accent: "#FF8800" }).accent, "#ff8800", "colors are kept lowercase");
+    eq(cleanLook({ line: "  Road   to sub 1:40  " }).line, "Road to sub 1:40", "a line of your own, tidied");
+    eq(speedrunPaidUsed(cleanLook({ line: "Road to sub 1:40" })), ["your own line"], "a line of your own is paid");
+    eq(freeSpeedrunLook(cleanLook({ line: "x", brand: "mark" })).brand, "mark", "the mark stays on the free version");
+    eq(cleanLook({ font: "comic", fill: "picture", surface: "neon", border: "three" }), cleanLook({}), "odd values fall back");
+    const v = speedrunVars(cleanLook({ colors: "accent", accent: "#ff8800" }));
+    eq(v["--sr-hl"], "#ff8800", "your color lights the current row");
+    eq(/^rgba\(\d+, \d+, \d+, [\d.]+\)$/.test(v["--sr-now-1"]), true, "colors are plain rgba for OBS's older Chromium");
+    eq(speedrunVars(cleanLook({ surface: "light" }))["--sr-bg"], "#f5f6fb", "the light surface");
+  }
+  eq(cleanLook({ theme: "Neon!" }).colors, "gs", "an odd theme id falls back to GameShuffle blue");
+  eq(cleanLook({ theme: "neon" }).colors, "neon", "a theme saved before the launch becomes the colors");
   eq(cleanLook({ line: "  x".padEnd(80, "y") }).line?.length, 40, "a line is 40 characters at most");
   eq(cleanCategory("  48 Tracks\n 150cc  "), "48 Tracks 150cc", "category tidied");
   eq(cleanCategory("x".repeat(200))?.length, 80, "category cut to 80");
@@ -226,8 +250,8 @@ async function main() {
 
   // ── Step 2: settings ──
   eq(cleanSettings(null), DEFAULT_SETTINGS, "nothing = the default settings");
-  eq(DEFAULT_SETTINGS, { prediction: { on: false, lockSplit: null }, commands: { pb: true, pace: true, splits: true }, replyDelay: 5 }, "defaults: prediction off, commands on, 5 seconds (mockup)");
-  eq(cleanSettings({ prediction: { on: "yes", lockSplit: 2.5 }, replyDelay: 7, commands: { pace: false } }), { prediction: { on: false, lockSplit: null }, commands: { pb: true, pace: false, splits: true }, replyDelay: 5 }, "odd values fall back");
+  eq(DEFAULT_SETTINGS, { prediction: { on: false, lockSplit: null }, commands: { pb: true, pace: true, splits: true }, replyDelay: 5, timer: { choice: "livesplit", auto: { game: false, category: false }, typedAttempts: false, from: null } }, "defaults: prediction off, commands on, 5 seconds (mockup)");
+  eq(cleanSettings({ prediction: { on: "yes", lockSplit: 2.5 }, replyDelay: 7, commands: { pace: false } }), { prediction: { on: false, lockSplit: null }, commands: { pb: true, pace: false, splits: true }, replyDelay: 5, timer: { choice: "livesplit", auto: { game: false, category: false }, typedAttempts: false, from: null } }, "odd values fall back");
   eq(cleanSettings({ replyDelay: 60, prediction: { on: true, lockSplit: 3 } }).replyDelay, 60, "60 seconds is on offer");
   eq(cleanSettings({ replyDelay: 61 }).replyDelay, 5, "61 isn't");
   eq(mergeSettings(DEFAULT_SETTINGS, { prediction: { on: true } }), { ...DEFAULT_SETTINGS, prediction: { on: true, lockSplit: null } }, "a partial change keeps the rest");
@@ -365,6 +389,116 @@ async function main() {
     const paid = [...r.credits.values()].reduce((x, y) => x + y, 0);
     if (paid !== bets.reduce((x, b) => x + b.amount, 0)) { fail++; console.log("FAIL parimutuel sum", k, paid); break; } else pass++;
   }
+
+  // ── GameShuffle for LiveSplit: the add-on's info fills game, category and attempts (picks 2026-11-10) ──
+  eq(cleanSettings({}).timer, { choice: "livesplit", auto: { game: false, category: false }, typedAttempts: false, from: null }, "timer settings default to LiveSplit first");
+  eq(cleanSettings({ timer: { choice: "lso" } }).timer.choice, "lso", "LiveSplit One can lead");
+  const typed = cleanSettings({ timer: { choice: "livesplit", auto: { game: true }, typedAttempts: true, from: { game: "X", attempts: 3, at: "t" } } });
+  eq(mergeSettings(typed, { timer: { choice: "lso", auto: { game: false }, typedAttempts: false, from: null } }).timer,
+    { ...typed.timer, choice: "lso" }, "the page can only change which timer leads");
+  eq(cleanTimerInfo({ game: "x" }), null, "info without the add-on's version isn't info");
+  eq(cleanTimerInfo({ addon: "1.0.0", game: " Super  Mario Odyssey ", category: "Any%", attempts: 312, runKey: "17-abc", remote: false }),
+    { addon: "1.0.0", game: "Super Mario Odyssey", category: "Any%", attempts: 312, runKey: "17-abc", remote: false }, "info tidied");
+  eq(cleanTimerInfo({ addon: "1", attempts: -1 })?.attempts, null, "a negative attempt count is dropped");
+  const info = { addon: "1.0.0", game: "Super Mario Odyssey", category: "Any%", attempts: 312, runKey: "17-abc", remote: true };
+  const stored = (n: string) => (n === "Super Mario Odyssey" ? "super-mario-odyssey" : n);
+  const blank = { game: null, category: null, attempts: 0, attemptBase: 0, settings: DEFAULT_SETTINGS };
+  const f1 = applyTimerInfo(blank, info, stored, "now");
+  eq([f1.game, f1.category, f1.attempts, f1.attemptBase], ["super-mario-odyssey", "Any%", 312, 312], "a blank setup takes LiveSplit's game, category and attempts");
+  eq(f1.settings.timer.auto, { game: true, category: true }, "and remembers they came from LiveSplit");
+  eq(f1.settings.timer.from, { game: "Super Mario Odyssey", category: "Any%", attempts: 312, at: "now" }, "and what LiveSplit said");
+  const afterFill = { game: "super-mario-odyssey", category: "Any%", attempts: 312, attemptBase: 312, settings: f1.settings };
+  const f2 = applyTimerInfo(afterFill, { ...info, game: "Celeste", category: "Any% (No Bubs)" }, stored, "later");
+  eq([f2.game, f2.category], ["Celeste", "Any% (No Bubs)"], "another splits file moves LiveSplit-filled game and category");
+  const typedSetup = { game: "Mario Kart 8 Deluxe", category: "48 Tracks", attempts: 40, attemptBase: 40, settings: DEFAULT_SETTINGS };
+  const f3 = applyTimerInfo(typedSetup, info, stored, "now");
+  eq([f3.game, f3.category], [undefined, undefined], "what the runner typed stays");
+  eq(f3.attempts, 312, "attempts never typed: LiveSplit's higher count is taken");
+  eq(applyTimerInfo({ ...typedSetup, attempts: 500 }, info, stored, "now").attempts, undefined, "the count never goes down");
+  const typedCount = { ...typedSetup, settings: { ...DEFAULT_SETTINGS, timer: { ...DEFAULT_SETTINGS.timer, typedAttempts: true } } };
+  eq(applyTimerInfo(typedCount, info, stored, "now").attempts, undefined, "a typed count wins over LiveSplit's");
+  const quiet = applyTimerInfo(blank, { ...info, game: null, category: null, attempts: null }, stored, "now");
+  eq([quiet.game, quiet.category, quiet.attempts, quiet.settings.timer.from], [undefined, undefined, undefined, null], "sharing off changes nothing and forgets what LiveSplit said");
+  eq(applyTimerInfo({ ...blank, attempts: 10, attemptBase: 4 }, info, stored, "now").attemptBase, 306, "the base keeps the attempts GameShuffle saw itself");
+
+  // The run card (live page + Twitch extension).
+  eq(runCardRows(3, 1), [0, 1, 2], "run card: a short run shows every split");
+  eq(runCardRows(16, 0), [0, 1, 2, 3, 4], "run card: the start shows the first five");
+  eq(runCardRows(16, 7), [5, 6, 7, 8, 9], "run card: two before and two after the split being run");
+  eq(runCardRows(16, 15), [11, 12, 13, 14, 15], "run card: the end keeps five rows");
+  for (let n = 1; n <= 40; n++) for (let c = 0; c < n; c++) {
+    const rows = runCardRows(n, c);
+    if (rows.length !== Math.min(5, n) || !rows.includes(c) || rows.some((r, i) => r < 0 || r >= n || (i && r !== rows[i - 1] + 1))) { eq(rows, "five in a row with the current", `run card rows ${n}/${c}`); break; }
+  }
+  const pace4 = (index: number, ahead: boolean, phase: RelayState["phase"] = "running"): RelayState => {
+    const segments = Array.from({ length: 8 }, (_, i) => ({ name: `S${i}`, pbMs: (i + 1) * 60_000, bestMs: (i + 1) * 55_000 }));
+    return { v: 1, seq: 1, connected: true, phase, index, elapsedMs: index * 60_000, at: 0, game: null, category: null, attempt: 1, segments,
+      splits: segments.map((s, i) => (i < index ? s.pbMs! + (ahead ? -2000 : 2000) : null)), golds: segments.map(() => false), last: null };
+  };
+  eq(onPbPace(pace4(6, true)), true, "on PB pace: ahead with a quarter left");
+  eq(onPbPace(pace4(5, true)), false, "not yet: more than a quarter left");
+  eq(onPbPace(pace4(6, false)), false, "behind is never on pace");
+  eq(onPbPace(pace4(6, true, "paused")), false, "a paused run shows no badge");
+  const going = pace4(3, true);
+  eq(runShown(going, 10 * RUN_SHOWN_AFTER_MS), true, "the card shows while a run is going, however long");
+  const done = { ...pace4(8, true, "ended"), at: 1_000 };
+  eq([runShown(done, 1_000 + RUN_SHOWN_AFTER_MS - 1), runShown(done, 1_000 + RUN_SHOWN_AFTER_MS)], [true, false], "a finished run stays two minutes");
+  const reset = { ...pace4(0, false, "idle"), at: 1_000, last: { kind: "reset" as const, index: 3 } };
+  eq([runShown(reset, 2_000), runShown({ ...reset, last: null }, 2_000)], [true, false], "a reset shows two minutes; a timer sitting idle never does");
+
+  // LiveSplit's groups (templates picks 7A): plain names on stream, each split keeping its cup.
+  eq(readSplitName("-Water Park"), { name: "Water Park", sub: true, closes: null }, "a subsplit");
+  eq(readSplitName("{Mushroom Cup} Thwomp Ruins"), { name: "Thwomp Ruins", sub: false, closes: "Mushroom Cup" }, "a group's last split");
+  eq(readSplitName("{Mushroom Cup}"), { name: "Mushroom Cup", sub: false, closes: "Mushroom Cup" }, "a group mark with no name keeps the group's");
+  eq([shownName("-"), shownName("Kingdom 1"), shownName("  -Cap ")], ["-", "Kingdom 1", "Cap"], "plain names stay, a lone dash stays");
+  const lsNames = ["-Mario Kart Stadium", "-Water Park", "-Sweet Sweet Canyon", "{Mushroom Cup} Thwomp Ruins", "Intermission", "-Mario Circuit", "{Flower Cup}Toad Harbor"];
+  eq(groupsOf(lsNames), ["Mushroom Cup", "Mushroom Cup", "Mushroom Cup", "Mushroom Cup", null, "Flower Cup", "Flower Cup"], "groups per split");
+  const shown = shownState({ ...demoState("mid"), segments: lsNames.map((name) => ({ name, pbMs: null, bestMs: null })), splits: lsNames.map(() => null), golds: lsNames.map(() => false) });
+  eq(shown.segments.map((x) => x.name), ["Mario Kart Stadium", "Water Park", "Sweet Sweet Canyon", "Thwomp Ruins", "Intermission", "Mario Circuit", "Toad Harbor"], "a state shows plain names");
+  eq(shownState(shown).segments.map((x) => x.group), shown.segments.map((x) => x.group), "showing twice changes nothing");
+  eq(groupedNames([{ group: "Mushroom Cup", names: ["A", "B"] }, { group: null, names: ["C"] }, { group: "Solo", names: ["D"] }]), ["-A", "{Mushroom Cup} B", "C", "D"], "writing groups (a group of one stays plain)");
+  eq(namesToGroups(groupedNames([{ group: "Shell Cup", names: ["X", "Y"] }, { group: null, names: ["Z"] }])), [{ group: "Shell Cup", names: ["X", "Y"] }, { group: null, names: ["Z"] }], "and back");
+
+  // Templates (picks 1-3): from our own game data.
+  const mk8 = templatesFor("Mario Kart 8 Deluxe")!;
+  eq(mk8.templates.map((t) => t.id), ["48-tracks", "nitro", "retro", "bonus", "booster", "96-tracks", "cup"], "MK8DX templates");
+  const t48 = buildTemplate(mk8.templates[0], { speed: "150cc", items: false });
+  eq([t48.count, t48.category, t48.names[0], t48.names[3]], [48, "48 Tracks · 150cc · No Items", "-Mario Kart Stadium", "{Mushroom Cup} Thwomp Ruins"], "48 Tracks: every track, cups as groups");
+  eq(new Set(buildTemplate(mk8.templates[5]).names.map(shownName)).size, 96, "96 Tracks: every name different (repeated tracks get their console)");
+  eq(buildTemplate(mk8.templates[5]).names.map(shownName).filter((n) => n.endsWith("Rainbow Road")), ["Rainbow Road", "N64 Rainbow Road", "SNES Rainbow Road", "3DS Rainbow Road", "Wii Rainbow Road"], "Rainbow Roads by console");
+  eq(buildTemplate(mk8.templates[0], { byCup: true }).names.slice(0, 3), ["Mushroom Cup", "Flower Cup", "Star Cup"], "one split a cup");
+  const oneCup = buildTemplate(mk8.templates[6], { cup: 13, items: true });
+  eq([oneCup.category, oneCup.names.map(shownName)], ["Lucky Cat Cup · Items", ["Tokyo Blur", "Shroom Ridge", "Sky Garden", "Ninja Hideaway"]], "one cup, picked");
+  eq([templatesFor("mkworld")?.templates[0].name, buildTemplate(templatesFor("mkworld")!.templates[0]).count], ["32 Tracks", 32], "Mario Kart World 32 Tracks");
+  eq(buildTemplate(templatesFor("mk64")!.templates[0]).count, 16, "Mario Kart 64 16 Tracks");
+  eq(buildTemplate(templatesFor("kar")!.templates[0]).count, 18, "Kirby Air Riders 18 courses");
+  const frlg = buildTemplate(templatesFor("Pokémon FireRed & LeafGreen")!.templates[0]);
+  eq([frlg.count, frlg.category, frlg.names.map(shownName).at(-1)], [13, "Any%", "Champion"], "Fire Red Any%");
+  const leaders = (frlgRun as { segments: { milestone?: { type?: string; leader?: string } }[] }).segments.filter((x) => x.milestone?.type === "gym").map((x) => x.milestone!.leader);
+  eq(FRLG_GYMS, leaders, "the Gym Leaders match the Fire Red run's data");
+  eq(templatesFor("Super Mario Odyssey"), null, "no list for other games");
+  eq(numberedSplits({ name: "Kingdom", from: 1, to: 3, last: "Bowser's Kingdom" }), ["Kingdom 1", "Kingdom 2", "Kingdom 3", "Bowser's Kingdom"], "the number builder");
+  eq([numberedSplits({ name: "", from: 1, to: 3 }), numberedSplits({ name: "W", from: 5, to: 2 }), numberedSplits({ name: "W", from: 1, to: 600 })], [null, null, null], "the builder refuses what can't be made");
+
+  // LiveSplit files (picks 4A, 5A).
+  eq([lssTime("00:08:00.1000000"), lssTime("1.02:03:04.5"), lssTime("nope")], [480_100, 93_784_500, null], "LiveSplit times");
+  const file = writeLss({ game: "Mario Kart 8 Deluxe", category: "48 Tracks · 150cc", names: t48.names.slice(0, 4).concat(["Fish & Chips <3"]) });
+  const back = readLss(file)!;
+  eq([back.game, back.category, back.attempts, back.segments.map((x) => x.name)], ["Mario Kart 8 Deluxe", "48 Tracks · 150cc", 0, [...t48.names.slice(0, 4), "Fish & Chips <3"]], "a written file reads back (names escaped)");
+  eq(back.segments.every((x) => x.pbMs === null && x.bestMs === null), true, "a template file has no times");
+  const timed = `<?xml version="1.0"?><Run version="1.7.0"><GameName>Super Mario Odyssey</GameName><CategoryName>Any%</CategoryName><AttemptCount>312</AttemptCount><Segments>
+    <Segment><Name>Cap</Name><SplitTimes><SplitTime name="Personal Best"><RealTime>00:03:10.5000000</RealTime></SplitTime></SplitTimes><BestSegmentTime><RealTime>00:03:05.0000000</RealTime></BestSegmentTime><SegmentHistory><Time id="1"><RealTime>00:09:00</RealTime></Time></SegmentHistory></Segment>
+    <Segment><Name>Cascade</Name><SplitTimes><SplitTime name="Personal Best"><GameTime>00:07:00.2500000</GameTime></SplitTime></SplitTimes><BestSegmentTime><RealTime>00:03:50.0000000</RealTime></BestSegmentTime></Segment>
+    <Segment><Name>Sand</Name><SplitTimes><SplitTime name="Personal Best" /></SplitTimes><BestSegmentTime /></Segment>
+  </Segments></Run>`;
+  const r = readLss(timed)!;
+  eq([r.game, r.category, r.attempts], ["Super Mario Odyssey", "Any%", 312], "a runner's file: game, category, attempts");
+  eq(r.segments, [{ name: "Cap", pbMs: 190_500, bestMs: 185_000 }, { name: "Cascade", pbMs: 420_250, bestMs: 415_000 }, { name: "Sand", pbMs: null, bestMs: null }], "PB splits, best segments added up, a split with none");
+  eq([readLss("<html></html>"), readLss("<Run><Segments></Segments></Run>")], [null, null], "not a splits file");
+  eq(lssFileName("Mario Kart 8 Deluxe", "48 Tracks: 150cc"), "Mario Kart 8 Deluxe - 48 Tracks 150cc.lss", "file name");
+  eq(cleanImportedRun({ segments: r.segments, game: r.game, category: r.category, attempts: r.attempts })?.segments.length, 3, "an imported run is taken");
+  eq([cleanImportedRun({ segments: [] }), cleanImportedRun({ segments: [{ name: "" }] }), cleanImportedRun(null)], [null, null, null], "an empty or nameless run is refused");
+  eq(cleanImportedRun({ segments: [{ name: "A", pbMs: -5, bestMs: "x" }], attempts: -2 }), { segments: [{ name: "A", pbMs: null, bestMs: null }], game: null, category: null, attempts: 0 }, "bad times become no time");
 
   console.log(`speedrun: ${pass} passed, ${fail} failed`);
   if (fail) process.exit(1);

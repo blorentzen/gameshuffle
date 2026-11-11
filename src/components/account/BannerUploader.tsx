@@ -16,6 +16,7 @@ import dynamic from "next/dynamic";
 import { Alert, Button } from "@empac/cascadeds";
 import { useToast } from "@/components/toast/ToastProvider";
 import { BannerGifControls, type BannerGifState } from "@/components/account/BannerGifEditor";
+import { fitPicture } from "@/lib/images/shrink";
 
 const BannerEditModal = dynamic(
   () => import("@/components/account/BannerEditModal").then((m) => m.BannerEditModal),
@@ -83,7 +84,8 @@ export function BannerUploader() {
     try {
       const fd = new FormData();
       fd.append("file", new File([blob], "banner.jpg", { type: "image/jpeg" }));
-      if (current?.mode === "new") fd.append("source", current.file);
+      // Both go in one request, which Vercel turns away over 4.5 MB: the original is made to fit beside the crop.
+      if (current?.mode === "new") fd.append("source", await fitPicture(current.file, Math.max(512 * 1024, 4 * 1024 * 1024 - blob.size - 64 * 1024)));
       const res = await fetch("/api/account/banner", { method: "POST", body: fd });
       const b = (await res.json().catch(() => ({}))) as {
         url?: string;

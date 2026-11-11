@@ -8,6 +8,7 @@ import "server-only";
  * card shows a Champion from each region.
  */
 
+import { symbolFonts } from "@/lib/og/symbolFonts";
 import { ImageResponse } from "next/og";
 import type { ReactNode } from "react";
 import { fieldSvg, fonts, logo, OG_SIZE, svgUri } from "@/lib/og/eventCard";
@@ -55,6 +56,7 @@ async function frame(o: { title: string; sub?: string | null; foot: ReactNode; p
         { name: "Gabarito", data: gabarito, weight: 700, style: "normal" },
         { name: "Outfit", data: outfit500, weight: 500, style: "normal" },
         { name: "Outfit", data: outfit600, weight: 600, style: "normal" },
+        ...(await symbolFonts()),
       ],
       headers: { "Cache-Control": "public, max-age=600, s-maxage=3600, stale-while-revalidate=86400" },
     },

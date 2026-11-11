@@ -11,6 +11,8 @@ import type { NextConfig } from "next";
  */
 const VIDEO_LINKS: [code: string, page: string][] = [
   ["dex", "/daily-dex"],
+  // The speedrun overlay (launch picks 2026-11-10): /speedrun is the page and /run the OBS overlay, so videos say /splits.
+  ["splits", "/speedrun"],
   ["duel", "/daily-duel"],
   ["road", "/pokemon-trainers"],
   ["shuffle", "/daily"],

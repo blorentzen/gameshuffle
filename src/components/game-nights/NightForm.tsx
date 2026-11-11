@@ -13,6 +13,7 @@ import { useToast } from "@/components/toast/ToastProvider";
 import { EVENTS, track } from "@/lib/analytics/events";
 import { NIGHT_KINDS, type GameNight, type NightGame, type NightKind } from "@/lib/game-nights/types";
 import { useConfirm } from "@/components/confirm/ConfirmProvider";
+import { fitPicture } from "@/lib/images/shrink";
 
 /** ISO → a `datetime-local` value in the viewer's local time. */
 function toLocalInput(iso: string): string {
@@ -98,7 +99,7 @@ export function NightForm({
       setSaveState("saving");
       try {
         const fd = new FormData();
-        fd.append("file", file);
+        fd.append("file", await fitPicture(file));
         const cr = await fetch(`/api/game-nights/${nightId}/cover`, { method: "POST", body: fd });
         setSaveState(cr.ok ? "saved" : "error");
         if (!cr.ok) toast.error("Couldn't upload the cover.");
@@ -254,7 +255,7 @@ export function NightForm({
       if (savedId && coverFile) {
         try {
           const fd = new FormData();
-          fd.append("file", coverFile);
+          fd.append("file", await fitPicture(coverFile));
           const cr = await fetch(`/api/game-nights/${savedId}/cover`, { method: "POST", body: fd });
           if (!cr.ok) toast.info("Night saved. The cover image couldn't be uploaded.");
         } catch { toast.info("Night saved. The cover image couldn't be uploaded."); }

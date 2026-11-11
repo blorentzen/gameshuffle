@@ -148,3 +148,14 @@ test("ignores what isn't JSON or isn't a reply", async () => {
   assert.deepEqual(await a, { ok: true, value: null });
   await flush();
 });
+
+test("the LiveSplit add-on's info message goes to onInfo and never takes a reply's place", async () => {
+  const infos: Record<string, unknown>[] = [];
+  const client = new LsoClient({ send: () => {}, onEvent: () => {}, onInfo: (i) => infos.push(i), clock: new FakeClock() });
+  const a = client.request({ command: "getCurrentState" });
+  client.handle(JSON.stringify({ gameshuffle: { v: 1, addon: "1.0.0", game: "Super Mario Odyssey", attempts: 42 } }));
+  client.handle(STATE);
+  assert.deepEqual(await a, { ok: true, value: { state: "Running", index: 1 } });
+  assert.equal(infos.length, 1);
+  assert.equal(infos[0].game, "Super Mario Odyssey");
+});

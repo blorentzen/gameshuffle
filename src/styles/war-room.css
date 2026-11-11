@@ -80,7 +80,7 @@ html.dark body:has(.wr-app) { background: #05070b; }
 .wr-alert { margin: 0; border-radius: 1rem; padding: 1rem 1.2rem; font-size: var(--font-size-14); background: #2a1416; border: 1px solid #5a2228; color: #ffd0d2; }
 .wr-alert b { color: #fff; }
 .wr-board { position: relative; }
-.wr-places { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: .8rem; }
+.wr-places { display: grid; grid-template-columns: repeat(var(--wr-cols, 6), minmax(0, 1fr)); gap: .8rem; }
 .wr-place { position: relative; min-height: 7.2rem; border-radius: 1.2rem; background: var(--wr-tile); border: 1px solid var(--wr-line); color: var(--wr-soft); display: grid; justify-items: center; align-content: center; gap: .4rem; padding: .6rem .2rem; cursor: pointer; font: inherit; }
 .wr-place b { font: 800 var(--font-size-24)/1 "Gabarito", sans-serif; }
 .wr-place:hover:not(:disabled) { border-color: #2a3a4c; }

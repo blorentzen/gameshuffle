@@ -83,16 +83,16 @@ function Pips({ diffs, total, fresh }: { diffs: number[]; total: number; fresh: 
   );
 }
 
-function Places({ spots, ours }: { spots: number[]; ours: boolean }) {
+/** The race's places with one team's lit: a row of the room's places, or two rows of 12 in a 24-player room. */
+function Places({ lit, room }: { lit: number[]; room: number }) {
   return (
-    <div className="wo__places" aria-hidden="true">
-      {Array.from({ length: 12 }, (_, i) => {
-        const lit = spots.includes(i + 1) === ours;
-        return <i key={i} className={lit ? "is-lit" : undefined}>{i + 1}</i>;
-      })}
+    <div className="wo__places" style={{ "--wo-cols": String(Math.min(room, 12)) } as CSSProperties} aria-hidden="true">
+      {Array.from({ length: room }, (_, i) => <i key={i} className={lit.includes(i + 1) ? "is-lit" : undefined}>{i + 1}</i>)}
     </div>
   );
 }
+
+const ordinal = (n: number) => `${n}${n % 10 === 1 && n !== 11 ? "st" : n % 10 === 2 && n !== 12 ? "nd" : n % 10 === 3 && n !== 13 ? "rd" : "th"}`;
 
 function Brand({ brand }: { brand: WarLook["brand"] }) {
   if (brand === "off") return null;
@@ -120,11 +120,13 @@ export function WarBoard({ war, look, pop = null, animate = false }: { war: WarL
     : winner ? `${teamName(winner)} win ${Math.max(left.total, right.total)} to ${Math.min(left.total, right.total)}` : `A tie, ${left.total} to ${right.total}`;
   let line: string;
   if (final) line = winner ? `${teamName(winner)} win` : war.status === "ended" ? "Ended" : "A tie";
-  else if (war.penalty) line = `${war.penalty.points} off ${teamName(sideTeam(war.penalty.side))}${war.penalty.reason ? ` (${war.penalty.reason})` : ""}`;
+  else if (war.penalty) line = `${war.penalty.points} off ${war.penalty.name ?? teamName(sideTeam(war.penalty.side))}${war.penalty.reason ? ` (${war.penalty.reason})` : ""}`;
   else if (caught) line = `${teamName(caught)} can't be caught`;
   else if (war.need) line = `${teamName(sideTeam(war.need.side))} need to average ${signed(war.need.avg)} a race`;
   else line = war.played ? "Level" : "Waiting for race 1";
-  const race = final ? `Final · ${war.racesTotal} races` : war.last ? `Race ${war.last.n} of ${war.racesTotal}${war.last.track ? ` · ${war.last.track}` : ""}` : `${war.racesTotal} races`;
+  // Several teams: where your team stands among them, since the board shows you against one of them.
+  const among = (war.teams ?? 2) > 2 && war.rank ? ` · ${ordinal(war.rank)} of ${war.teams}` : "";
+  const race = (final ? `Final · ${war.racesTotal} races` : war.last ? `Race ${war.last.n} of ${war.racesTotal}${war.last.track ? ` · ${war.last.track}` : ""}` : `${war.racesTotal} races`) + among;
 
   const { a, b } = accents(look);
   const [family, weight, style] = warFont(look);
@@ -148,7 +150,10 @@ export function WarBoard({ war, look, pop = null, animate = false }: { war: WarL
   // On a gold final the headline says who won, so the line steps aside; without the moment it carries the result.
   const lineEl = (!final && p.comeback) || (final && !gold) ? <span className={`wo__line${caught || final ? " is-gold" : ""}`}>{line}</span> : null;
   const raceEl = p.race ? <span className="wo__race">{race}</span> : null;
-  const places = p.places && war.last && !final ? <Places spots={war.last.spots} ours={!flip} /> : null;
+  const room = war.room ?? 12;
+  // Two teams: the other team's places are the rest (older feeds don't send them).
+  const theirs = war.last?.theirs ?? Array.from({ length: room }, (_, i) => i + 1).filter((x) => !war.last?.spots.includes(x));
+  const places = p.places && war.last?.spots.length && !final ? <Places lit={flip ? theirs : war.last.spots} room={room} /> : null;
   const pips = p.markers ? <Pips diffs={diffs} total={war.racesTotal} fresh={showPop} /> : null;
   const team = (t: WarLiveTeam, total: number, end: "l" | "r") => (
     <div className={`wo__team wo__team--${end}`}>

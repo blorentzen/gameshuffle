@@ -29,10 +29,12 @@ export function Face({ id, name, small = false }: { id: string; name: string; sm
 export const placeName = (p: number) => `${p}${p % 10 === 1 && p !== 11 ? "st" : p % 10 === 2 && p !== 12 ? "nd" : p % 10 === 3 && p !== 13 ? "rd" : "th"}`;
 
 /**
- * Twelve places as toggle buttons (aria-pressed). CascadeDS has no toggle grid (on its fix list), so these are plain
+ * The room's places as toggle buttons (aria-pressed): 12 for 6v6, fewer in a smaller room. CascadeDS has no toggle grid (on its fix list), so these are plain
  * buttons, like the bingo boards. `people` shows who tapped each place; `picked` marks the places chosen in a form.
  */
-export function PlaceGrid({ people = {}, picked, mine = null, clashes = [], onPick, label, disabled = false }: {
+export function PlaceGrid({ people = {}, picked, mine = null, clashes = [], onPick, label, disabled = false, room = 12 }: {
+  /** Players in the room. */
+  room?: number;
   people?: Record<number, { id: string; name: string }[]>;
   picked?: number[];
   mine?: number | null;
@@ -42,8 +44,9 @@ export function PlaceGrid({ people = {}, picked, mine = null, clashes = [], onPi
   disabled?: boolean;
 }) {
   return (
-    <div className="wr-places" role="group" aria-label={label}>
-      {Array.from({ length: 12 }, (_, i) => {
+    // Rows that come out even: 8 places in two rows of 4, 10 in two of 5, else rows of 6.
+    <div className="wr-places" role="group" aria-label={label} style={{ "--wr-cols": String(room <= 6 ? room : room === 8 ? 4 : room === 10 ? 5 : 6) } as React.CSSProperties}>
+      {Array.from({ length: room }, (_, i) => {
         const p = i + 1;
         const who = people[p] ?? [];
         const on = picked ? picked.includes(p) : who.length > 0;

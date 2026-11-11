@@ -14,6 +14,8 @@ import { idleState } from "@/lib/speedrun/rules";
 import { setupForOverlayToken, speedrunReady } from "@/lib/speedrun/store";
 import { SpeedrunOverlay } from "@/components/speedrun/SpeedrunOverlay";
 import type { SpeedrunLook } from "@/lib/speedrun/types";
+import { freeSpeedrunLook, speedrunPaidUsed } from "@/lib/speedrun/look";
+import { hasLooks } from "@/lib/support/looks";
 import "@/styles/speedrun.css";
 
 export const runtime = "nodejs";
@@ -30,7 +32,9 @@ export default async function RunObsPage({ params, searchParams }: { params: Pro
   if (!setup) notFound();
 
   const layout = sp.look === "column" || sp.look === "strip" ? sp.look : null;
-  const look: SpeedrunLook = layout ? { ...setup.look, layout } : setup.look;
+  const saved: SpeedrunLook = layout ? { ...setup.look, layout } : setup.look;
+  // Paid choices draw while the runner has GS Pro or Supporter looks; the saved look keeps them either way.
+  const look = speedrunPaidUsed(saved).length && !(await hasLooks(setup.userId).catch(() => false)) ? freeSpeedrunLook(saved) : saved;
   const relay = isLocalDev && typeof sp.relay === "string" && /^ws:\/\/localhost:\d{2,5}$/.test(sp.relay) ? sp.relay : env.wsUrl;
   const initial = idleState(setup.run, { game: setup.game, category: setup.category, attempt: setup.attempts });
   // Chat's prediction line, when the runner has it on (GS Pro is checked when one opens).

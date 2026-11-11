@@ -6,6 +6,7 @@ import { ULTIMATE, fighterColor } from "@/data/smash/ultimate";
 import type { ChatRoll, RollSlot } from "@/lib/twitch/chatRoll";
 import { OverlayShowcase, type ShowcasePiece } from "@/components/social/OverlayShowcase";
 import "../../../styles/overlay-showcase.css";
+import "../../../styles/speedrun.css";
 
 /**
  * /social/overlays: our real OBS overlay pieces on a 1280×720 "stream" with
@@ -15,6 +16,7 @@ import "../../../styles/overlay-showcase.css";
  *
  * Staff only in production; open on the dev server. Never in the sitemap or search.
  *   ?piece=<id>   one piece (ids below); without it, a list of links
+ *   &play=1       the speedrun pieces play their run (for the launch video) instead of holding one frame
  */
 
 export const metadata: Metadata = {
@@ -37,6 +39,8 @@ const PIECES: { id: ShowcasePiece; label: string }[] = [
   { id: "chaos", label: "Event banner: active modifier and open challenge" },
   { id: "picks_bans", label: "Picks & bans open banner" },
   { id: "time_trial", label: "Time trial: a live hour on Rainbow Road" },
+  { id: "speedrun", label: "Speedrun: Column, bets open on the PB" },
+  { id: "speedrun_strip", label: "Speedrun: Strip" },
 ];
 
 /** A viewer battle the way !gs-battle stores it: one fighter per player, the player's name as the detail line. */
@@ -66,7 +70,7 @@ function battleRoll(): ChatRoll {
   };
 }
 
-export default async function SocialOverlaysPage({ searchParams }: { searchParams: Promise<{ piece?: string }> }) {
+export default async function SocialOverlaysPage({ searchParams }: { searchParams: Promise<{ piece?: string; play?: string }> }) {
   if (process.env.NODE_ENV === "production" && !(await isStaffRequest())) notFound();
   const sp = await searchParams;
   const piece = PIECES.find((p) => p.id === sp.piece)?.id ?? null;
@@ -91,5 +95,5 @@ export default async function SocialOverlaysPage({ searchParams }: { searchParam
     );
   }
 
-  return <OverlayShowcase piece={piece} battle={piece === "battle" ? battleRoll() : null} />;
+  return <OverlayShowcase piece={piece} battle={piece === "battle" ? battleRoll() : null} play={sp.play === "1"} />;
 }

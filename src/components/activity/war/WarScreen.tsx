@@ -44,6 +44,10 @@ export function WarScreen({ view, act, failed }: { view: WarRoomView; act: Act; 
   }, [view]);
 
   const live = view.status === "live";
+  const several = view.teamsCount > 2;
+  const ordinal = (n: number) => `${n}${n % 10 === 1 && n !== 11 ? "st" : n % 10 === 2 && n !== 12 ? "nd" : n % 10 === 3 && n !== 13 ? "rd" : "th"}`;
+  // Several teams: the board shows you against the leader (or the team behind you when you lead); this lists them all.
+  const standings = several ? [...view.teams].map((t, i) => ({ t, i })).sort((a, b) => b.t.total - a.t.total || a.i - b.i).map(({ t }, k) => `${k + 1}. ${t.tag} ${t.total}`).join(" · ") : "";
   const line = live
     ? view.decided ? `${teamName(view.decided === "us" ? view.us : view.them)} can't be caught`
       : view.need ? `${teamName(view.need.side === "us" ? view.us : view.them)} need to average ${signed(view.need.avg)} a race`
@@ -65,7 +69,8 @@ export function WarScreen({ view, act, failed }: { view: WarRoomView; act: Act; 
         </div>
         {/* On the final, the heading below says who won, so the line steps aside. */}
         {live && <p className={`wr-score__line${view.decided ? " is-gold" : ""}`}>{line}</p>}
-        {live && view.race && <p className="wr-mini">Race {view.race.n}{view.race.track?.code ? ` · ${view.race.track.code}` : ""} · {view.race.count} of 6 in</p>}
+        {several && <p className="wr-mini">{ordinal(view.rank)} of {view.teamsCount} · {standings}</p>}
+        {live && view.race && view.tapsOn && <p className="wr-mini">Race {view.race.n}{view.race.track?.code ? ` · ${view.race.track.code}` : ""} · {view.race.count} of {view.size} in</p>}
       </section>
       {failed && <p className="wr-help" role="status">Reconnecting…</p>}
 
@@ -100,6 +105,22 @@ function RaceView({ view, act, moment }: { view: WarRoomView; act: Act; moment: 
     if (ok) await act({ action: "end", war: view.id });
   };
 
+  if (!view.tapsOn) {
+    // Several teams or a 24-player room: everyone's places are typed on the card (Add race), not tapped here.
+    return (
+      <div className="wr-race">
+        <p className="wr-muted">Race {race.n} goes in on the card in the channel: press Add race and type {view.teamsCount > 2 ? "every team's places" : "your team's places"}. The score here follows it.</p>
+        <div className="wr-actions">
+          {view.cardUrl && <Button variant="secondary" size="small" onClick={() => openLink(view.cardUrl!)}>Open the card</Button>}
+          {view.undo && <Button variant="ghost" size="small" iconBefore={IconArrowBackUp} onClick={() => void act({ action: "undo", war: view.id, n: view.undo })}>Undo race {view.undo}</Button>}
+          <Button variant="ghost" size="small" iconBefore={IconFlag} onClick={() => setModal("penalty")}>Penalty</Button>
+          <Button variant="ghost" size="small" iconBefore={IconPlayerStop} onClick={end}>End the war</Button>
+        </div>
+        <PenaltyModal open={modal === "penalty"} view={view} onClose={() => setModal(null)} onSave={async (side, points, reason, team) => { if (await act({ action: "penalty", war: view.id, side, points, reason, team })) setModal(null); }} />
+      </div>
+    );
+  }
+
   return (
     <div className="wr-race">
       <div className="wr-race__head">
@@ -108,7 +129,7 @@ function RaceView({ view, act, moment }: { view: WarRoomView; act: Act; moment: 
       </div>
       {clashNames.length > 0 && <p className="wr-alert" role="alert"><b>{clashNames.join(". ")}.</b> One of you pick again. Race {race.n} waits until the places are different.</p>}
       <div className={`wr-board${moment ? " is-landed" : ""}`}>
-        <PlaceGrid people={people} mine={race.mine} clashes={race.clashes} label={`Race ${race.n}: tap where you finished`} onPick={(p) => void act({ action: "tap", war: view.id, n: race.n, place: p })} disabled={!!moment} />
+        <PlaceGrid room={view.room} people={people} mine={race.mine} clashes={race.clashes} label={`Race ${race.n}: tap where you finished`} onPick={(p) => void act({ action: "tap", war: view.id, n: race.n, place: p })} disabled={!!moment} />
         {moment && (
           <div className="wr-moment" role="status">
             <span>Race {moment.n} is in</span>
@@ -118,7 +139,7 @@ function RaceView({ view, act, moment }: { view: WarRoomView; act: Act; moment: 
         )}
       </div>
       <div className="wr-wait">
-        <span>{race.waiting.length ? <>Waiting on {race.waiting.map((p, i) => <span key={p.id}>{i > 0 && (i === race.waiting.length - 1 ? " and " : ", ")}<span className="wr-wait__who"><Face id={p.id} name={p.name} small />{p.name}</span></span>)}</> : `${race.count} of 6 in. Tap your place to take it back.`}</span>
+        <span>{race.waiting.length ? <>Waiting on {race.waiting.map((p, i) => <span key={p.id}>{i > 0 && (i === race.waiting.length - 1 ? " and " : ", ")}<span className="wr-wait__who"><Face id={p.id} name={p.name} small />{p.name}</span></span>)}</> : `${race.count} of ${view.size} in. Tap your place to take it back.`}</span>
         <Button variant="secondary" size="small" onClick={() => setModal("fill")}>Fill in the rest</Button>
       </div>
       <div className="wr-actions">
@@ -130,8 +151,8 @@ function RaceView({ view, act, moment }: { view: WarRoomView; act: Act; moment: 
       <Modal isOpen={modal === "track"} onClose={() => setModal(null)} title={`Track for race ${race.n}`} size="large" className="wr-modal">
         <TrackPicker game={view.game} played={played} current={race.track?.id ?? null} onPick={async (id) => { if (await act({ action: "track", war: view.id, n: race.n, track: id })) setModal(null); }} />
       </Modal>
-      <FillModal open={modal === "fill"} n={race.n} tapped={race.taps.filter((t) => t.people.length === 1).map((t) => t.place)} onClose={() => setModal(null)} onAdd={async (places) => { if (await act({ action: "fill", war: view.id, n: race.n, places })) setModal(null); }} />
-      <PenaltyModal open={modal === "penalty"} view={view} onClose={() => setModal(null)} onSave={async (side, points, reason) => { if (await act({ action: "penalty", war: view.id, side, points, reason })) setModal(null); }} />
+      <FillModal open={modal === "fill"} n={race.n} size={view.size} room={view.room} tapped={race.taps.filter((t) => t.people.length === 1).map((t) => t.place)} onClose={() => setModal(null)} onAdd={async (places) => { if (await act({ action: "fill", war: view.id, n: race.n, places })) setModal(null); }} />
+      <PenaltyModal open={modal === "penalty"} view={view} onClose={() => setModal(null)} onSave={async (side, points, reason, team) => { if (await act({ action: "penalty", war: view.id, side, points, reason, team })) setModal(null); }} />
     </div>
   );
 }
@@ -198,24 +219,29 @@ function TrackPicker({ game, played, current, onPick }: { game: WarGame; played:
   );
 }
 
-function FillModal({ open, n, tapped, onClose, onAdd }: { open: boolean; n: number; tapped: number[]; onClose: () => void; onAdd: (places: number[]) => Promise<void> }) {
+const NUMBER_WORDS = ["", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten", "eleven", "twelve"];
+
+function FillModal({ open, n, size, room, tapped, onClose, onAdd }: { open: boolean; n: number; size: number; room: number; tapped: number[]; onClose: () => void; onAdd: (places: number[]) => Promise<void> }) {
   const [picked, setPicked] = useState<number[]>(tapped);
   const [busy, setBusy] = useState(false);
   const [wasOpen, setWasOpen] = useState(open);
   if (open !== wasOpen) { setWasOpen(open); if (open) setPicked(tapped); }
-  const toggle = (p: number) => setPicked((l) => (l.includes(p) ? l.filter((x) => x !== p) : l.length < 6 ? [...l, p].sort((a, b) => a - b) : l));
+  const toggle = (p: number) => setPicked((l) => (l.includes(p) ? l.filter((x) => x !== p) : l.length < size ? [...l, p].sort((a, b) => a - b) : l));
   return (
     <Modal isOpen={open} onClose={onClose} title={`Fill in race ${n}`} size="medium" className="wr-modal"
-      footer={<div className="wr-row"><Button variant="primary" loading={busy} disabled={picked.length !== 6} onClick={async () => { setBusy(true); await onAdd(picked); setBusy(false); }}>Add race {n}</Button><Button variant="ghost" onClick={onClose}>Cancel</Button></div>}>
-      <p className="wr-muted">Your team&apos;s six places. The taps so far are picked already.</p>
-      <PlaceGrid picked={picked} onPick={toggle} label={`Race ${n}: your team's places`} />
-      <p className="wr-help" aria-live="polite">{picked.length} of 6 picked{picked.length ? `: ${picked.join(", ")}` : ""}</p>
+      footer={<div className="wr-row"><Button variant="primary" loading={busy} disabled={picked.length !== size} onClick={async () => { setBusy(true); await onAdd(picked); setBusy(false); }}>Add race {n}</Button><Button variant="ghost" onClick={onClose}>Cancel</Button></div>}>
+      <p className="wr-muted">Your team&apos;s {NUMBER_WORDS[size] ?? size} places. The taps so far are picked already.</p>
+      <PlaceGrid room={room} picked={picked} onPick={toggle} label={`Race ${n}: your team's places`} />
+      <p className="wr-help" aria-live="polite">{picked.length} of {size} picked{picked.length ? `: ${picked.join(", ")}` : ""}</p>
     </Modal>
   );
 }
 
-function PenaltyModal({ open, view, onClose, onSave }: { open: boolean; view: WarRoomView; onClose: () => void; onSave: (side: "us" | "them", points: number, reason: string) => Promise<void> }) {
+function PenaltyModal({ open, view, onClose, onSave }: { open: boolean; view: WarRoomView; onClose: () => void; onSave: (side: "us" | "them", points: number, reason: string, team?: number) => Promise<void> }) {
   const [side, setSide] = useState<"us" | "them">("them");
+  // Several teams: any of them, by its number (the other team first, then yours, then the rest).
+  const [team, setTeam] = useState(1);
+  const several = view.teamsCount > 2;
   const [points, setPoints] = useState("15");
   const [reason, setReason] = useState("");
   const [busy, setBusy] = useState(false);
@@ -223,12 +249,16 @@ function PenaltyModal({ open, view, onClose, onSave }: { open: boolean; view: Wa
   const ok = Number.isInteger(n) && n >= 1 && n <= 200;
   return (
     <Modal isOpen={open} onClose={onClose} title="Penalty" size="small" className="wr-modal"
-      footer={<div className="wr-row"><Button variant="primary" loading={busy} disabled={!ok} onClick={async () => { setBusy(true); await onSave(side, n, reason); setBusy(false); }}>Take {ok ? n : ""} off</Button><Button variant="ghost" onClick={onClose}>Cancel</Button></div>}>
+      footer={<div className="wr-row"><Button variant="primary" loading={busy} disabled={!ok} onClick={async () => { setBusy(true); await (several ? onSave(team === 0 ? "us" : "them", n, reason, team) : onSave(side, n, reason)); setBusy(false); }}>Take {ok ? n : ""} off</Button><Button variant="ghost" onClick={onClose}>Cancel</Button></div>}>
       <div className="wr-field" role="group" aria-labelledby="wr-pen-team">
         <span id="wr-pen-team" className="wr-label">Which team</span>
         <div className="wr-row">
-          <Chip clickable selected={side === "them"} onClick={() => setSide("them")} label={teamName(view.them)} />
-          <Chip clickable selected={side === "us"} onClick={() => setSide("us")} label={teamName(view.us)} />
+          {several
+            ? [1, 0, ...view.teams.map((_, i) => i).slice(2)].map((i) => <Chip key={i} clickable selected={team === i} onClick={() => setTeam(i)} label={teamName(view.teams[i])} />)
+            : <>
+              <Chip clickable selected={side === "them"} onClick={() => setSide("them")} label={teamName(view.them)} />
+              <Chip clickable selected={side === "us"} onClick={() => setSide("us")} label={teamName(view.us)} />
+            </>}
         </div>
       </div>
       <div className="wr-field"><label htmlFor="wr-pen-pts" className="wr-label">Points off</label><Input id="wr-pen-pts" inputMode="numeric" value={points} onChange={(e) => setPoints(e.target.value.replace(/\D/g, "").slice(0, 3))} /></div>
@@ -274,21 +304,21 @@ function RacesView({ view, act }: { view: WarRoomView; act: Act }) {
               <tr key={r.n}>
                 <td>{r.n}</td>
                 <td>{r.track ? <><code>{r.track.code ?? ""}</code> {r.track.name}</> : <span className="wr-muted">None</span>}</td>
-                <td>{r.spots.join(", ")}</td>
+                <td>{r.spots.length ? r.spots.join(", ") : <span className="wr-muted">Points only</span>}</td>
                 <td className={r.diff > 0 ? "is-up" : r.diff < 0 ? "is-down" : ""}>{signed(r.diff)}</td>
                 <td>{signed(r.lead)}</td>
-                <td><Button variant="ghost" size="small" onClick={() => setFix(r.n)} aria-label={`Fix race ${r.n}`}>Fix</Button></td>
+                <td>{view.teamsCount === 2 && <Button variant="ghost" size="small" onClick={() => setFix(r.n)} aria-label={`Fix race ${r.n}`}>Fix</Button>}</td>
               </tr>
             ))}
           </tbody>
         </table>
       </div>
       <div className="wr-pens">
-        {view.penalties.length > 0 && <p>Penalties: {view.penalties.map((p) => `${p.points} off ${p.side === "us" ? view.us.tag : view.them.tag}${p.reason ? ` (${p.reason})` : ""}`).join(" · ")}</p>}
+        {view.penalties.length > 0 && <p>Penalties: {view.penalties.map((p) => `${p.points} off ${view.teams[p.team]?.tag ?? view.them.tag}${p.reason ? ` (${p.reason})` : ""}`).join(" · ")}</p>}
         {view.status !== "ended" && <Button variant="ghost" size="small" iconBefore={IconFlag} onClick={() => setPen(true)}>Add a penalty</Button>}
       </div>
       {race && <FixModal key={race.n} view={view} race={race} played={played} onClose={() => setFix(null)} act={act} />}
-      <PenaltyModal open={pen} view={view} onClose={() => setPen(false)} onSave={async (side, points, reason) => { if (await act({ action: "penalty", war: view.id, side, points, reason })) setPen(false); }} />
+      <PenaltyModal open={pen} view={view} onClose={() => setPen(false)} onSave={async (side, points, reason, team) => { if (await act({ action: "penalty", war: view.id, side, points, reason, team })) setPen(false); }} />
     </div>
   );
 }
@@ -298,7 +328,7 @@ function FixModal({ view, race, played, onClose, act }: { view: WarRoomView; rac
   const [track, setTrack] = useState<string | null>(race.track?.id ?? null);
   const [pickTrack, setPickTrack] = useState(false);
   const [busy, setBusy] = useState(false);
-  const toggle = (p: number) => setPicked((l) => (l.includes(p) ? l.filter((x) => x !== p) : l.length < 6 ? [...l, p].sort((a, b) => a - b) : l));
+  const toggle = (p: number) => setPicked((l) => (l.includes(p) ? l.filter((x) => x !== p) : l.length < view.size ? [...l, p].sort((a, b) => a - b) : l));
   const save = async () => {
     setBusy(true);
     const ok = await act({ action: "fix", war: view.id, n: race.n, places: picked, track });
@@ -307,9 +337,9 @@ function FixModal({ view, race, played, onClose, act }: { view: WarRoomView; rac
   };
   return (
     <Modal isOpen onClose={onClose} title={`Fix race ${race.n}`} size="large" className="wr-modal"
-      footer={<div className="wr-row"><Button variant="primary" loading={busy} disabled={picked.length !== 6} onClick={save}>Save race {race.n}</Button><Button variant="ghost" onClick={onClose}>Cancel</Button></div>}>
-      <PlaceGrid picked={picked} onPick={toggle} label={`Race ${race.n}: your team's places`} />
-      <p className="wr-help" aria-live="polite">{picked.length} of 6 picked</p>
+      footer={<div className="wr-row"><Button variant="primary" loading={busy} disabled={picked.length !== view.size} onClick={save}>Save race {race.n}</Button><Button variant="ghost" onClick={onClose}>Cancel</Button></div>}>
+      <PlaceGrid room={view.room} picked={picked} onPick={toggle} label={`Race ${race.n}: your team's places`} />
+      <p className="wr-help" aria-live="polite">{picked.length} of {view.size} picked</p>
       {pickTrack
         ? <TrackPicker game={view.game} played={played} current={track} onPick={(id) => { setTrack(id); setPickTrack(false); }} />
         : <Button variant="secondary" size="small" iconBefore={IconMap2} onClick={() => setPickTrack(true)}>{track ? "Change the track" : "Add the track"}</Button>}

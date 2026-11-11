@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { adoptClock, cleanSegments, clockMs, remoteStep, savedSegments, type RemoteClock } from "../src/remote";
+import { adoptClock, cleanSegments, clockMs, remoteStep, replacesSegments, savedSegments, type RemoteClock } from "../src/remote";
 import { emptyCore, rebased, started, type Core, type Segment } from "../src/state";
 
 // The same 4-split file as the state tests (PB 33:41.8, sum of best 33:06.9).
@@ -176,4 +176,14 @@ test("splits from the site are cleaned", () => {
   assert.equal(cleanSegments("x"), null);
   assert.equal(cleanSegments(Array.from({ length: 501 }, (_, i) => ({ name: `S${i}` }))), null);
   assert.equal(cleanSegments([{ name: "x".repeat(200) }])?.[0].name.length, 120);
+});
+
+test("the site's splits replace the relay's only when they should, and always on a run switch", () => {
+  const timed = [{ name: "A", pbMs: 1000, bestMs: 900 }, { name: "B", pbMs: 2000, bestMs: 1800 }];
+  const bare = timed.map((s) => ({ ...s, pbMs: null, bestMs: null }));
+  assert.equal(replacesSegments(timed, bare), false, "same names: the relay's times stay");
+  assert.equal(replacesSegments(bare, timed), true, "same names, times where the relay has none");
+  assert.equal(replacesSegments(timed, [{ name: "C", pbMs: null, bestMs: null }]), true, "a different list");
+  assert.equal(replacesSegments(timed, bare, true), true, "a run switch replaces even with the same names");
+  assert.equal(replacesSegments(timed, [], true), true, "and can clear them");
 });

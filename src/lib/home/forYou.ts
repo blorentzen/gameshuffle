@@ -32,7 +32,7 @@ import { catalogGame } from "@/data/game-catalog";
 import { getGameName } from "@/data/game-registry";
 import { getOwnerThemeVars } from "@/lib/theme/owner-theme";
 import { ttTrack, trackPath, type TtGame } from "@/lib/timeTrials/tracks";
-import { DAILY_DEX_PUBLIC, FIRE_ROUND_PUBLIC, ROAD_PUBLIC } from "@/lib/games-visibility";
+import { DAILY_DEX_PUBLIC, FIRE_ROUND_PUBLIC, ROAD_PUBLIC, SPEEDRUN_PUBLIC } from "@/lib/games-visibility";
 import { gsAddDays, gsDay, gsDayStart, gsHour, safeTimeZone, GS_TIME_ZONE } from "@/lib/time/gsClock";
 import { todayLive, type TodayLive } from "@/lib/home/dailyPulse";
 import { pickContext } from "./pickContext";
@@ -505,6 +505,8 @@ const SUGGESTIONS: (Suggestion & { for: Interest[]; skipIf?: StepCheck; when?: (
   { id: "jackbox", title: "Jackbox picker", line: "A game that fits your player count", href: "/game-nights/tools/jackbox-picker", for: ["home"], art: { kind: "cover", slug: "jackbox", name: "Jackbox Party Pack" } },
   { id: "mario-party", title: "Mario Party nights", line: "Boards, characters and house rules", href: "/randomizers/super-mario-party-jamboree", for: ["home"], art: { kind: "img", src: "https://cdn.empac.co/gameshuffle/images/mario-party-jamboree/mario-party-jamboree-hero.avif" } },
   { id: "daily-shuffle", title: "Daily Shuffle", line: "A two-minute puzzle", href: "/daily", for: ["home", "events", "stream"], skipIf: "daily", art: { kind: "icon", icon: "dice", tone: "violet" } },
+  // The speedrun overlay, for any game (launch picks 2026-11-10): streamers see it from the release.
+  { id: "speedrun", title: "Speedrun overlay", line: "Your splits on stream as you split", href: "/speedrun", for: ["stream"], when: () => SPEEDRUN_PUBLIC, art: { kind: "icon", icon: "clock", tone: "teal" } },
   { id: "break-mode", title: "Break mode", line: "Games for chat while you step away", href: "/account/streaming?tab=break-mode", for: ["stream"], art: { kind: "icon", icon: "coffee", tone: "teal" } },
   { id: "chat-brain", title: "Chat Brain", line: "Chat plays a survey board", href: "/account/streaming?tab=chat-brain", for: ["stream"], art: { kind: "icon", icon: "chat", tone: "magenta" } },
   { id: "swiss", title: "Swiss with deck lists", line: "For card game events", href: "/help/tournaments/swiss-and-deck-lists", for: ["events", "pokemon"], art: { kind: "icon", icon: "cards", tone: "orange" } },

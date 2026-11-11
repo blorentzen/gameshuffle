@@ -3,6 +3,7 @@
  * competitive app's black and ice. Drawn at twice the size; tags have fixed boxes so long ones end in "…".
  */
 
+import { symbolFonts } from "@/lib/og/symbolFonts";
 import "server-only";
 import { ImageResponse } from "next/og";
 import { fonts } from "@/lib/og/eventCard";
@@ -53,6 +54,7 @@ export async function renderLogoGrid(input: { server: string | null; logos: WarL
       { name: "Gabarito", data: gabarito, weight: 700, style: "normal" },
       { name: "Outfit", data: outfit500, weight: 500, style: "normal" },
       { name: "Outfit", data: outfit600, weight: 600, style: "normal" },
+      ...(await symbolFonts()),
     ],
   });
   return Buffer.from(await res.arrayBuffer());

@@ -20,6 +20,7 @@ import {
   type BackgroundKind,
   type BackgroundFit,
 } from "@/lib/profile/skin";
+import { fitPicture } from "@/lib/images/shrink";
 
 /** What each option does, in the words someone picking a wallpaper would use. */
 const FITS: { value: BackgroundFit; label: string; hint: string }[] = [
@@ -91,7 +92,8 @@ export function ProfileSkinEditor({ onChange, bare = false }: {
     setUploading(true);
     try {
       const fd = new FormData();
-      fd.append("file", file);
+      // Vercel turns away requests over 4.5 MB: a bigger picture is made smaller first.
+      fd.append("file", await fitPicture(file));
       const res = await fetch("/api/account/profile-skin", { method: "POST", body: fd });
       const j = await res.json().catch(() => null);
       if (res.ok && j?.url) setSkin((s) => ({ ...s, bg: { ...s.bg, kind: "image", image: j.url } }));

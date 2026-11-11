@@ -36,23 +36,53 @@ export default function Page() {
         <li><code>us</code>: your team&apos;s tag. The channel remembers it after the first war.</li>
         <li><code>game</code>: Mario Kart 8 Deluxe or Mario Kart World.</li>
         <li><code>entry</code>: one person adds each race, or everyone taps the place they finished.</li>
+        <li><code>format</code>: players a team, 6v6 to 2v2, or 12v12 in Mario Kart World. See Other team sizes below.</li>
+        <li><code>others</code>: more teams in the same room, their tags with spaces between, like <code>others: PBM</code>.</li>
+        <li><code>races</code>: how many races, 4 to 32. 12 when you leave it out.</li>
+        <li><code>continue</code>: carry over a war that&apos;s running in another bot. See Carrying a war over below.</li>
       </ul>
       <p>
-        The channel remembers the game and the entry too, so later wars only need <code>vs</code>. A
-        channel holds one war at a time. Anyone in the channel can score, and private replies only go to
-        whoever pressed.
+        The channel remembers the game, the entry, the team size and the race count too, so later wars
+        only need <code>vs</code>. A channel holds one war at a time. Anyone in the channel can score,
+        and private replies only go to whoever pressed.
       </p>
 
       <h2>How a war is scored</h2>
       <p>
-        A war is 12 races in a 12-player room, six players a side. Places score 15, 12, 10, 9, 8, 7, 6,
-        5, 4, 3, 2 and 1, so each race is worth 82 points. Your team&apos;s race score is the total of its
-        six places, and the other team gets the rest.
+        A 6v6 war is 12 races in a 12-player room, six players a side. Places score 15, 12, 10, 9, 8, 7,
+        6, 5, 4, 3, 2 and 1, so each race is worth 82 points. Your team&apos;s race score is the total of
+        its six places, and the other team gets the rest.
       </p>
       <p>
-        The card shows each race and the lead. One race can move the lead by 40 points at most, so once
-        a lead is bigger than that times the races left, the card says the war can&apos;t be caught. The
-        war ends on its own after race 12.
+        The card shows each race and the lead. In a 6v6, one race can move the lead by 40 points at most,
+        so once a lead is bigger than that times the races left, the card says the war can&apos;t be
+        caught. The war ends on its own after its last race.
+      </p>
+
+      <h3>Other team sizes</h3>
+      <ul>
+        <li>
+          <strong>Two teams of 2 to 5</strong>{" "}race in a room of just them: a 4v4 is an 8-player room.
+          Mario Kart 8 Deluxe rooms use Toad Bot&apos;s points: 4 players 5, 3, 2, 1; 6 players 7, 5, 4,
+          3, 2, 1; 8 players 10, 8, 6, 5, 4, 3, 2, 1; 10 players 12, 10, 8, 7, 6, 5, 4, 3, 2, 1. Mario
+          Kart World&apos;s points for rooms under 12 aren&apos;t written down anywhere we could check, so
+          those formats aren&apos;t on yet.
+        </li>
+        <li>
+          <strong>Several teams in one 12-player room:</strong> three teams of 4, four teams of 3 or six
+          teams of 2. Name the extra teams in <code>others</code>; the team size follows from how many
+          teams there are. Points are the usual 15 to 1.
+        </li>
+        <li>
+          <strong>Mario Kart World&apos;s 24-player rooms:</strong> 12v12, or several teams of 6, 4, 3 or
+          2. Places score 15, 12, 10, 9, 9, 8, 8, 7, 7, 6, 6, 6, 5, 5, 5, 4, 4, 4, 3, 3, 3, 2, 2 and 1.
+        </li>
+      </ul>
+      <p>
+        With several teams, the card shows the standings with each team&apos;s gap to the leader, the
+        race&apos;s places in each team&apos;s color, and a marker per race in the color of the team that
+        won it. &ldquo;Can&apos;t be caught&rdquo; and the overlay follow you against the leader, or
+        against the team right behind you when you lead.
       </p>
 
       <h3>One person adds each race</h3>
@@ -73,6 +103,15 @@ export default function Page() {
       <p>
         Fewer than six places are topped up with the last places, so <code>12378</code>{" "}counts 12th as
         your sixth. If more than one is filled in, the card says so. More than six keeps the best six.
+        Other team sizes work the same way with their own number of places.
+      </p>
+      <p>
+        With several teams, type one group of places per team, in the order the teams were named (yours,
+        then <code>vs</code>, then <code>others</code>), with spaces between groups:{" "}
+        <code>1269 347</code>{" "}is your team 1st, 2nd, 6th and 9th, the next team 3rd, 4th, 7th and
+        12th, and the last team the places left. You can always leave out the last team. A slash between
+        groups works too: <code>1 2 6 9 / 3 4 7 8</code>. In a 24-player room, put spaces or commas
+        between places (the shorthand would read 13 as 1st and 3rd), and a slash between teams.
       </p>
 
       <h3>Typing races with /race</h3>
@@ -97,7 +136,9 @@ export default function Page() {
       <p>
         Each player taps the place they finished on the card. Tap it again to take it back, or tap
         another place to move. If two players tap the same place, the race waits until one of them picks
-        again. The race goes in once six players have tapped six different places.{" "}
+        again. The race goes in once every player on the team has tapped a different place. Taps work in
+        two-team wars of up to 12 players; with several teams or in a 24-player room, races go in with
+        Add race.{" "}
         <strong>Fill in the rest</strong>{" "}opens the places form with the taps already in, for anyone
         who didn&apos;t tap. <strong>Track</strong>{" "}sets the race&apos;s track.
       </p>
@@ -109,18 +150,40 @@ export default function Page() {
       </p>
       <ul>
         <li><strong>Fix a race:</strong> change any race&apos;s places or track.</li>
-        <li><strong>Add a penalty:</strong> take 1 to 200 points off either team, with a reason shown on the card.</li>
+        <li><strong>Add a penalty:</strong> take 1 to 200 points off any team, with a reason shown on the card.</li>
         <li><strong>Make the table:</strong> see Tables below.</li>
         <li><strong>Overlay link:</strong> see The war overlay below.</li>
         <li><strong>Typed races:</strong> how <code>/race</code>{" "}reads lines in this server (see above).</li>
         <li>Switch between one person scoring and everyone tapping.</li>
-        <li><strong>End the war:</strong> stop before all 12 races are in.</li>
+        <li><strong>End the war:</strong> stop before all the races are in.</li>
       </ul>
       <p>
         After the last race, the card offers <strong>Make the table</strong>, <strong>Rematch</strong>,{" "}
         <strong>Overlay link</strong>{" "}and <strong>War page</strong>. The war page has the score, the
         lead race by race, every race and your table. Anyone with its link can open it, and search
         engines don&apos;t list it.
+      </p>
+
+      <h3>Carrying a war over from another bot</h3>
+      <p>
+        If a war is already running in Quaxly, Toad Bot, Kiwi or Sokuji, you can move it to GameShuffle
+        partway through without typing every race again. Right-click the other bot&apos;s score message
+        (long-press on a phone) and pick <strong>Apps &rsaquo; Continue in GameShuffle</strong>. On a
+        computer you can also select the score&apos;s text, copy it and paste it into{" "}
+        <code>/war vs: NOR continue: True</code>.
+      </p>
+      <p>
+        Only you see the check first: the teams, the score, every race and its track, and the penalties.{" "}
+        <strong>Fix a race</strong>{" "}opens it as text to change anything that was read wrong, like a
+        track the other bot showed only as an emoji. <strong>Continue here</strong>{" "}posts
+        GameShuffle&apos;s card with &ldquo;Continued from Quaxly after race 5&rdquo;; the other bot&apos;s
+        war is left as it is.
+      </p>
+      <p>
+        Quaxly, Kiwi and Sokuji&apos;s 6v6 scores hold every race&apos;s places, so the whole war comes
+        over. Toad Bot and Sokuji&apos;s smaller formats hold each race&apos;s points but not everyone&apos;s
+        places, so those races come over as points. No other bot says who finished where, so the War
+        room&apos;s player scores count only races tapped in GameShuffle.
       </p>
 
       <h2>Tables</h2>
@@ -145,6 +208,19 @@ export default function Page() {
         <strong>Swap teams</strong>{" "}when the teams may be the wrong way round. A posted table has{" "}
         <strong>Edit</strong>{" "}(for whoever made it, or anyone who manages the server) and{" "}
         <strong>Copy the text</strong>. Edit can also redraw the table in another layout.
+      </p>
+      <p>
+        When a team on the table has no logo yet, the check and the posted table offer{" "}
+        <strong>Add logos</strong>: an image box for each team without one. Save them for every table,
+        card and overlay in this server (under the team&apos;s tag and name), or put them on this table
+        only. In the text, a logo link can also go at the end of a team&apos;s line
+        (<code>KC - Kart Club https://…</code>) or in place of its tag, the way Ice Mario reads it. Links
+        to pictures in Discord or on MKCentral work; a Discord picture is copied in, since Discord&apos;s
+        links expire.
+      </p>
+      <p>
+        <code>/table show</code>{" "}posts one of the channel&apos;s tables again at the bottom of the
+        channel (start typing to find it); the old message stays where it is.
       </p>
 
       <h3>How tables look</h3>

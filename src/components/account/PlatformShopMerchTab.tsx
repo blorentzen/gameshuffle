@@ -29,6 +29,7 @@ import { formatPrice } from "@/lib/store/copy";
 import type { AdminListing, ListingPatch } from "@/lib/store/merchCatalog";
 import type { SyncSummary } from "@/lib/store/merchSync";
 import "@/styles/merch-admin.css";
+import { fitPicture } from "@/lib/images/shrink";
 
 const ERRORS: Record<string, string> = {
   not_ready: "Merch needs supabase/merch-m1.sql first.", not_configured: "PRINTFUL_API_TOKEN isn't set on this server.",
@@ -214,7 +215,8 @@ function ListingEditor({ listing, all, onClose, post }: { listing: AdminListing;
   const upload = async (file: File) => {
     setUploading(true);
     const form = new FormData();
-    form.set("file", file);
+    // Vercel turns away requests over 4.5 MB: a bigger photo is made smaller first.
+    form.set("file", await fitPicture(file));
     form.set("listingId", listing.id);
     const d = await fetch("/api/admin/shop/merch/photo", { method: "POST", body: form }).then((r) => r.json()).catch(() => null);
     setUploading(false);

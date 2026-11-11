@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Button, Container } from "@empac/cascadeds";
 import {
-  IconAward, IconBolt, IconBrandDiscord, IconBroadcast, IconChartBar, IconChecks, IconLayoutGrid, IconLayoutList,
+  IconAward, IconBolt, IconBrandDiscord, IconBroadcast, IconChartBar, IconChecks, IconClock, IconLayoutGrid, IconLayoutList,
   IconPlayerPlay, IconRosette, IconSparkles, IconUsers, type Icon,
 } from "@tabler/icons-react";
 import { DarkBand } from "@/components/marketing/DarkBand";
@@ -13,7 +13,8 @@ import { ResponsiveCarousel } from "@/components/layout/ResponsiveCarousel";
 import { CHAT_GAMES_GUIDE } from "@/data/chat-games";
 import { MarketingHeroCurve } from "@/components/marketing/MarketingHeroCurve";
 import { MarketingJsonLd } from "@/components/marketing/MarketingJsonLd";
-import { STREAMER_TOOLKIT } from "@/data/streamer-toolkit";
+import { streamerToolkit } from "@/data/streamer-toolkit";
+import { speedrunListed } from "@/lib/speedrun/listing";
 import { MarketingHeroField } from "@/components/marketing/MarketingHeroField";
 
 export const metadata: Metadata = {
@@ -32,14 +33,16 @@ export const metadata: Metadata = {
 
 /** The toolkit's CDS icon names as Tabler glyphs for the rows (RowPanel draws Tabler). */
 const TOOL_ICONS: Record<string, Icon> = {
-  bolt: IconBolt, "layout-list": IconLayoutList, rosette: IconRosette, "chart-bar": IconChartBar,
+  bolt: IconBolt, clock: IconClock, "layout-list": IconLayoutList, rosette: IconRosette, "chart-bar": IconChartBar,
   checks: IconChecks, users: IconUsers, sparkles: IconSparkles, "layout-grid": IconLayoutGrid, award: IconAward,
 };
 const TONES: RowTone[] = ["blue", "violet", "magenta", "orange", "teal", "green", "red"];
 /** Overlay pieces shown above the toolkit, from the chat games guide's own screenshots. */
 const SHOT_GAMES = ["Stream Bingo", "Live polls", "Trivia night", "Chat Brain"];
 
-export default function ForStreamersPage() {
+export default async function ForStreamersPage() {
+  // The speedrun overlay joins the toolkit once it's listed (launch picks 2026-11-10).
+  const STREAMER_TOOLKIT = streamerToolkit(await speedrunListed());
   const shots = SHOT_GAMES.map((name) => CHAT_GAMES_GUIDE.find((g) => g.name === name)).filter((g): g is NonNullable<typeof g> => !!g?.shot);
   return (
     <main style={{ background: "color-mix(in srgb, var(--text-primary) 4%, var(--surface-default))" }}>
@@ -118,7 +121,7 @@ export default function ForStreamersPage() {
             ))}
           </ResponsiveCarousel>
           <p className="strm-shots__more">
-            Overlay pieces as they look on stream. <Link href="/twitch-chat-games">See all 12 games chat can play</Link>
+            Overlay pieces as they look on stream. <Link href="/twitch-chat-games">See every game chat can play</Link>
           </p>
           <RowPanel across={false} rows={STREAMER_TOOLKIT.map((t, i) => ({
             key: t.title,

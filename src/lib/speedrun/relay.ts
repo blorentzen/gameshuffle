@@ -11,8 +11,8 @@ import "server-only";
  */
 
 import { speedrunEnv } from "./env";
-import { isRelayState } from "./rules";
-import type { RelaySegment, RelayState } from "./types";
+import { cleanTimerInfo, isRelayState } from "./rules";
+import type { RelaySegment, RelayState, TimerInfo } from "./types";
 
 const TIMEOUT_MS = 4000;
 
@@ -49,20 +49,22 @@ export async function relayAdmin(relayId: string, config: RelayConfig): Promise<
 }
 
 export type RelayStateResult =
-  | { ok: true; state: RelayState | null; overlays: number | null }
+  | { ok: true; state: RelayState | null; overlays: number | null; timer?: TimerInfo | null }
   | { ok: false; error: "unreachable" | "not_configured" };
 
 /** The runner's state from the relay (state null = the relay has nothing for this runner yet). */
 export async function relayState(relayId: string): Promise<RelayStateResult> {
   try {
     const res = await call(`/state/${relayId}`, { method: "GET" });
-    if (res.status === 404) return { ok: true, state: null, overlays: null };
+    if (res.status === 404) return { ok: true, state: null, overlays: null, timer: null };
     if (!res.ok) return { ok: false, error: "unreachable" };
     const body = (await res.json().catch(() => null)) as unknown;
     const wrapped = !!body && typeof body === "object" && "state" in (body as object);
     const state = wrapped ? (body as { state: unknown }).state : body;
     const overlays = wrapped && typeof (body as { overlays?: unknown }).overlays === "number" ? (body as { overlays: number }).overlays : null;
-    return { ok: true, state: isRelayState(state) ? state : null, overlays };
+    // GameShuffle for LiveSplit says who it is; LiveSplit One doesn't (older relays send no `timer` at all).
+    const timer = wrapped ? cleanTimerInfo((body as { timer?: unknown }).timer) : null;
+    return { ok: true, state: isRelayState(state) ? state : null, overlays, timer };
   } catch (e) {
     if ((e as Error).name === "SpeedrunConfigError") return { ok: false, error: "not_configured" };
     return { ok: false, error: "unreachable" };

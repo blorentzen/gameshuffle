@@ -1,18 +1,24 @@
 /**
  * The war card's picture (war tools walkthrough https://claude.ai/artifact/TGuceXNmWkKrh5BVpgJNBT, picked
- * 2026-10-31): both teams with their logos and totals, this race's 12 places with ours lit, a marker per race,
+ * 2026-10-31): both teams with their logos and totals, this race's places with ours lit, a marker per race,
  * and the comeback line ("Night Owls need to average +15 a race · 6 left", or who can't be caught). Black and
  * ice with the competitive app's checkered corner. Drawn at twice the size; every text has a fixed box.
+ *
+ * Other formats (team sizes picks 2026-11-10): the room's own places (two rows of 12 in a 24-player room). With
+ * several teams, standings with the gap to the leader replace the two scores, the race's places wear each team's
+ * color, and each race's marker the color of the team that won it.
  */
 
+import { symbolFonts } from "@/lib/og/symbolFonts";
 import "server-only";
 import type { ReactElement } from "react";
 import { ImageResponse } from "next/og";
 import sharp from "sharp";
 import { fonts, svgUri } from "@/lib/og/eventCard";
 import { trackTitle } from "@/lib/timeTrials/codes";
-import { raceScore, signed, standing, warTrack, type WarSide } from "./rules";
-import type { War, WarTeamRef } from "./store";
+import { signed, warTrack, type Standing, type WarSide } from "./rules";
+import { formatLabel, isDefaultFormat, placesOf, placePoints, pointsTable, raceWinner, roomOf, teamColor, teamScores } from "./format";
+import { warStanding, warTeams, type War, type WarTeamRef } from "./store";
 
 const S = 2;
 const u = (n: number) => n * S;
@@ -91,36 +97,99 @@ function Logo({ team, png, size = 36 }: { team: WarTeamRef; png: string | null; 
   );
 }
 
-function Pips({ diffs, total }: { diffs: number[]; total: number }) {
-  const gap = 4;
+/** A marker per race: won or lost (two teams), or the winning team's color (several). */
+function Pips({ colors, total }: { colors: (string | undefined)[]; total: number }) {
+  const gap = total > 16 ? 2 : 4;
   const w = (INNER - gap * (total - 1)) / total;
   return (
     <div style={{ display: "flex", width: u(INNER) }}>
-      {Array.from({ length: total }, (_, i) => {
-        const d = diffs[i];
-        const bg = d === undefined ? "rgba(255,255,255,0.08)" : d > 0 ? WIN : d < 0 ? LOSS : "#6c7a8a";
-        return <div key={i} style={{ width: u(w), height: u(7), borderRadius: u(4), background: bg, marginLeft: i ? u(gap) : 0 }} />;
-      })}
+      {Array.from({ length: total }, (_, i) => (
+        <div key={i} style={{ width: u(w), height: u(7), borderRadius: u(4), background: colors[i] ?? "rgba(255,255,255,0.08)", marginLeft: i ? u(gap) : 0 }} />
+      ))}
     </div>
   );
 }
 
-function Strip({ spots }: { spots: number[] }) {
+const TIE = "#6c7a8a";
+function pipColors(war: War, s: Standing): string[] {
+  if (war.format.teams === 2) return s.diffs.map((d) => (d > 0 ? WIN : d < 0 ? LOSS : TIE));
+  return [...war.races].sort((a, b) => a.n - b.n).map((r) => {
+    const t = raceWinner(r, war.game, war.format);
+    return t == null ? TIE : teamColor(t);
+  });
+}
+
+/** One row of places, or two rows of 12 in a 24-player room. `owner[k]` is the team at place k + 1 (-1: none). */
+function Strip({ owner, lit }: { owner: number[]; lit: (team: number) => string | null }) {
   const gap = 4;
-  const w = (INNER - gap * 11) / 12;
+  const per = owner.length > 12 ? 12 : owner.length;
+  const w = (INNER - gap * (per - 1)) / per;
+  const rows = Array.from({ length: Math.ceil(owner.length / per) }, (_, r) => owner.slice(r * per, (r + 1) * per));
   return (
-    <div style={{ display: "flex", width: u(INNER) }}>
-      {Array.from({ length: 12 }, (_, i) => {
-        const ours = spots.includes(i + 1);
-        return (
-          <div key={i} style={{ width: u(w), height: u(24), marginLeft: i ? u(gap) : 0, borderRadius: u(5), background: ours ? ICE : "rgba(255,255,255,0.06)", color: ours ? "#04121e" : "#6c8095", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "Gabarito", fontSize: u(12) }}>
-            {String(i + 1)}
-          </div>
-        );
-      })}
+    <div style={{ display: "flex", flexDirection: "column", width: u(INNER) }}>
+      {rows.map((list, r) => (
+        <div key={r} style={{ display: "flex", width: u(INNER), marginTop: r ? u(gap) : 0 }}>
+          {list.map((t, i) => {
+            const bg = t >= 0 ? lit(t) : null;
+            return (
+              <div key={i} style={{ width: u(w), height: u(24), marginLeft: i ? u(gap) : 0, borderRadius: u(5), background: bg ?? "rgba(255,255,255,0.06)", color: bg ? "#04121e" : "#6c8095", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "Gabarito", fontSize: u(12) }}>
+                {String(r * per + i + 1)}
+              </div>
+            );
+          })}
+        </div>
+      ))}
     </div>
   );
 }
+
+const stripHeight = (room: number) => (room > 12 ? 24 * 2 + 4 : 24);
+
+/** The team at each place of a race (-1 for a race that only has points). */
+function owners(war: War, race: War["races"][number]): number[] {
+  const room = roomOf(war.format);
+  const all = placesOf(race, war.format);
+  const out = Array.from({ length: room }, () => -1);
+  all?.forEach((list, t) => list.forEach((p) => { if (p >= 1 && p <= room) out[p - 1] = t; }));
+  return out;
+}
+
+/** Several teams: every team's total, best first, with its gap to the leader; yours lit. */
+function Standings({ war, s, logos }: { war: War; s: Standing; logos: (string | null)[] }) {
+  const teams = warTeams(war);
+  const two = teams.length > 6;
+  const colW = two ? (INNER - 24 - 8) / 2 : INNER - 24;
+  const rowsPer = Math.ceil(teams.length / (two ? 2 : 1));
+  const cols = two ? [s.order.slice(0, rowsPer), s.order.slice(rowsPer)] : [s.order];
+  const lead = s.totals[s.order[0]] ?? 0;
+  // Only picture logos here: a lettered tile at this size can't hold a tag, and the name is beside it anyway.
+  const slot = logos.some(Boolean) ? 26 : 0;
+  return (
+    <div style={{ display: "flex", width: u(INNER), padding: `${u(8)}px ${u(12)}px`, borderRadius: u(12), background: PANEL, border: `${u(1)}px solid rgba(140,200,240,0.14)` }}>
+      {cols.map((list, c) => (
+        <div key={c} style={{ display: "flex", flexDirection: "column", width: u(colW), marginLeft: c ? u(8) : 0 }}>
+          {list.map((t, i) => {
+            const rank = c * rowsPer + i + 1;
+            const gap = s.totals[t] - lead;
+            const ours = t === 0;
+            return (
+              <div key={t} style={{ display: "flex", alignItems: "center", width: u(colW), height: u(28), marginTop: i ? u(4) : 0, padding: `0 ${u(6)}px`, borderRadius: u(8), background: ours ? "rgba(140,200,240,0.12)" : "transparent" }}>
+                <Line text={String(rank)} width={16} size={13} color={SOFT} family="Gabarito" />
+                <div style={{ width: u(8), height: u(8), borderRadius: u(4), background: teamColor(t), marginRight: u(6), flexShrink: 0 }} />
+                {slot > 0 && (logos[t] ? <Logo team={teams[t]} png={logos[t]} size={20} /> : <div style={{ width: u(20), flexShrink: 0 }} />)}
+                <div style={{ display: "flex", marginLeft: slot ? u(6) : 0 }}><Line text={teamName(teams[t])} width={colW - 12 - 16 - 14 - slot - 44 - 44} size={13} /></div>
+                <Line text={String(s.totals[t])} width={44} size={15} family="Gabarito" align="right" />
+                <Line text={rank === 1 ? "" : signed(gap)} width={44} size={12} weight={500} color={SOFT} align="right" />
+              </div>
+            );
+          })}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+const standingsHeight = (teams: number) => 8 * 2 + Math.ceil(teams / (teams > 6 ? 2 : 1)) * 32 - 4 + 2;
 
 /** Over the total: the team's name, or its tag when the logo is a picture (a lettered logo already says the tag). */
 const label = (t: WarTeamRef, png: string | null) => (t.name && t.name !== t.tag ? t.name : png ? t.tag : "");
@@ -151,32 +220,52 @@ function ScoreRow({ war, us, them, pill, pillColor, logos }: { war: War; us: num
 }
 
 const GAME_LABEL: Record<War["game"], string> = { mk8dx: "Mario Kart 8 Deluxe", mkworld: "Mario Kart World" };
-const sideName = (war: War, side: WarSide) => teamName(side === "us" ? war.us : war.them);
+/** A side's name: yours, or `them` = the other team (two teams) or the standing's rival (several). */
+const sideName = (war: War, side: WarSide, s?: Standing) => teamName(side === "us" ? war.us : warTeams(war)[s?.rival ?? 1] ?? war.them);
 
 /** Who scored most when every race was tapped in by the players themselves. */
 export function topScorer(war: War): { name: string; points: number } | null {
   if (!war.races.length || war.races.some((r) => !r.players?.length)) return null;
+  const table = pointsTable(war.game, roomOf(war.format)) ?? [];
   const pts = new Map<string, { name: string; points: number }>();
   for (const r of war.races) {
     for (const p of r.players ?? []) {
       const now = pts.get(p.id) ?? { name: p.name, points: 0 };
-      now.points += [15, 12, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1][p.place - 1] ?? 0;
+      now.points += placePoints(table, p.place);
       pts.set(p.id, now);
     }
   }
   return [...pts.values()].sort((a, b) => b.points - a.points)[0] ?? null;
 }
 
+/** A race's swing for your team: against the other team, or against the rival with several teams. */
+const raceDiff = (war: War, r: War["races"][number], rival: number) => {
+  const sc = teamScores(r, war.game, war.format);
+  return (sc[0] ?? 0) - (sc[rival] ?? 0);
+};
+
 export interface WarPicture { png: Buffer; alt: string }
 
 /** `frame` (in card units, e.g. 600 × 315 for a link preview): draw the card centered on a box of that size. */
 export async function renderWarCard(war: War, opts: { frame?: { w: number; h: number } } = {}): Promise<WarPicture> {
-  const s = standing(war.races, war.penalties, war.racesTotal);
-  const logos = await Promise.all([logoPng(war.us.logo), logoPng(war.them.logo)]) as [string | null, string | null];
+  const s = warStanding(war);
+  const teams = warTeams(war);
+  const several = war.format.teams > 2;
+  const allLogos = await Promise.all(teams.map((t) => logoPng(t.logo, u(several ? 20 : 40))));
+  const logos = [allLogos[0] ?? null, allLogos[1] ?? null] as [string | null, string | null];
   const last = war.races[war.races.length - 1] ?? null;
   const over = war.status !== "live";
   const pillColor = s.diff > 0 ? { bg: "rgba(47,163,107,0.18)", fg: "#57d49a" } : s.diff < 0 ? { bg: "rgba(200,72,75,0.2)", fg: "#ff8f8f" } : { bg: "rgba(140,200,240,0.14)", fg: ICE };
-  const vs = `${teamName(war.us)} vs ${teamName(war.them)}`;
+  const vs = several ? formatLabel(war.format) : `${teamName(war.us)} vs ${teamName(war.them)}`;
+  const room = roomOf(war.format);
+  const fmtText = `${GAME_LABEL[war.game]} · ${formatLabel(war.format)} · ${war.racesTotal} races`;
+  // A two-team war of another size says so beside the race (several teams say it on the right).
+  const sizeTag = !several && !isDefaultFormat(war.format) ? ` · ${formatLabel(war.format)}` : "";
+  /** The scores in the middle: the two teams, or the standings. */
+  const scores = (pill: string, pc: { bg: string; fg: string }, us: number, them: number) => (several ? <Standings war={war} s={s} logos={allLogos} /> : <ScoreRow war={war} us={us} them={them} pill={pill} pillColor={pc} logos={logos} />);
+  const midH = several ? standingsHeight(teams.length) : 54;
+  const standingsAlt = () => s.order.map((t, i) => `${i + 1}. ${teams[t].tag} ${s.totals[t]}`).join(", ");
+  const pips = pipColors(war, s);
 
   let body: ReactElement;
   let h: number;
@@ -184,23 +273,31 @@ export async function renderWarCard(war: War, opts: { frame?: { w: number; h: nu
 
   if (over) {
     const winner = s.diff > 0 ? "us" : s.diff < 0 ? "them" : null;
-    const headline = war.status === "ended" && war.races.length < war.racesTotal
-      ? `Ended after race ${war.races.length}: ${winner ? `${sideName(war, winner)} led ${Math.max(s.us, s.them)} to ${Math.min(s.us, s.them)}` : `level at ${s.us}`}`
-      : winner ? `${sideName(war, winner)} won ${Math.max(s.us, s.them)} to ${Math.min(s.us, s.them)}` : `A tie, ${s.us} to ${s.them}`;
-    const best = war.races.length ? war.races.reduce((a, r) => (raceScore(r.spots).diff > raceScore(a.spots).diff ? r : a)) : null;
-    const bestText = best ? `Best race: race ${best.n}, ${signed(raceScore(best.spots).diff)}${best.track ? ` · ${trackLabelShort(war, best.track)}` : ""}` : "";
+    const lead = teams[s.order[0]];
+    const tiedTop = several && s.order.length > 1 && s.totals[s.order[0]] === s.totals[s.order[1]];
+    const headline = several
+      ? war.status === "ended" && war.races.length < war.racesTotal
+        ? `Ended after race ${war.races.length}: ${tiedTop ? `level at the top on ${s.totals[s.order[0]]}` : `${teamName(lead)} led with ${s.totals[s.order[0]]}`}`
+        : tiedTop ? `A tie at the top on ${s.totals[s.order[0]]}` : `${teamName(lead)} won with ${s.totals[s.order[0]]}`
+      : war.status === "ended" && war.races.length < war.racesTotal
+        ? `Ended after race ${war.races.length}: ${winner ? `${sideName(war, winner)} led ${Math.max(s.us, s.them)} to ${Math.min(s.us, s.them)}` : `level at ${s.us}`}`
+        : winner ? `${sideName(war, winner)} won ${Math.max(s.us, s.them)} to ${Math.min(s.us, s.them)}` : `A tie, ${s.us} to ${s.them}`;
+    const best = war.races.length ? war.races.reduce((a, r) => (raceDiff(war, r, s.rival) > raceDiff(war, a, s.rival) ? r : a)) : null;
+    const bestText = best ? `Best race: race ${best.n}, ${signed(raceDiff(war, best, s.rival))}${best.track ? ` · ${trackLabelShort(war, best.track)}` : ""}` : "";
     const top = topScorer(war);
-    h = PAD + 20 + 10 + 54 + 12 + 30 + 10 + 7 + 12 + 18 + PAD;
-    alt = `${vs}, final: ${war.us.tag} ${s.us}, ${war.them.tag} ${s.them}. ${headline}.${bestText ? ` ${bestText}.` : ""}${top ? ` Top scorer: ${top.name}, ${top.points}.` : ""}`;
+    h = PAD + 20 + 10 + midH + 12 + 30 + 10 + 7 + 12 + 18 + PAD;
+    alt = several
+      ? `${fmtText}, final: ${standingsAlt()}. ${headline}.${bestText ? ` ${bestText}.` : ""}${top ? ` Top scorer: ${top.name}, ${top.points}.` : ""}`
+      : `${vs}, final: ${war.us.tag} ${s.us}, ${war.them.tag} ${s.them}. ${headline}.${bestText ? ` ${bestText}.` : ""}${top ? ` Top scorer: ${top.name}, ${top.points}.` : ""}`;
     body = (
       <div style={{ display: "flex", flexDirection: "column", width: u(INNER) }}>
         <div style={{ display: "flex", width: u(INNER) }}>
-          <Line text={war.status === "done" ? `Final · ${war.racesTotal} races` : "Final"} width={INNER * 0.45} size={13} />
+          <Line text={(war.status === "done" ? `Final · ${war.racesTotal} races` : "Final") + sizeTag} width={INNER * 0.45} size={13} />
           <Line text={vs} width={INNER * 0.55} size={13} weight={500} color={SOFT} align="right" />
         </div>
-        <div style={{ display: "flex", marginTop: u(10) }}><ScoreRow war={war} us={s.us} them={s.them} pill={signed(s.diff)} pillColor={pillColor} logos={logos} /></div>
+        <div style={{ display: "flex", marginTop: u(10) }}>{scores(signed(s.diff), pillColor, s.us, s.them)}</div>
         <div style={{ display: "flex", marginTop: u(12) }}><Line text={headline} width={INNER} size={22} family="Gabarito" /></div>
-        <div style={{ display: "flex", marginTop: u(10) }}><Pips diffs={s.diffs} total={war.racesTotal} /></div>
+        <div style={{ display: "flex", marginTop: u(10) }}><Pips colors={pips} total={war.racesTotal} /></div>
         <div style={{ display: "flex", marginTop: u(12), width: u(INNER) }}>
           <Line text={bestText} width={INNER * 0.6} size={13} weight={500} color={SOFT} />
           <Line text={top ? `Top scorer: ${top.name}, ${top.points}` : ""} width={INNER * 0.4} size={13} weight={500} color={SOFT} align="right" />
@@ -208,40 +305,51 @@ export async function renderWarCard(war: War, opts: { frame?: { w: number; h: nu
       </div>
     );
   } else if (!last) {
-    h = PAD + 20 + 10 + 54 + 12 + 18 + 10 + 7 + PAD;
-    alt = `${vs} is on: ${GAME_LABEL[war.game]}, ${war.racesTotal} races. No races in yet.`;
+    h = PAD + 20 + 10 + midH + 12 + 18 + 10 + 7 + PAD;
+    alt = several
+      ? `${teams.map((t) => t.tag).join(", ")}: ${fmtText}. No races in yet.`
+      : `${vs} is on: ${GAME_LABEL[war.game]}${isDefaultFormat(war.format) ? "" : `, ${formatLabel(war.format)}`}, ${war.racesTotal} races. No races in yet.`;
     body = (
       <div style={{ display: "flex", flexDirection: "column", width: u(INNER) }}>
         <div style={{ display: "flex", width: u(INNER) }}>
-          <Line text={vs} width={INNER * 0.5} size={13} />
-          <Line text={`${GAME_LABEL[war.game]} · 6v6 · ${war.racesTotal} races`} width={INNER * 0.5} size={13} weight={500} color={SOFT} align="right" />
+          <Line text={several ? "Race 1 is next" : vs} width={INNER * 0.4} size={13} />
+          <Line text={fmtText} width={INNER * 0.6} size={13} weight={500} color={SOFT} align="right" />
         </div>
-        <div style={{ display: "flex", marginTop: u(10) }}><ScoreRow war={war} us={0} them={0} pill="Race 1" pillColor={{ bg: "rgba(140,200,240,0.14)", fg: ICE }} logos={logos} /></div>
+        <div style={{ display: "flex", marginTop: u(10) }}>{scores("Race 1", { bg: "rgba(140,200,240,0.14)", fg: ICE }, 0, 0)}</div>
         <div style={{ display: "flex", marginTop: u(12) }}><Line text={`Started by ${war.startedByName ?? "someone"}`} width={INNER} size={13} weight={500} color={SOFT} /></div>
-        <div style={{ display: "flex", marginTop: u(10) }}><Pips diffs={[]} total={war.racesTotal} /></div>
+        <div style={{ display: "flex", marginTop: u(10) }}><Pips colors={[]} total={war.racesTotal} /></div>
       </div>
     );
   } else {
-    const race = raceScore(last.spots);
+    const raceSwing = raceDiff(war, last, s.rival);
+    const pointsOnly = !last.spots.length;
     const comeback = s.decided
-      ? `${sideName(war, s.decided)} can't be caught: up ${Math.abs(s.diff)} with ${s.left === 1 ? "one race" : `${s.left} races`} left`
-      : s.need ? `${sideName(war, s.need.side)} need to average ${signed(s.need.avg)} a race · ${s.left} left` : `Level · ${s.left} left`;
+      ? `${sideName(war, s.decided, s)} can't be caught: up ${Math.abs(s.diff)} with ${s.left === 1 ? "one race" : `${s.left} races`} left`
+      : s.need ? `${sideName(war, s.need.side, s)} need to average ${signed(s.need.avg)} a race · ${s.left} left` : `Level · ${s.left} left`;
     const trackText = last.track ? ` · ${trackLabelLong(war, last.track)}` : "";
-    h = PAD + 20 + 10 + 54 + 12 + 24 + 10 + 18 + 10 + 7 + PAD;
-    alt = `After race ${last.n} of ${war.racesTotal}${trackText}: ${war.us.tag} ${s.us}, ${war.them.tag} ${s.them} (${signed(s.diff)}). ${war.us.tag} placed ${last.spots.join(", ")}, ${signed(race.diff)} this race. ${comeback}.`;
+    const owner = owners(war, last);
+    // Two teams: only your places lit, as always. Several: each team's in its color.
+    const lit = (t: number) => (several ? teamColor(t) : t === 0 ? ICE : null);
+    const raceScoresText = teamScores(last, war.game, war.format).map((v, t) => `${teams[t]?.tag} ${v}`).join(", ");
+    h = PAD + 20 + 10 + midH + 12 + (pointsOnly ? 24 : stripHeight(room)) + 10 + 18 + 10 + 7 + PAD;
+    alt = several
+      ? `After race ${last.n} of ${war.racesTotal}${trackText}: ${standingsAlt()}. This race: ${raceScoresText}. ${comeback}.`
+      : `After race ${last.n} of ${war.racesTotal}${trackText}: ${war.us.tag} ${s.us}, ${war.them.tag} ${s.them} (${signed(s.diff)}). ${pointsOnly ? `This race: ${raceScoresText}` : `${war.us.tag} placed ${last.spots.join(", ")}`}, ${signed(raceSwing)} this race. ${comeback}.`;
     body = (
       <div style={{ display: "flex", flexDirection: "column", width: u(INNER) }}>
         <div style={{ display: "flex", width: u(INNER) }}>
-          <Line text={`Race ${last.n} of ${war.racesTotal}${trackText}`} width={INNER * 0.6} size={13} />
+          <Line text={`Race ${last.n} of ${war.racesTotal}${sizeTag}${trackText}`} width={INNER * 0.6} size={13} />
           <Line text={vs} width={INNER * 0.4} size={13} weight={500} color={SOFT} align="right" />
         </div>
-        <div style={{ display: "flex", marginTop: u(10) }}><ScoreRow war={war} us={s.us} them={s.them} pill={signed(s.diff)} pillColor={pillColor} logos={logos} /></div>
-        <div style={{ display: "flex", marginTop: u(12) }}><Strip spots={last.spots} /></div>
+        <div style={{ display: "flex", marginTop: u(10) }}>{scores(signed(s.diff), pillColor, s.us, s.them)}</div>
+        <div style={{ display: "flex", marginTop: u(12) }}>
+          {pointsOnly ? <Line text={`Points only (carried over): ${raceScoresText}`} width={INNER} size={13} weight={500} color={SOFT} /> : <Strip owner={owner} lit={lit} />}
+        </div>
         <div style={{ display: "flex", marginTop: u(10), width: u(INNER) }}>
-          <Line text={`${signed(race.diff)} this race`} width={110} size={13} color={race.diff > 0 ? "#57d49a" : race.diff < 0 ? "#ff8f8f" : SOFT} />
+          <Line text={`${signed(raceSwing)} this race`} width={110} size={13} color={raceSwing > 0 ? "#57d49a" : raceSwing < 0 ? "#ff8f8f" : SOFT} />
           <Line text={comeback} width={INNER - 110} size={13} weight={500} color={s.decided ? "#f2c14e" : "#c9d6e1"} align="right" />
         </div>
-        <div style={{ display: "flex", marginTop: u(10) }}><Pips diffs={s.diffs} total={war.racesTotal} /></div>
+        <div style={{ display: "flex", marginTop: u(10) }}><Pips colors={pips} total={war.racesTotal} /></div>
       </div>
     );
   }
@@ -263,6 +371,7 @@ export async function renderWarCard(war: War, opts: { frame?: { w: number; h: nu
       { name: "Gabarito", data: gabarito, weight: 700, style: "normal" },
       { name: "Outfit", data: outfit500, weight: 500, style: "normal" },
       { name: "Outfit", data: outfit600, weight: 600, style: "normal" },
+      ...(await symbolFonts()),
     ],
   });
   return { png: Buffer.from(await res.arrayBuffer()), alt: alt.slice(0, 1000) };

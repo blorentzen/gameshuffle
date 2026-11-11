@@ -7,6 +7,7 @@
  * (a lounge room's free-for-all) is a plain list. Drawn at twice the size; names have fixed boxes and end in "…".
  */
 
+import { symbolFonts } from "@/lib/og/symbolFonts";
 import "server-only";
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
@@ -18,7 +19,7 @@ import { logoPng } from "./card";
 import { flagPng } from "./flags";
 import { tagColor } from "./look";
 import { logoColor } from "./teamColor";
-import { placesOf, teamTotal, type TableModel, type TablePlayer, type TableTeam } from "./table";
+import { byScore, placesOf, teamTotal, type TableModel, type TablePlayer, type TableTeam } from "./table";
 import { DEFAULT_TABLE_LOOK, contrast, frameColors, tableColors, type TableFont, type TableLook } from "./tableLook";
 
 const S = 2;
@@ -104,7 +105,8 @@ function resultLine(teams: Team[], i: number): string {
   return `${placeName(place)} · ${best - me} behind`;
 }
 
-export async function renderTable(model: TableModel, opts: TableDrawOptions): Promise<TablePicture> {
+export async function renderTable(typed: TableModel, opts: TableDrawOptions): Promise<TablePicture> {
+  const model = byScore(typed);
   const look = opts.look ?? DEFAULT_TABLE_LOOK;
   const light = look.light;
   const frame = frameColors(look);
@@ -113,7 +115,8 @@ export async function renderTable(model: TableModel, opts: TableDrawOptions): Pr
   const places = placesOf(model);
 
   // Logos and each team's color: the card's (or the text's #hex), else the logo's, else the lettered tile's.
-  const urls = shown.map((t) => opts.logos[t.tag.toLowerCase()] ?? null);
+  // A logo given in the table's own text wins over the server's, the team card's and MKCentral's.
+  const urls = shown.map((t) => t.logo ?? opts.logos[t.tag.toLowerCase()] ?? null);
   const picked = await Promise.all(urls.map((url, i) => (shown[i].color || !url ? null : logoColor(url).catch(() => null))));
   const colors = tableColors(shown.map((t, i) => ({ color: t.color ?? picked[i] ?? tagColor(t.tag), own: !!t.color })), light);
 
@@ -123,7 +126,7 @@ export async function renderTable(model: TableModel, opts: TableDrawOptions): Pr
   const W = layout === "list" ? 640 : layout === "sides" ? 880 : 860;
   const logoBig = layout === "stacked" ? Math.min(170, Math.max(64, maxRows * PITCH - 8)) : layout === "classic" ? Math.min(120, Math.max(56, maxRows * PITCH - 12)) : 64;
   // A team on a lettered tile (no logo) shows its name above its total, so it needs room for three lines there.
-  const named = (t: TableTeam) => layout !== "sides" && layout !== "list" && !!t.name && !opts.logos[t.tag.toLowerCase()];
+  const named = (t: TableTeam) => layout !== "sides" && layout !== "list" && !!t.name && !(t.logo ?? opts.logos[t.tag.toLowerCase()]);
   const blockH = (t: TableTeam) => Math.max(named(t) ? 3 : 2, t.players.length) * PITCH + (t.penalty ? 22 : 0);
   const pairs: TableTeam[][] = [];
   for (let i = 0; i < shown.length; i += 2) pairs.push(shown.slice(i, i + 2));
@@ -297,7 +300,7 @@ export async function renderTable(model: TableModel, opts: TableDrawOptions): Pr
     </div>
   );
 
-  const [[gabarito, outfit500, outfit600], display] = await Promise.all([fonts(), displayFont(look.font)]);
+  const [[gabarito, outfit500, outfit600], display, symbols] = await Promise.all([fonts(), displayFont(look.font), symbolFonts()]);
   const res = new ImageResponse(el, {
     width: u(W),
     height: u(h),
@@ -306,6 +309,8 @@ export async function renderTable(model: TableModel, opts: TableDrawOptions): Pr
       { name: "Gabarito", data: gabarito, weight: 700, style: "normal" },
       { name: "Outfit", data: outfit500, weight: 500, style: "normal" },
       { name: "Outfit", data: outfit600, weight: 600, style: "normal" },
+      // Names like "★Larryツ" (src/lib/og/symbolFonts.ts).
+      ...symbols,
     ],
   });
   const alt = `${model.title || vs}: ${teams.map((x) => `${x.t.name || x.t.tag} ${x.total} (${x.t.players.map((p) => `${p.name} ${p.score}`).join(", ")})`).join("; ")}.`;

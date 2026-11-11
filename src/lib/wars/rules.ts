@@ -16,6 +16,7 @@
 
 import { tracksByCode, trackCode } from "@/lib/timeTrials/codes";
 import { ttTracks, type TtTrack } from "@/lib/timeTrials/tracks";
+import { DEFAULT_FORMAT, swingFor, teamScores, type WarFormat } from "./format";
 
 export type WarGame = "mk8dx" | "mkworld";
 export type WarSide = "us" | "them";
@@ -42,7 +43,8 @@ export function raceScore(spots: readonly number[], room = ROOM): RaceScore {
   return { us, them: total - us, diff: us - (total - us) };
 }
 
-export type ReadSpots = { ok: true; spots: number[]; note: string | null } | { ok: false; error: string };
+/** A race's places as read: your team's, and with several teams (format.ts) the other teams' in the order they were named. */
+export type ReadSpots = { ok: true; spots: number[]; note: string | null; others?: number[][] } | { ok: false; error: string };
 
 const tidy = (text: string) => text.trim().replace(/[–—]/g, "-");
 
@@ -140,8 +142,13 @@ export interface WarRace {
   fixedBy?: string | null;
   /** When the team tapped their own places: who finished where. */
   players?: WarPlayer[];
+  /** Several teams in the room (format.ts): the other teams' places, in the order they were named. */
+  places?: number[][];
+  /** Only each team's points, no places: a race carried over from another bot that never had them. */
+  scores?: number[];
 }
-export interface WarPenalty { side: WarSide; points: number; reason: string; by: string; at: string }
+/** `team`: which team, for wars with several (0 = yours); two-team wars go by `side`. */
+export interface WarPenalty { side: WarSide; points: number; reason: string; by: string; at: string; team?: number }
 
 export interface Standing {
   us: number;
@@ -156,47 +163,72 @@ export interface Standing {
   decided: WarSide | null;
   /** What the side behind needs to average a race to pass (null when level, decided or over). */
   need: { side: WarSide; avg: number } | null;
+  /** Every team's total, in the order they were named (0 = yours). */
+  totals: number[];
+  /** Team numbers, highest total first. */
+  order: number[];
+  /** The team `them` means: the other team, or with several teams the leader (the team behind you when you lead). */
+  rival: number;
+  /** Your team's place in the standings. */
+  rank: number;
 }
 
-export function standing(races: readonly WarRace[], penalties: readonly WarPenalty[] = [], total = RACES): Standing {
+/** Which team a penalty is on: its own number with several teams, else by side. */
+export const penaltyTeam = (p: WarPenalty) => p.team ?? (p.side === "us" ? 0 : 1);
+
+/**
+ * Where the war stands. Two teams: your total against theirs, as always. Several teams: every team's total, and `us`
+ * against `them` = your team against the leader (or the team right behind you when you lead), which the card, the
+ * overlay and "can't be caught" follow.
+ */
+export function standing(races: readonly WarRace[], penalties: readonly WarPenalty[] = [], total = RACES, game: WarGame = "mk8dx", fmt: WarFormat = DEFAULT_FORMAT): Standing {
   const sorted = [...races].sort((a, b) => a.n - b.n);
-  const scores = sorted.map((r) => raceScore(r.spots));
-  const penalty = {
-    us: penalties.filter((p) => p.side === "us").reduce((a, p) => a + p.points, 0),
-    them: penalties.filter((p) => p.side === "them").reduce((a, p) => a + p.points, 0),
-  };
-  const us = scores.reduce((a, s) => a + s.us, 0) - penalty.us;
-  const them = scores.reduce((a, s) => a + s.them, 0) - penalty.them;
+  const scores = sorted.map((r) => teamScores(r, game, fmt));
+  const pen = Array.from({ length: fmt.teams }, () => 0);
+  for (const p of penalties) { const t = penaltyTeam(p); if (t < pen.length) pen[t] += p.points; }
+  const totals = pen.map((x, i) => scores.reduce((a, s) => a + (s[i] ?? 0), 0) - x);
+  const order = totals.map((_, i) => i).sort((a, b) => totals[b] - totals[a] || a - b);
+  const rival = fmt.teams === 2 ? 1 : order[0] === 0 ? order[1] : order[0];
+  const us = totals[0];
+  const them = totals[rival];
   const diff = us - them;
   const played = sorted.length;
   const left = Math.max(0, total - played);
   const lead = Math.abs(diff);
   const ahead: WarSide | null = diff > 0 ? "us" : diff < 0 ? "them" : null;
-  const decided = ahead && (left === 0 || lead > maxSwing() * left) ? ahead : null;
+  const decided = ahead && (left === 0 || lead > swingFor(game, fmt) * left) ? ahead : null;
   const need = ahead && !decided && left > 0 ? { side: (ahead === "us" ? "them" : "us") as WarSide, avg: Math.ceil((lead + 1) / left) } : null;
-  return { us, them, diff, diffs: scores.map((s) => s.diff), played, left, penalty, decided, need };
+  return {
+    us, them, diff, diffs: scores.map((s) => (s[0] ?? 0) - (s[rival] ?? 0)), played, left, penalty: { us: pen[0], them: pen[rival] }, decided, need,
+    totals, order, rival, rank: order.indexOf(0) + 1,
+  };
 }
 
 export const signed = (n: number) => (n > 0 ? `+${n}` : String(n));
 
-/** One race line for the card: " 6: +16 | 1,2,3,7,9,11   SSC". */
-export function raceLine(r: WarRace, game: WarGame): string {
-  const s = raceScore(r.spots);
+/**
+ * One race line for the card: " 6: +16 | 1,2,3,7,9,11   SSC". A race carried over with only points:
+ * " 3: +10 | 46 : 36   MKS". Several teams: " 6: KC 38 · NOR 26 · PBM 18   SSC".
+ */
+export function raceLine(r: WarRace, game: WarGame, fmt: WarFormat = DEFAULT_FORMAT, tags: string[] = []): string {
   const track = r.track ? trackLabel(game, r.track) : "";
-  const places = r.spots.join(",");
-  return `${String(r.n).padStart(2)}: ${signed(s.diff).padStart(3)} | ${places.padEnd(14)} ${track}`.trimEnd();
+  const s = teamScores(r, game, fmt);
+  if (fmt.teams > 2) return `${String(r.n).padStart(2)}: ${s.map((v, i) => `${tags[i] ?? `Team ${i + 1}`} ${v}`).join(" · ")}   ${track}`.trimEnd();
+  const diff = s[0] - s[1];
+  const places = r.spots.length ? r.spots.join(",") : `${s[0]} : ${s[1]}`;
+  return `${String(r.n).padStart(2)}: ${signed(diff).padStart(3)} | ${places.padEnd(14)} ${track}`.trimEnd();
 }
 
 // ── Places in a button id (12 bits as three hex digits) ──────────────────────────────────────────
 
 export function spotsCode(spots: readonly number[]): string {
-  const mask = spots.reduce((m, p) => m | (1 << (p - 1)), 0);
+  const mask = spots.reduce((m, p) => m + 2 ** (p - 1), 0);
   return mask.toString(16).padStart(3, "0");
 }
-export function spotsFromCode(code: string): number[] {
+export function spotsFromCode(code: string, room = ROOM): number[] {
   const mask = parseInt(code, 16);
   if (!Number.isFinite(mask)) return [];
-  return Array.from({ length: ROOM }, (_, i) => i + 1).filter((p) => mask & (1 << (p - 1)));
+  return Array.from({ length: room }, (_, i) => i + 1).filter((p) => Math.floor(mask / 2 ** (p - 1)) % 2 === 1);
 }
 
 /** Six different places from the team's taps, or null until there are six. */

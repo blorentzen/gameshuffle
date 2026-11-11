@@ -4,7 +4,7 @@
  * row. Add a switch here when code starts reading a new flag. Client-safe.
  */
 
-export type SwitchGroup = "Shop" | "Events" | "Circuit" | "Sign-in" | "Support" | "Discord";
+export type SwitchGroup = "Shop" | "Events" | "Circuit" | "Sign-in" | "Support" | "Discord" | "Streaming";
 
 export interface SwitchDef {
   key: string;
@@ -20,6 +20,12 @@ export interface SwitchDef {
 }
 
 export const SWITCHES: SwitchDef[] = [
+  {
+    key: "speedrun_listed", group: "Streaming", name: "Speedrun overlay in the menus",
+    description: "Speedrun launch (picks 2026-11-10): /speedrun is live and in search from the release; this lists it in the Stream menu, the footer, the For streamers pages and the chat games guide. Off for the quiet week while the first runners try it.",
+    turnOn: "The speedrun overlay shows in the Stream menu, the footer, the For streamers pages and the chat games guide.",
+    turnOff: "The speedrun overlay leaves the menus and guides. /speedrun still works for anyone with the link.",
+  },
   {
     key: "shop_open", group: "Shop", name: "Shop open to everyone",
     description: "Off: visitors can't buy (they get the Coming soon page if that switch is on, else page not found), and staff see the full shop. On: anyone can buy.",

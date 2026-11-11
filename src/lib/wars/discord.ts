@@ -14,8 +14,9 @@ import { SITE_URL } from "@/lib/seo";
 import { COMP_COLOR } from "@/lib/discord/ttPanel";
 import { compRest, compRestFile } from "@/lib/discord/compRest";
 import { renderWarCard } from "./card";
-import { placeName, raceLine, TEAM, tapClashes, trackLabel } from "./rules";
-import { getWar, pendingTrack, setCard, shownNotes, warChannel, type War } from "./store";
+import { penaltyTeam, placeName, raceLine, tapClashes, trackLabel } from "./rules";
+import { roomOf } from "./format";
+import { getWar, pendingTrack, setCard, shownNotes, tapsFit, warChannel, warTeams, type War } from "./store";
 import { warPagePath } from "./page";
 import { getPlatformFlag } from "@/lib/platform/flags";
 
@@ -50,9 +51,11 @@ export function cardComponents(war: War, alt: string, opts: { room?: boolean } =
   const next = war.races.length + 1;
   const last = war.races[war.races.length - 1];
   const parts: unknown[] = [{ type: 12, items: [{ media: { url: "attachment://war.png" }, description: alt }] }];
-  if (war.races.length) parts.push(text("```\n" + war.races.map((r) => raceLine(r, war.game)).join("\n") + "\n```"));
+  const teams = warTeams(war);
+  const tags = teams.map((t) => t.tag);
+  if (war.races.length) parts.push(text("```\n" + war.races.map((r) => raceLine(r, war.game, war.format, tags)).join("\n") + "\n```"));
   const extra: string[] = [];
-  if (war.penalties.length) extra.push(`Penalties: ${war.penalties.map((p) => `${p.points} off ${p.side === "us" ? war.us.tag : war.them.tag}${p.reason ? ` (${p.reason})` : ""}`).join(" · ")}`);
+  if (war.penalties.length) extra.push(`Penalties: ${war.penalties.map((p) => `${p.points} off ${tags[penaltyTeam(p)] ?? "a team"}${p.reason ? ` (${p.reason})` : ""}`).join(" · ")}`);
   const notes = shownNotes(war).slice(-2);
   if (notes.length) extra.push(...notes);
   if (extra.length) parts.push(text(`-# ${extra.join("\n-# ")}`));
@@ -62,29 +65,31 @@ export function cardComponents(war: War, alt: string, opts: { room?: boolean } =
     options: [
       ...(war.races.length ? [{ label: "Fix a race", value: "fix", description: "Change a race's places or track" }] : []),
       ...(war.races.length ? [{ label: "Make the table", value: "table", description: "Players, scores, logos and your background" }] : []),
-      { label: "Add a penalty", value: "pen", description: "Points off either team" },
+      { label: "Add a penalty", value: "pen", description: teams.length > 2 ? "Points off any team" : "Points off either team" },
       { label: "Overlay link", value: "link", description: "The OBS link for this channel's wars" },
       { label: "Typed races", value: "typed", description: "How /race reads 12378, back or pen 15 here" },
-      ...(war.status === "live" ? [war.entry === "taps"
+      ...(war.status === "live" && (war.entry === "taps" || tapsFit(war)) ? [war.entry === "taps"
         ? { label: "One person scores", value: "entry", description: "Back to Add race for each race" }
         : { label: "Everyone taps their place", value: "entry", description: "Each player taps where they finished" }] : []),
       ...(war.status === "live" ? [{ label: "End the war", value: "end", description: "Stop before all the races are in" }] : []),
     ],
   };
 
-  if (war.status === "live" && war.entry === "taps") {
+  if (war.status === "live" && war.entry === "taps" && tapsFit(war)) {
+    const size = war.format.size;
+    const room = roomOf(war.format);
     const taps = war.taps.filter((t) => t.race === next);
     const clashes = tapClashes(taps);
     const track = pendingTrack(war, next);
     const waiting = waitingOn(war, next);
     const lines = [`**Race ${next}**${track ? ` · ${trackLabel(war.game, track)}` : ""} · tap where you finished`];
     if (clashes.length) lines.push(`${listNames(clashes.map((p) => `${placeName(p)}`))} tapped twice: tap again to change yours.`);
-    else lines.push(`${taps.length} of ${TEAM} in.${waiting.length && taps.length < TEAM ? ` Waiting on ${listNames(waiting.slice(0, TEAM - taps.length))}.` : ""}`);
+    else lines.push(`${taps.length} of ${size} in.${waiting.length && taps.length < size ? ` Waiting on ${listNames(waiting.slice(0, size - taps.length))}.` : ""}`);
     parts.push(text(lines.join("\n")));
     const holders = new Map<number, string[]>();
     for (const t of taps) holders.set(t.place, [...(holders.get(t.place) ?? []), t.name]);
-    for (let r = 0; r < 3; r++) {
-      parts.push(row(...Array.from({ length: 4 }, (_, i) => {
+    for (let r = 0; r * 4 < room; r++) {
+      parts.push(row(...Array.from({ length: Math.min(4, room - r * 4) }, (_, i) => {
         const p = r * 4 + i + 1;
         const who = holders.get(p);
         return btn(who ? `${placeName(p)} · ${who.join(", ")}` : placeName(p), `${WAR_PREFIX}tap:${id}:${next}:${p}`, who ? (who.length > 1 ? 4 : 3) : 2);
@@ -145,4 +150,8 @@ export async function overlayLinks(war: Pick<War, "guildId" | "channelId">): Pro
   return { setup: `${SITE_URL}/war-overlay/${ch.overlayToken}`, ours: base, theirs: `${base}?side=them` };
 }
 
-export const warTitle = (war: War) => `${teamName(war.us)} vs ${teamName(war.them)}`;
+/** "Kart Club vs Night Owls"; with more than three teams, their tags ("KC vs NOR vs PBM vs SNO"). */
+export const warTitle = (war: War) => {
+  const teams = warTeams(war);
+  return teams.length > 3 ? teams.map((t) => t.tag).join(" vs ") : teams.map(teamName).join(" vs ");
+};

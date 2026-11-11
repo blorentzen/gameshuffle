@@ -170,6 +170,27 @@ export const CHAT_GAMES_GUIDE: ChatGame[] = [
   },
 ];
 
+/**
+ * The speedrun prediction (launch picks 2026-11-10): joins the guide once the speedrun overlay is listed (the
+ * speedrun_listed switch), as game 13. No overlay picture yet.
+ */
+export const SPEEDRUN_CHAT_GAME: ChatGame = {
+  id: "bet-on-the-pb",
+  name: "Bet on the PB",
+  does: "Chat bets Arcade Tokens on whether your speedrun is a personal best. The bets open after your first split, lock after the split you pick and pay out when the run ends. Viewers can also ask for your PB, your pace and your splits.",
+  start: "By itself after your first split (GS Pro: turn it on in your speedrun setup)",
+  chat: "!bet pb 100",
+  chatNote: "or !bet no 100, plus !pb, !pace and !splits",
+  fits: "Speedrun streams in any game",
+  shot: "speedrun.webp",
+  shotAlt: "The speedrun overlay beside a game: a Super Mario Odyssey run three splits in with a gold split, 15 seconds ahead, and chat's bet showing 65% say PB, 5,810 tokens in, locking after Lake",
+  shotSize: [1200, 900],
+  help: { href: "/help/streaming/speedrun", label: "How the speedrun overlay works" },
+};
+
+/** The guide as shown: the speedrun game joins it once the speedrun overlay is listed. */
+export const chatGamesGuide = (speedrun: boolean): ChatGame[] => (speedrun ? [...CHAT_GAMES_GUIDE, SPEEDRUN_CHAT_GAME] : CHAT_GAMES_GUIDE);
+
 export const CHAT_GAMES_FAQ = [
   { q: "Do my viewers need an account?", a: "No. Everything here is played by typing in chat. A few games also let viewers tap their answer on your live page, which asks them to sign in with Twitch once." },
   { q: "Do I need to add a bot to my channel?", a: "GameShuffle's bot joins your chat when you connect Twitch, and it only posts what the games need (a question, a result). Commands you don't use can be switched off." },

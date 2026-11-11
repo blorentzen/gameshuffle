@@ -16,6 +16,7 @@ import { useToast } from "@/components/toast/ToastProvider";
 import { formatGap, formatTime, ordinal, parseTime } from "@/lib/timeTrials/rules";
 import type { TtRoomRead, TtRoomRow, TtRoomSaved, TtRoomScope, TtRoomView } from "@/lib/timeTrials/activityView";
 import type { TtVehicle } from "@/lib/timeTrials/categories";
+import { fitPicture } from "@/lib/images/shrink";
 
 type Game = "mkworld" | "mk8dx";
 type Items = "shrooms" | "none";
@@ -156,7 +157,8 @@ function AddTime({ view, auth, onClose, onSaved }: { view: TtRoomView; auth: Aut
     if (!file) return;
     setError(null); setReading(true);
     const fd = new FormData();
-    fd.append("file", file);
+    // Vercel turns away requests over 4.5 MB: a phone photo of the screen is made smaller first.
+    fd.append("file", await fitPicture(file));
     fd.append("game", view.game);
     const init = auth({ method: "POST", body: fd });
     // FormData sets its own content type with the boundary.

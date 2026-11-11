@@ -419,7 +419,7 @@ export const HELP_ARTICLES: HelpArticleMeta[] = [
     description: "Score a clan war in Discord or on the web, play it in the War room, and show it on stream.",
     href: "/help/competitive/wars",
     category: "competitive",
-    keywords: ["war", "clan war", "mogi", "/war", "war room", "scores", "war overlay", "/table", "/cans", "6v6"],
+    keywords: ["war", "clan war", "mogi", "/war", "war room", "scores", "war overlay", "/table", "/cans", "6v6", "4v4", "2v2", "12v12", "carry over", "quaxly", "toad bot", "sokuji", "kiwi"],
   },
 
   // Streaming & Overlay
@@ -470,6 +470,14 @@ export const HELP_ARTICLES: HelpArticleMeta[] = [
     href: "/help/streaming/stream-bingo",
     category: "streaming",
     keywords: ["bingo", "stream bingo", "!bingo", "number bingo", "bingo card", "patterns", "blackout", "prize", "overlay"],
+  },
+  {
+    id: "speedrun-overlay",
+    title: "Speedrun overlay",
+    description: "Your splits on stream from LiveSplit One or your phone, for any game: connect the timer, add the overlay to OBS, pick a look, and let chat ask !pb, !pace and !splits.",
+    href: "/help/streaming/speedrun",
+    category: "streaming",
+    keywords: ["speedrun", "speedrunning", "livesplit", "livesplit one", "splits", "timer", "obs timer", "pb", "personal best", "sum of best", "!pb", "!pace", "!splits", "phone remote", "prediction", "overlay"],
   },
   {
     id: "break-mode",

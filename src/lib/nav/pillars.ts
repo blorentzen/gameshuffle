@@ -1,6 +1,6 @@
 import { compAppLive } from "@/lib/discord/appIds";
 import type { Interest } from "@/lib/interests/rules";
-import { DAILY_DEX_PUBLIC, DUEL_PUBLIC, FIRE_ROUND_PUBLIC, ROAD_PUBLIC, N64_PARTY_PUBLIC, FRLG_PUBLIC, GOLDENEYE_PUBLIC, GUIDES_PUBLIC, KIRBY_PUBLIC, STADIUM_PUBLIC, SMASH_PUBLIC, SPLATOON_PUBLIC, MK64_PUBLIC, PERFECT_DARK_PUBLIC, OVERWATCH_PUBLIC, MARVEL_RIVALS_PUBLIC, SONIC_PUBLIC, speedrunShown } from "@/lib/games-visibility";
+import { DAILY_DEX_PUBLIC, DUEL_PUBLIC, FIRE_ROUND_PUBLIC, ROAD_PUBLIC, N64_PARTY_PUBLIC, FRLG_PUBLIC, GOLDENEYE_PUBLIC, GUIDES_PUBLIC, KIRBY_PUBLIC, STADIUM_PUBLIC, SMASH_PUBLIC, SPLATOON_PUBLIC, MK64_PUBLIC, PERFECT_DARK_PUBLIC, OVERWATCH_PUBLIC, MARVEL_RIVALS_PUBLIC, SONIC_PUBLIC } from "@/lib/games-visibility";
 /**
  * The five worlds: the single source of truth for GameShuffle's information architecture (menus and account picks
  * 2026-11-05, https://claude.ai/artifact/FVgHcSgixdcLaGZisgsd97, 1A): Play, Pokémon, Compete, Host, Stream. The same
@@ -16,8 +16,9 @@ import { DAILY_DEX_PUBLIC, DUEL_PUBLIC, FIRE_ROUND_PUBLIC, ROAD_PUBLIC, N64_PART
 
 export type PillarId = "play" | "pokemon" | "compete" | "host" | "stream";
 
-/** Who a destination is for. `member` = any signed-in account. `shop` = everyone, once visitors can see the shop. */
-export type NavAudience = "everyone" | "member" | "streamer" | "staff" | "shop";
+/** Who a destination is for. `member` = any signed-in account. `shop` = everyone, once visitors can see the shop.
+ *  `speedrun` = everyone, once the speedrun overlay is listed (the speedrun_listed switch, launch picks 2026-11-10). */
+export type NavAudience = "everyone" | "member" | "streamer" | "staff" | "shop" | "speedrun";
 
 export interface NavDestination {
   label: string;
@@ -64,10 +65,11 @@ export interface Pillar {
  */
 export function isVisible(
   d: NavDestination,
-  ctx: { signedIn: boolean; isStreamer: boolean; isStaff: boolean; shop?: boolean },
+  ctx: { signedIn: boolean; isStreamer: boolean; isStaff: boolean; shop?: boolean; speedrun?: boolean },
 ): boolean {
   switch (d.audience) {
     case "shop": return !!ctx.shop;
+    case "speedrun": return !!ctx.speedrun;
     case "member": return ctx.signedIn;
     case "streamer": return ctx.isStreamer;
     case "staff": return ctx.isStaff;
@@ -211,8 +213,6 @@ export const PILLARS: Pillar[] = [
           { label: "Time trials", href: "/time-trials", blurb: "Every track's best times in Mario Kart 8 Deluxe and World. Add yours from a screenshot.", footer: true },
           { label: "Lounge stats", href: "/lounge", blurb: "Any lounge player's season, plus boards for the people you know.", footer: true },
           { label: "MMR card", href: "/mmr-card", blurb: "Your lounge MMR on stream, live, with a moment every event. Free.", footer: true },
-          // Speedrunning (picks 2026-11-09): hidden in production until the relay runs (SPEEDRUN_PUBLIC).
-          ...(speedrunShown() ? [{ label: "Speedrun overlay", href: "/speedrun", blurb: "Your LiveSplit One splits on stream, live. Free.", footer: true }] : []),
           // GameShuffle Competitive's page, once the app exists here (picks 2026-10-31, 5A).
           ...(compAppLive() ? [{ label: "Mario Kart Discord bot", href: "/mario-kart-discord-bot", blurb: "Time trials, MMR and room reads in your server. Free.", footer: true }] : []),
           { label: "Live scoring", href: "/competitive/mario-kart-8-deluxe", blurb: "Score a set between friends as you race." },
@@ -282,7 +282,9 @@ export const PILLARS: Pillar[] = [
         heading: "Getting started",
         items: [
           { label: "What GS Pro does", href: "/gs-pro", blurb: "Overlay, chat commands, wheels, polls and the token economy." },
-          { label: "Twitch chat games", href: "/twitch-chat-games", blurb: "Twelve games your chat can play, and how to start each one." },
+          { label: "Twitch chat games", href: "/twitch-chat-games", blurb: "Games your chat can play, and how to start each one." },
+          // Speedrunning, for any game (launch picks 2026-11-10): listed once the speedrun_listed switch is on.
+          { label: "Speedrun overlay", href: "/speedrun", blurb: "Your splits on stream from LiveSplit One or your phone. Free.", audience: "speedrun" },
           { label: "GameShuffle for Discord", href: "/discord", blurb: "The bot, the dailies and Chat Brain in your server." },
           { label: "For new streamers", href: "/for-streamers/aspiring" },
           { label: "For current streamers", href: "/for-streamers/current" },
@@ -318,7 +320,7 @@ export const pillar = (id: PillarId): Pillar => PILLARS.find((p) => p.id === id)
 /** Primary nav items for a pillar — `secondary` entries live on the pillar page. */
 export function primaryItems(
   p: Pillar,
-  ctx: { signedIn: boolean; isStreamer: boolean; isStaff: boolean; shop?: boolean },
+  ctx: { signedIn: boolean; isStreamer: boolean; isStaff: boolean; shop?: boolean; speedrun?: boolean },
 ): NavGroup[] {
   return p.groups
     .map((g) => ({ heading: g.heading, items: g.items.filter((i) => !i.secondary && isVisible(i, ctx)) }))

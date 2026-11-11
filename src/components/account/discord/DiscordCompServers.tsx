@@ -3,7 +3,7 @@
 /**
  * GameShuffle Competitive's servers (picks 2026-10-30): each with the channel its posts go to, its Mario Kart lounge
  * posts (rank-ups free; division roles and the Monday board GS Pro; moved here from GameShuffle, whose settings for
- * the server come along), its time trial panels (post, move or take down; picks Nn8Qv4EVRDL6zojwHVCcdN), Remove,
+ * the server come along), its speedrun posts (new PBs free, pace alerts GS Pro), its time trial panels (post, move or take down; picks Nn8Qv4EVRDL6zojwHVCcdN), Remove,
  * and Add it to a server. Free accounts: 1 server, GS Pro: 5, counted apart from GameShuffle's own.
  */
 
@@ -20,7 +20,8 @@ import { useConfirm } from "@/components/confirm/ConfirmProvider";
 
 type PanelGame = "mk8dx" | "mkworld" | "both";
 interface Lounge { rankUps: boolean; rolesGame: string | null; boardGame: string | null; carried: boolean }
-interface Server { guildId: string; name: string | null; removedAt: string | null; settings: { channel?: string | null; ttPanels?: Partial<Record<PanelGame, { channel: string; message: string }>> }; lounge?: Lounge }
+interface Speedrun { pbs: boolean; pace: boolean; paceRole: string | null }
+interface Server { guildId: string; name: string | null; removedAt: string | null; settings: { channel?: string | null; ttPanels?: Partial<Record<PanelGame, { channel: string; message: string }>> }; lounge?: Lounge; speedrun?: Speedrun }
 interface Data { live: boolean; ready: boolean; limit: number; pro?: boolean; servers: Server[] }
 
 const LOUNGE_GAMES = [{ value: "", label: "Off" }, ...MMR_GAME_IDS.map((g) => ({ value: g, label: MMR_GAMES[g].short }))];
@@ -55,6 +56,38 @@ function LoungePanel({ guildId, start, pro, hasChannel }: { guildId: string; sta
   );
 }
 
+/** Speedrun posts (speedrun Discord picks 2026-11-10): new PBs (free), PB pace alerts with an optional role ping (GS Pro). */
+function SpeedrunPanel({ guildId, start, pro, hasChannel, roles }: { guildId: string; start: Speedrun; pro: boolean; hasChannel: boolean; roles: { id: string; name: string }[] | null }) {
+  const toast = useToast();
+  const [sr, setSr] = useState(start);
+  const save = async (patch: Partial<Speedrun>) => {
+    const before = sr;
+    setSr({ ...sr, ...patch });
+    const res = await fetch("/api/discord/apps/comp/servers", { method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify({ guild: guildId, speedrun: patch }) }).catch(() => null);
+    if (res?.ok) toast.success("Saved");
+    else { setSr(before); toast.error(res?.status === 403 ? "PB pace alerts come with GS Pro." : "Couldn't save that. Try again in a moment."); }
+  };
+  return (
+    <div className="discord-apps__panel">
+      <strong>Speedrunning</strong>
+      <p className="discord-apps__help">For you and members who connected GameShuffle with Discord and run with a <Link href="/speedrun">GameShuffle speedrun setup</Link>. Anyone can look a runner up with /pb.</p>
+      <Switch label="Post new PBs" checked={sr.pbs} onChange={(e) => void save({ pbs: e.target.checked })} />
+      <p className="discord-apps__help">{hasChannel ? "The time, how much faster, gold splits and a Watch on Twitch button, after the runner's stream delay." : "PB posts need a channel: pick where posts go above."}</p>
+      <Switch label="PB pace alerts" checked={sr.pace} disabled={!pro} onChange={(e) => void save({ pace: e.target.checked })} />
+      <div className="discord-apps__panel-row">
+        <Select id={`comp-pace-role-${guildId}`} floatingLabel="Pace alerts ping" fullWidth value={sr.paceRole ?? ""} disabled={!pro || !sr.pace || !roles}
+          onChange={(v) => void save({ paceRole: String(v) || null })}
+          options={[{ value: "", label: roles ? "No one" : "Loading roles…" }, ...(roles ?? []).map((r) => ({ value: r.id, label: `@${r.name}` }))]} />
+      </div>
+      <p className="discord-apps__help">
+        {pro
+          ? "Once per run, when a live runner is ahead of PB with a quarter of the run left. The bot can only ping roles that allow mentions."
+          : <>PB pace alerts come with <Link href="/gs-pro?from=comp-speedrun">GS Pro</Link>. PB posts are free.</>}
+      </p>
+    </div>
+  );
+}
+
 const INSTALL = "/api/discord/bot/install/start?app=comp";
 const ERRORS: Record<string, string> = {
   server_taken: "Another GameShuffle account already has GameShuffle Competitive in that server.",
@@ -77,6 +110,7 @@ function ServerRow({ s, pro, onChanged }: { s: Server; pro: boolean; onChanged: 
   const toast = useToast();
   const confirm = useConfirm();
   const [channels, setChannels] = useState<{ id: string; name: string }[] | null>(null);
+  const [roles, setRoles] = useState<{ id: string; name: string }[] | null>(null);
   const [channel, setChannel] = useState(s.settings.channel ?? "");
   const [panelGame, setPanelGame] = useState<PanelGame>("mk8dx");
   const [panelChannel, setPanelChannel] = useState("");
@@ -86,7 +120,11 @@ function ServerRow({ s, pro, onChanged }: { s: Server; pro: boolean; onChanged: 
 
   useEffect(() => {
     let gone = false;
-    void fetch(`/api/discord/apps/comp/servers?guild=${encodeURIComponent(s.guildId)}`).then((r) => r.json()).then((d: { channels?: { id: string; name: string }[] | null }) => { if (!gone) setChannels(d.channels ?? []); }).catch(() => { if (!gone) setChannels([]); });
+    void fetch(`/api/discord/apps/comp/servers?guild=${encodeURIComponent(s.guildId)}`).then((r) => r.json()).then((d: { channels?: { id: string; name: string }[] | null; roles?: { id: string; name: string }[] | null }) => {
+      if (gone) return;
+      setChannels(d.channels ?? []);
+      setRoles(d.roles ?? []);
+    }).catch(() => { if (!gone) { setChannels([]); setRoles([]); } });
     return () => { gone = true; };
   }, [s.guildId]);
 
@@ -159,6 +197,7 @@ function ServerRow({ s, pro, onChanged }: { s: Server; pro: boolean; onChanged: 
         </div>
       )}
       {!s.removedAt && s.lounge && <LoungePanel guildId={s.guildId} start={s.lounge} pro={pro} hasChannel={!!channel} />}
+      {!s.removedAt && s.speedrun && <SpeedrunPanel guildId={s.guildId} start={s.speedrun} pro={pro} hasChannel={!!channel} roles={roles} />}
       {!s.removedAt && (
         <div className="discord-apps__panel">
           <strong>Teams</strong>
@@ -192,7 +231,7 @@ export function DiscordCompServers() {
   const active = data.servers.filter((s) => !s.removedAt);
   return (
     <AdminSection title="GameShuffle Competitive">
-      <p className="discord-apps__help">Time trials, wars, MMR and room reads, with short commands: /tt, /war, /mmr, /room, plus Mario Kart lounge rank-ups, division roles and the Monday board. Its servers count apart from GameShuffle&apos;s: {data.limit === 1 ? "1 server" : `up to ${data.limit} servers`} on your plan.</p>
+      <p className="discord-apps__help">Time trials, wars, MMR and room reads, with short commands: /tt, /war, /mmr, /room and /pb, plus Mario Kart lounge rank-ups, division roles, the Monday board and speedrun PB posts. Its servers count apart from GameShuffle&apos;s: {data.limit === 1 ? "1 server" : `up to ${data.limit} servers`} on your plan.</p>
       {data.servers.length ? (
         <ul className="discord-apps__servers">
           {data.servers.map((s) => <ServerRow key={s.guildId} s={s} pro={!!data.pro} onChanged={() => void load()} />)}

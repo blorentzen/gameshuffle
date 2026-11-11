@@ -7,6 +7,7 @@ import "server-only";
  * 1080×1920). Drawn with next/og like the share cards; the look's font comes from Google Fonts as TTF.
  */
 
+import { symbolFonts } from "@/lib/og/symbolFonts";
 import { ImageResponse } from "next/og";
 import sharp from "sharp";
 import { readFile } from "node:fs/promises";
@@ -421,6 +422,7 @@ export async function renderMmrPicture({ source, look, goal = null }: PictureInp
       { name: font.name, data: font.data, weight: font.weight as 400, style: font.style },
       { name: "Outfit", data: outfit500, weight: 500, style: "normal" },
       { name: "Outfit", data: outfit600, weight: 600, style: "normal" },
+      ...(await symbolFonts()),
     ],
   });
   return Buffer.from(await res.arrayBuffer());

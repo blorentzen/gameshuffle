@@ -12,7 +12,7 @@ import { shareMeta, previewText } from "@/lib/og/meta";
 import { SITE_URL } from "@/lib/seo";
 import { readWarSlug } from "@/lib/wars/page";
 import { warByShort, warsReady } from "@/lib/wars/store";
-import { warPageView, warSentence, type WarPageView } from "@/lib/wars/pageView";
+import { warPageTitle, warPageView, warSentence, type WarPageRace, type WarPageView } from "@/lib/wars/pageView";
 import { placesOf, teamTotal, type TableModel } from "@/lib/wars/table";
 import "@/styles/war-page.css";
 
@@ -33,7 +33,7 @@ const load = cache(async (slug: string): Promise<WarPageView | null> => {
   return war ? warPageView(war) : null;
 });
 
-const title = (v: WarPageView) => `${v.us.name} vs ${v.them.name}`;
+const title = warPageTitle;
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const v = await load((await params).slug);
@@ -46,7 +46,44 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 const leadText = (v: WarPageView, n: number) => (n === 0 ? "Level" : `${n > 0 ? v.us.tag : v.them.tag} by ${Math.abs(n)}`);
 const raceText = (v: WarPageView, d: number) => (d === 0 ? "Even" : `${d > 0 ? v.us.tag : v.them.tag} +${Math.abs(d)}`);
 
+/** Several teams: the standings, with each team's color and its gap to the leader. */
+function Standings({ v }: { v: WarPageView }) {
+  const lead = v.teams[v.order[0]]?.total ?? 0;
+  return (
+    <ol className="wp-standings" aria-label="Standings">
+      {v.order.map((i, rank) => {
+        const t = v.teams[i];
+        return (
+          <li key={t.tag} className={i === 0 ? "is-us" : undefined}>
+            <span className="wp-standings__rank">{rank + 1}</span>
+            <span className="wp-dot" style={{ background: t.color }} aria-hidden="true" />
+            <WarTeamMark tag={t.tag} logo={t.logo} color={t.color} />
+            <span className="wp-standings__name">{t.name}</span>
+            <span className="wp-standings__total">{t.total}</span>
+            <span className="wp-standings__gap">{rank === 0 ? "" : t.total - lead}</span>
+          </li>
+        );
+      })}
+    </ol>
+  );
+}
+
+/** A race's places, each in its team's color; the list in words for screen readers. */
+function PlaceChips({ v, r }: { v: WarPageView; r: WarPageRace }) {
+  if (!r.owner.length) return <span className="wp-muted">Points only (carried over)</span>;
+  const words = v.teams.map((t, i) => `${t.tag} ${r.owner.flatMap((o, k) => (o === i ? [k + 1] : [])).join(", ")}`).join("; ");
+  return (
+    <>
+      <span className="wp-places" style={{ "--wp-cols": String(Math.min(v.room, 12)) } as React.CSSProperties} aria-hidden="true">
+        {r.owner.map((o, k) => <span key={k} className="wp-place" style={o >= 0 ? { background: v.teams[o].color, color: "#04121e" } : undefined}>{k + 1}</span>)}
+      </span>
+      <span className="sr-only">{words}</span>
+    </>
+  );
+}
+
 function Scoreboard({ v }: { v: WarPageView }) {
+  if (v.teams.length > 2) return <Standings v={v} />;
   const gap = v.diff === 0 ? "Level" : `${v.diff > 0 ? v.us.tag : v.them.tag} +${Math.abs(v.diff)}`;
   return (
     <div className="wp-score" role="group" aria-label={`${v.us.name} ${v.us.total}, ${v.them.name} ${v.them.total}`}>
@@ -67,7 +104,7 @@ function Scoreboard({ v }: { v: WarPageView }) {
 
 function PostedTable({ v, model }: { v: WarPageView; model: TableModel }) {
   const places = placesOf(model);
-  const logoFor = (tag: string) => (tag.toLowerCase() === v.us.tag.toLowerCase() ? v.us.logo : tag.toLowerCase() === v.them.tag.toLowerCase() ? v.them.logo : null);
+  const logoFor = (tag: string) => v.teams.find((t) => t.tag.toLowerCase() === tag.toLowerCase())?.logo ?? null;
   return (
     <div className="wp-teams">
       {model.teams.filter((t) => t.players.length).map((t, i) => (
@@ -107,6 +144,7 @@ export default async function WarPage({ params }: Props) {
   const v = await load((await params).slug);
   if (!v) notFound();
   const live = v.status === "live";
+  const several = v.teams.length > 2;
   const best = v.races.reduce<{ n: number; diff: number } | null>((b, r) => (!b || Math.abs(r.diff) > Math.abs(b.diff) ? { n: r.n, diff: r.diff } : b), null);
   const behind = v.need ? v[v.need.side] : null;
 
@@ -131,42 +169,70 @@ export default async function WarPage({ params }: Props) {
             <section className="wp-sec wp-sec--flat" aria-label="Totals">
               <dl className="wp-stats">
                 <div><dt>Races</dt><dd>{v.played} of {v.racesTotal}</dd></div>
-                <div><dt>Races won</dt><dd>{v.us.tag} {v.us.won} · {v.them.tag} {v.them.won}</dd></div>
-                {best && best.diff !== 0 && <div><dt>Biggest race</dt><dd>{raceText(v, best.diff)}<small>Race {best.n}</small></dd></div>}
+                {v.formatLabel !== "6v6" && <div><dt>Format</dt><dd>{v.formatLabel}</dd></div>}
+                <div><dt>Races won</dt><dd>{several ? v.order.map((i) => `${v.teams[i].tag} ${v.teams[i].won}`).join(" · ") : `${v.us.tag} ${v.us.won} · ${v.them.tag} ${v.them.won}`}</dd></div>
+                {!several && best && best.diff !== 0 && <div><dt>Biggest race</dt><dd>{raceText(v, best.diff)}<small>Race {best.n}</small></dd></div>}
                 {live && behind && v.need && <div><dt>To catch up</dt><dd>{behind.tag} +{v.need.avg} a race<small>{v.left} {v.left === 1 ? "race" : "races"} left</small></dd></div>}
               </dl>
             </section>
 
-            <section className="wp-sec" aria-labelledby="wp-lead">
-              <h2 id="wp-lead">The lead, race by race</h2>
-              <WarLeadChart points={v.races.map((r) => ({ n: r.n, lead: r.lead, diff: r.diff, code: r.code }))} racesTotal={v.racesTotal} usTag={v.us.tag} themTag={v.them.tag} decidedAt={v.decidedAt} />
-            </section>
+            {!several && (
+              <section className="wp-sec" aria-labelledby="wp-lead">
+                <h2 id="wp-lead">The lead, race by race</h2>
+                <WarLeadChart points={v.races.map((r) => ({ n: r.n, lead: r.lead, diff: r.diff, code: r.code }))} racesTotal={v.racesTotal} usTag={v.us.tag} themTag={v.them.tag} decidedAt={v.decidedAt} />
+              </section>
+            )}
 
             <section className="wp-sec" aria-labelledby="wp-races">
               <h2 id="wp-races">Races</h2>
               <TableScroll label="Every race (scrolls sideways on small screens)">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Race</TableHead>
-                      <TableHead>Track</TableHead>
-                      <TableHead>{v.us.tag}&apos;s places</TableHead>
-                      <TableHead>Points</TableHead>
-                      <TableHead>Lead</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {v.races.map((r) => (
-                      <TableRow key={r.n}>
-                        <TableCell className="wp-num">{r.n}</TableCell>
-                        <TableCell>{r.track ? <span className="wp-track">{r.code && <code className="wp-code">{r.code}</code>}{r.track}</span> : <span className="wp-muted">Not given</span>}</TableCell>
-                        <TableCell className="wp-num">{r.spots.join(", ")}</TableCell>
-                        <TableCell className="wp-num">{raceText(v, r.diff)}</TableCell>
-                        <TableCell className="wp-num">{leadText(v, r.lead)}</TableCell>
+                {several ? (
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Race</TableHead>
+                        <TableHead>Track</TableHead>
+                        <TableHead>Places</TableHead>
+                        <TableHead>Won by</TableHead>
+                        <TableHead>Points</TableHead>
                       </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+                    </TableHeader>
+                    <TableBody>
+                      {v.races.map((r) => (
+                        <TableRow key={r.n}>
+                          <TableCell className="wp-num">{r.n}</TableCell>
+                          <TableCell>{r.track ? <span className="wp-track">{r.code && <code className="wp-code">{r.code}</code>}{r.track}</span> : <span className="wp-muted">Not given</span>}</TableCell>
+                          <TableCell><PlaceChips v={v} r={r} /></TableCell>
+                          <TableCell>{r.winner == null ? <span className="wp-muted">A tie</span> : <span className="wp-winner"><span className="wp-dot" style={{ background: v.teams[r.winner].color }} aria-hidden="true" />{v.teams[r.winner].tag}</span>}</TableCell>
+                          <TableCell className="wp-num">{v.teams.map((t, i) => `${t.tag} ${r.scores[i] ?? 0}`).join(" · ")}</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                ) : (
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Race</TableHead>
+                        <TableHead>Track</TableHead>
+                        <TableHead>{v.us.tag}&apos;s places</TableHead>
+                        <TableHead>Points</TableHead>
+                        <TableHead>Lead</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {v.races.map((r) => (
+                        <TableRow key={r.n}>
+                          <TableCell className="wp-num">{r.n}</TableCell>
+                          <TableCell>{r.track ? <span className="wp-track">{r.code && <code className="wp-code">{r.code}</code>}{r.track}</span> : <span className="wp-muted">Not given</span>}</TableCell>
+                          <TableCell className="wp-num">{r.spots.length ? r.spots.join(", ") : <span className="wp-muted">{v.us.tag} {r.scores[0]} : {r.scores[1]} {v.them.tag}</span>}</TableCell>
+                          <TableCell className="wp-num">{raceText(v, r.diff)}</TableCell>
+                          <TableCell className="wp-num">{leadText(v, r.lead)}</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                )}
               </TableScroll>
               {v.penalties.length > 0 && <p className="wp-note">Penalties: {v.penalties.map((p) => `${p.points} off ${p.tag}${p.reason ? ` (${p.reason})` : ""}`).join(", ")}.</p>}
             </section>

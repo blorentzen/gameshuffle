@@ -427,8 +427,18 @@ const WAR_COMMAND = {
     { name: "entry", description: "How races go in (the channel remembers it)", type: 3, required: false, choices: [
       { name: "One person adds each race", value: "scorer" }, { name: "Everyone taps the place they finished", value: "taps" },
     ] },
+    // Team sizes picks 2026-11-10: other sizes, several teams in one room, Mario Kart World's 24-player rooms, 4 to 32 races.
+    { name: "format", description: "Players a team (6v6 when left out; the channel remembers it)", type: 3, required: false, choices: [
+      { name: "6v6", value: "6" }, { name: "5v5", value: "5" }, { name: "4v4", value: "4" }, { name: "3v3", value: "3" }, { name: "2v2", value: "2" },
+      { name: "12v12 (Mario Kart World, 24 players)", value: "12" },
+    ] },
+    { name: "others", description: "More teams in the same room: their tags, with spaces between", type: 3, required: false, autocomplete: true, max_length: 60 },
+    { name: "races", description: "How many races (12 when left out; the channel remembers it)", type: 4, required: false, min_value: 4, max_value: 32 },
+    { name: "continue", description: "Carry over a war running in another bot: paste its score", type: 5, required: false },
   ],
 };
+/** Apps ▸ Continue in GameShuffle on another bot's war score (team sizes picks 2026-11-10): carries the war over. */
+const CARRY_COMMAND = { name: "Continue in GameShuffle", type: 3, integration_types: [0], contexts: [0] };
 /** /cans (GameShuffle Competitive only, cans picks 2026-11-04): who can race a war, in everyone's own time zone. */
 const CANS_DAYS = [
   { name: "Today", value: "today" }, { name: "Tomorrow", value: "tomorrow" }, { name: "Monday", value: "mon" }, { name: "Tuesday", value: "tue" },
@@ -496,6 +506,8 @@ const TABLE_COMMAND = {
   description: "Make a war table: this channel's last war, a results screenshot, or pasted text",
   integration_types: [0],
   contexts: [0],
+  // Doc asks pick 3 (2026-11-10): post one of this channel's tables again.
+  options: [{ name: "show", description: "Post one of this channel's tables again (start typing to find it)", type: 3, required: false, autocomplete: true, max_length: 100 }],
 };
 /** /me, /team and /race (GameShuffle Competitive only, overrides picks 2026-11-09): your war card, a server's team
  *  cards and players, and a race or fix typed the way the other war bots take it. */
@@ -597,6 +609,14 @@ const LADDER_COMMAND = {
     ] },
   ],
 };
+/** /pb (GameShuffle Competitive, speedrun Discord picks 2026-11-10): a runner's PB, sum of best and attempts. */
+const PB_COMMAND = {
+  name: "pb",
+  description: "A speedrunner's PB, sum of best and attempts (the server owner's unless you pick someone)",
+  integration_types: [0, 1],
+  contexts: [0, 1, 2],
+  options: [{ name: "player", description: "A member who connected GameShuffle", type: 6, required: false }],
+};
 const compCommands = [
   ...commands
     .filter((c) => c.name in COMP_FROM)
@@ -606,6 +626,7 @@ const compCommands = [
     })),
   ...commands.filter((c) => c.name === "Save to GameShuffle"),
   WAR_COMMAND,
+  CARRY_COMMAND,
   CANS_COMMAND,
   LOGO_COMMAND,
   FLAG_COMMAND,
@@ -614,6 +635,7 @@ const compCommands = [
   TEAM_COMMAND,
   RACE_COMMAND,
   LADDER_COMMAND,
+  PB_COMMAND,
 ];
 
 /** From COMP_MOVE_ENDS (midnight Pacific) the main app drops /gs-tt, /gs-mmr, /gs-room, /gs-result and Save to GameShuffle:

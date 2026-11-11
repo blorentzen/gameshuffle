@@ -8,6 +8,8 @@ import { searchStarterByKind } from "@/data/game-night-catalogs";
 import { gameArtFallback } from "@/data/game-night-visuals";
 import { useAuth } from "@/components/auth/AuthProvider";
 import type { NightGame, NightKind, NightLength } from "@/lib/game-nights/types";
+import { fitPicture } from "@/lib/images/shrink";
+import { useToast } from "@/components/toast/ToastProvider";
 
 interface Suggestion {
   id: number;
@@ -59,6 +61,7 @@ export function GamesBroughtInput({
   kind?: NightKind;
 }) {
   const { user } = useAuth();
+  const toast = useToast();
   const [collection, setCollection] = useState<string[]>([]);
   const [query, setQuery] = useState("");
   const [length, setLength] = useState<NightLength>("moderate");
@@ -97,12 +100,16 @@ export function GamesBroughtInput({
     setUploading(target);
     try {
       const fd = new FormData();
-      fd.append("file", file);
-      const res = await fetch("/api/board-games/image", { method: "POST", body: fd });
-      const data = (await res.json().catch(() => null)) as { url?: string } | null;
-      if (res.ok && data?.url) {
+      // Vercel turns away requests over 4.5 MB: a bigger picture is made smaller first.
+      fd.append("file", await fitPicture(file));
+      const res = await fetch("/api/board-games/image", { method: "POST", body: fd }).catch(() => null);
+      const data = (await res?.json().catch(() => null)) as { url?: string; error?: string } | null;
+      if (res?.ok && data?.url) {
         if (target === "compose") setComposeImage(data.url);
         else setDraft((d) => (d ? { ...d, imageUrl: data.url ?? null } : d));
+      } else {
+        // The route's errors are already plain sentences.
+        toast.error(res?.status === 413 ? "That picture is too big. Try a smaller one." : data?.error && res?.status !== 401 ? data.error : "Couldn't add that picture. Try again.");
       }
     } finally {
       setUploading(null);

@@ -11,6 +11,7 @@ import { useRouter } from "next/navigation";
 import { Button } from "@empac/cascadeds";
 import { useToast } from "@/components/toast/ToastProvider";
 import { useConfirm } from "@/components/confirm/ConfirmProvider";
+import { fitPicture } from "@/lib/images/shrink";
 
 const MAX_BYTES = 8 * 1024 * 1024;
 const ACCEPTED = ["image/jpeg", "image/png", "image/webp"];
@@ -33,7 +34,8 @@ export function CommunityBannerUploader({ communityId, hasBanner }: { communityI
     setBusy(true);
     try {
       const fd = new FormData();
-      fd.append("file", file);
+      // Vercel turns away requests over 4.5 MB: a bigger picture is made smaller first.
+      fd.append("file", await fitPicture(file));
       const res = await fetch(`/api/communities/${communityId}/banner`, { method: "POST", body: fd });
       const j = await res.json().catch(() => null);
       if (res.ok && j?.ok) { toast.success("Banner updated."); router.refresh(); }

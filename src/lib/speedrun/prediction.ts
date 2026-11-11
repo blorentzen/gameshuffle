@@ -21,6 +21,7 @@ import "server-only";
  *     catch-up can never pay twice.
  */
 
+import { shownName } from "./splitGroups";
 import { createHash } from "node:crypto";
 import { createServiceClient } from "@/lib/supabase/admin";
 import { isProUser } from "@/lib/subscription-server";
@@ -37,6 +38,7 @@ import {
   PREDICTION_REFUND_LINE, predictionLockLine, predictionOpenLine, predictionSettleLine, predictionView,
 } from "./chat";
 import type { SpeedrunSetup } from "./store";
+import { runsReady } from "./runsReady";
 import type { RelayWebhookBody, SpeedrunPredictionView } from "./types";
 
 export const SPEEDRUN_GAME_KEY = "speedrun";
@@ -44,7 +46,7 @@ export const SPEEDRUN_TEMPLATE_ID = "00000000-0000-4000-8000-000000000010";
 const OUTCOMES = [{ option_key: "pb", label: "PB" }, { option_key: "no", label: "No PB" }];
 const COLS = "id, community_id, stream_id, session_id, chapter, status, lock_at, locked_at, opened_at, resolved_at, cancelled_at, resolved_value, created_by, notifications";
 
-export interface SpeedrunMarketMeta { relayId: string; attempt: number; lockAfter: number; lockName: string | null }
+export interface SpeedrunMarketMeta { relayId: string; attempt: number; lockAfter: number; lockName: string | null; /** My runs: the run it was for (absent = the first run). */ runKey?: string }
 export interface SpeedrunMarket {
   id: string; community_id: string; stream_id: string; session_id: string; chapter: number;
   status: "open" | "locked" | "settled" | "cancelled"; lock_at: string | null; locked_at: string | null; opened_at: string;
@@ -54,9 +56,17 @@ export interface SpeedrunMarket {
 
 const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
 
+/** One of this run's attempts (by run once My runs exists). */
+async function attemptRow(setup: SpeedrunSetup, attempt: number, cols: string) {
+  let q = createServiceClient().from("speedrun_attempts").select(cols).eq("user_id", setup.userId).eq("attempt", attempt);
+  if (await runsReady()) q = q.eq("run_key", setup.runKey);
+  return q.maybeSingle();
+}
+
 /** The prediction's market for one attempt: a uuid from the relay id and the attempt (stable, never a real session). */
-export function attemptSessionId(relayId: string, attempt: number): string {
-  const h = createHash("sha256").update(`speedrun:${relayId}:${attempt}`).digest();
+export function attemptSessionId(relayId: string, attempt: number, runKey = ""): string {
+  // The first run keeps the key it always had; each other run (My runs) has its own, so two runs' attempt 12 differ.
+  const h = createHash("sha256").update(runKey ? `speedrun:${relayId}:${runKey}:${attempt}` : `speedrun:${relayId}:${attempt}`).digest();
   h[6] = (h[6] & 0x0f) | 0x50;
   h[8] = (h[8] & 0x3f) | 0x80;
   const x = h.subarray(0, 16).toString("hex");
@@ -214,10 +224,10 @@ async function openPrediction(setup: SpeedrunSetup, attempt: number, lockAt: num
   if (!st || st.attempt !== attempt || (st.phase !== "running" && st.phase !== "paused") || splitsDone(st) >= lockAt) return null;
   const eco = await streamerEconomy(setup.userId);
   if (!eco || !(await ensureTemplate())) return null;
-  const sessionId = attemptSessionId(setup.relayId, attempt);
+  const sessionId = attemptSessionId(setup.relayId, attempt, setup.runKey);
   if (await marketForSession(sessionId)) return null;
   const stream = await ensureActiveStream({ communityId: eco.communityId });
-  const meta: SpeedrunMarketMeta = { relayId: setup.relayId, attempt, lockAfter: lockAt, lockName: st.segments[lockAt - 1]?.name ?? null };
+  const meta: SpeedrunMarketMeta = { relayId: setup.relayId, attempt, lockAfter: lockAt, lockName: st.segments[lockAt - 1] ? shownName(st.segments[lockAt - 1].name) : null, ...(setup.runKey ? { runKey: setup.runKey } : {}) };
   const res = await openFixedMarket({
     communityId: eco.communityId,
     streamId: stream.id,
@@ -288,8 +298,9 @@ async function catchUp(setup: SpeedrunSetup, currentAttempt: number): Promise<vo
     .eq("game_key", SPEEDRUN_GAME_KEY).eq("notifications->speedrun->>relayId", setup.relayId).in("status", ["open", "locked"]).limit(20);
   for (const m of (data as SpeedrunMarket[] | null) ?? []) {
     const meta = metaOf(m);
-    if (!meta || meta.relayId !== setup.relayId || meta.attempt >= currentAttempt) continue;
-    const { data: row } = await admin.from("speedrun_attempts").select("result, pb").eq("user_id", setup.userId).eq("attempt", meta.attempt).maybeSingle();
+    // Only this run's (My runs: another run's attempt numbers mean nothing here).
+    if (!meta || meta.relayId !== setup.relayId || (meta.runKey ?? "") !== setup.runKey || meta.attempt >= currentAttempt) continue;
+    const { data: row } = await attemptRow(setup, meta.attempt, "result, pb");
     const a = row as { result: string; pb: boolean } | null;
     const lockedIn = m.status === "locked" || !!m.lock_at;
     if (a?.result === "finished") await settlePrediction(m, a.pb ? "pb" : "no", null, null);
@@ -308,7 +319,7 @@ export async function onRelayEventForPrediction(setup: SpeedrunSetup, body: Rela
     await catchUp(setup, st.attempt);
     return;
   }
-  const market = await marketForSession(attemptSessionId(setup.relayId, st.attempt));
+  const market = await marketForSession(attemptSessionId(setup.relayId, st.attempt, setup.runKey));
   // Nothing open and the switch off (or no GS Pro): nothing to do.
   if (!market && (!setup.settings.prediction.on || body.event !== "split" && body.event !== "skip")) return;
 
@@ -335,7 +346,7 @@ export async function onRelayEventForPrediction(setup: SpeedrunSetup, body: Rela
   }
   if (body.event === "reset") {
     // A reset after a finish: the finish already settled this attempt.
-    const { data } = await createServiceClient().from("speedrun_attempts").select("result").eq("user_id", setup.userId).eq("attempt", st.attempt).maybeSingle();
+    const { data } = await attemptRow(setup, st.attempt, "result");
     if ((data as { result: string } | null)?.result === "finished") return;
   }
   await sleep(delayMs);
@@ -347,7 +358,7 @@ export async function onRelayEventForPrediction(setup: SpeedrunSetup, body: Rela
   const n = st.segments.length;
   const words = body.event === "finish"
     ? { finalMs: st.splits[n - 1] ?? null, oldPbMs: pbTime(st.segments) }
-    : { resetAt: st.segments[st.last?.index ?? -1]?.name ?? null };
+    : { resetAt: st.segments[st.last?.index ?? -1] ? shownName(st.segments[st.last?.index ?? -1].name) : null };
   // The finish's own PB flag decides (isNewPb reads it), so a new PB saved on reset can't flip it.
   const winner = body.event === "finish" ? (isNewPb({ ...st, phase: "ended" }) ? "pb" : "no") : action.winner;
   await settlePrediction(fresh, winner, words, twitchUserId);

@@ -20,6 +20,7 @@ import "./ext.css";
 import { ToastProvider, useToast } from "@/components/toast/ToastProvider";
 import { LiveHostContext, type LiveHostValue } from "@/components/live/LiveHost";
 import { LivePollCard } from "@/components/live/LivePollCard";
+import { LiveRunCard } from "@/components/live/LiveRunCard";
 import { LiveTriviaCard } from "@/components/live/LiveTriviaCard";
 import { LiveBreakCard } from "@/components/live/LiveBreakCard";
 import { LiveChatBrainCard } from "@/components/live/LiveChatBrainCard";
@@ -71,6 +72,8 @@ function Card() {
       <ExtHeader channel={s.channel.name} tokens={st.shared ? st.me?.tokens ?? null : null} />
       <LiveHostContext.Provider value={host}>
         <div className="ext-cards">
+          {/* The run on top; the extension takes no bets, so it points to chat while one is open. */}
+          <LiveRunCard streamerSlug={s.channel.slug ?? cid} betHint="chat" />
           <LiveBreakCard communityId={cid} />
           <LiveTriviaCard communityId={cid} />
           <LiveChatBrainCard communityId={cid} />
@@ -81,7 +84,7 @@ function Card() {
         </div>
       </LiveHostContext.Provider>
 
-      {!st.running && (
+      {!st.running && !s.run && (
         <section className="ext-idle">
           <h2 className="ext-title">{s.channel.live ? "Nothing running right now" : `${s.channel.name} is offline`}</h2>
           <p className="ext-s">When {s.channel.name} starts a poll, Stream Bingo, a trivia night, a break game or Chat Brain, you play it right here.</p>

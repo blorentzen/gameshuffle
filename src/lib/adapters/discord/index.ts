@@ -38,6 +38,7 @@ import type {
 import type { GsSession } from "@/lib/sessions/types";
 import type { RecapPayload } from "@/lib/sessions/service";
 import { createThreadFromMessage, editEmbed, postComponentsMessage, postEmbed, type DiscordEmbed } from "./adapter";
+import { speedrunRecapField } from "@/lib/speedrun/discordPosts";
 import { loungeRecapField } from "@/lib/lounge/recapServer";
 import {
   announcementEmbed,
@@ -552,7 +553,11 @@ export class DiscordAdapter implements PlatformAdapter {
     void _session;
     // The night's lounge run (GS Pro, MMR card owners): one extra field on the recap.
     const started = new Date(Date.parse(recap.ended_at) - recap.duration_seconds * 1000).toISOString();
-    const lounge = await loungeRecapField(this.ownerUserId, started).catch(() => null);
+    const [lounge, speedrun] = await Promise.all([
+      loungeRecapField(this.ownerUserId, started).catch(() => null),
+      // Speedrun attempts during the stream (speedrun Discord picks 2026-11-10): attempts, best run, gold splits, a new PB.
+      speedrunRecapField(this.ownerUserId, started).catch(() => null),
+    ]);
     await this.eachServer(async (routing) => {
       if (!subEnabled(routing.subscriptions, "recap")) return;
       const channelId = channelFor(routing, "recap");
@@ -570,6 +575,7 @@ export class DiscordAdapter implements PlatformAdapter {
           avatarUrl: routing.avatarUrl,
           endedAt: recap.ended_at,
           lounge,
+          speedrun,
         }),
         content: ping.content,
         allowedMentions: ping.allowedMentions,

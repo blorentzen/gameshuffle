@@ -15,6 +15,7 @@ import { FORMATS, formatLabel, type LadderKind } from "@/lib/ladders/types";
 import type { RoomIssue } from "@/lib/ladders/rules";
 import type { OwnPenalty } from "@/lib/ladders/staffStore";
 import type { RankedRole } from "@/lib/ladders/access";
+import { fitPicture } from "@/lib/images/shrink";
 
 interface Me {
   you: { name: string; role: RankedRole; staff: boolean; why: string | null; canSubmit: boolean; discord: boolean };
@@ -246,7 +247,8 @@ export function SubmitTable({ ladderId, kind, onClose, prefill }: { ladderId: st
     form.set("tier", tier);
     form.set("body", body);
     form.set("missed", missed);
-    if (file) form.set("shot", file);
+    // Vercel turns away requests over 4.5 MB: a phone photo of the table is made smaller first.
+    if (file) form.set("shot", await fitPicture(file));
     if (prefill) form.set("room", prefill.roomId);
     const res = await post(ladderId, form);
     setBusy(false);

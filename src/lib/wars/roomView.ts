@@ -6,9 +6,12 @@
  *   tapped lineup, like the card), so people watching never hold a race up and a sub shows up once they tap.
  *   Players (pick 6A): each player's place in every race they tapped, and their points; races that went in by hand
  *   aren't split by player.
+ *   Other formats (team sizes picks 2026-11-10): the places and the team follow the war's size; taps run only in
+ *   two-team wars of up to 12 players, and with several teams `them` is the leader (or the team behind you when you lead).
  */
 
-import { POINTS, TEAM, raceScore, standing, tapClashes, type WarGame, type WarPenalty, type WarRace, type WarSide } from "./rules";
+import { POINTS, TEAM, penaltyTeam, standing, tapClashes, type WarGame, type WarPenalty, type WarRace, type WarSide } from "./rules";
+import { DEFAULT_FORMAT, placePoints, teamScores, type WarFormat } from "./format";
 
 export interface RoomTeam { tag: string; name: string | null; logo: string | null; total: number }
 export interface RoomPerson { id: string; name: string }
@@ -21,8 +24,17 @@ export interface WarRoomView {
   status: "live" | "done" | "ended";
   game: WarGame;
   racesTotal: number;
+  /** Players a team, players in the room, teams in it, and your team's place among them. */
+  size: number;
+  room: number;
+  teamsCount: number;
+  rank: number;
+  /** Whether players tap their places here (two-team wars of up to 12 players); else races go in on the card. */
+  tapsOn: boolean;
   us: RoomTeam;
   them: RoomTeam;
+  /** Every team in the order they were named (two for a two-team war). */
+  teams: RoomTeam[];
   diff: number;
   diffs: number[];
   played: number;
@@ -45,7 +57,7 @@ export interface WarRoomView {
   players: RoomPlayerRow[];
   /** Races that went in by hand (not split by player) and their points. */
   byHand: { races: number[]; points: number };
-  penalties: { side: WarSide; points: number; reason: string }[];
+  penalties: { side: WarSide; points: number; reason: string; team: number }[];
   /** "Kart Club won 522 to 462", once the war is over. */
   headline: string | null;
   /** The best scorer from the taps, once the war is over. */
@@ -64,15 +76,15 @@ export const teamName = (t: { name: string | null; tag: string }) => t.name || t
  * Who the race being tapped is still waiting on (pick 4A): the lineup of the newest race that was tapped in, like the
  * war card, so a player who was subbed out isn't waited on once the sub has tapped a race.
  */
-export function waitingOn(races: readonly WarRace[], taps: readonly { id: string }[]): RoomPerson[] {
-  if (taps.length >= TEAM) return [];
+export function waitingOn(races: readonly WarRace[], taps: readonly { id: string }[], size = TEAM): RoomPerson[] {
+  if (taps.length >= size) return [];
   const tapped = new Set(taps.map((t) => t.id));
   const lineup = [...races].sort((a, b) => b.n - a.n).find((r) => r.players?.length)?.players ?? [];
-  return lineup.filter((p) => !tapped.has(p.id)).map((p) => ({ id: p.id, name: p.name })).slice(0, TEAM - taps.length);
+  return lineup.filter((p) => !tapped.has(p.id)).map((p) => ({ id: p.id, name: p.name })).slice(0, size - taps.length);
 }
 
-/** Each player's places and points from the taps (pick 6A). */
-export function playerRows(races: readonly WarRace[], total: number): { rows: RoomPlayerRow[]; byHand: { races: number[]; points: number } } {
+/** Each player's places and points from the taps (pick 6A); `points` is the room's points table. */
+export function playerRows(races: readonly WarRace[], total: number, points: readonly number[] = POINTS): { rows: RoomPlayerRow[]; byHand: { races: number[]; points: number } } {
   const sorted = [...races].sort((a, b) => a.n - b.n);
   const rows = new Map<string, RoomPlayerRow>();
   const byHand: number[] = [];
@@ -81,31 +93,37 @@ export function playerRows(races: readonly WarRace[], total: number): { rows: Ro
     const players = r.players ?? [];
     const scored = new Set(players.map((p) => p.place));
     // A race counts as tapped only when every one of the team's places has a player.
-    if (!players.length) { byHand.push(r.n); handPoints += raceScore(r.spots).us; }
+    // A race carried over with only points counts its points by hand too.
+    if (!players.length) { byHand.push(r.n); handPoints += r.spots.length ? r.spots.reduce((a, s) => a + placePoints(points, s), 0) : r.scores?.[0] ?? 0; }
     else {
       const loose = r.spots.filter((s) => !scored.has(s));
-      if (loose.length) { byHand.push(r.n); handPoints += loose.reduce((a, s) => a + (POINTS[s - 1] ?? 0), 0); }
+      if (loose.length) { byHand.push(r.n); handPoints += loose.reduce((a, s) => a + placePoints(points, s), 0); }
     }
     for (const p of players) {
       const row = rows.get(p.id) ?? { id: p.id, name: p.name, places: Array<number | null>(total).fill(null), points: 0 };
       row.name = p.name;
       if (r.n >= 1 && r.n <= total) row.places[r.n - 1] = p.place;
-      row.points += POINTS[p.place - 1] ?? 0;
+      row.points += placePoints(points, p.place);
       rows.set(p.id, row);
     }
   }
   return { rows: [...rows.values()].sort((a, b) => b.points - a.points || a.name.localeCompare(b.name)), byHand: { races: byHand, points: handPoints } };
 }
 
-/** The lead after each race, penalties counted from the race before they were given. */
-export function leads(races: readonly WarRace[], penalties: readonly WarPenalty[]): number[] {
+/** The lead after each race over `rival` (the other team, or with several teams the standing's rival), penalties counted from the race before they were given. */
+export function leads(races: readonly WarRace[], penalties: readonly WarPenalty[], game: WarGame = "mk8dx", fmt: WarFormat = DEFAULT_FORMAT, rival = 1): number[] {
   const sorted = [...races].sort((a, b) => a.n - b.n);
   let lead = 0;
   return sorted.map((r, i) => {
-    lead += raceScore(r.spots).diff;
+    const sc = teamScores(r, game, fmt);
+    lead += (sc[0] ?? 0) - (sc[rival] ?? 0);
     const next = sorted[i + 1];
     const pens = penalties.filter((p) => Date.parse(p.at) >= Date.parse(r.at) && (!next || Date.parse(p.at) < Date.parse(next.at)));
-    for (const p of pens) lead += p.side === "us" ? -p.points : p.points;
+    for (const p of pens) {
+      const t = penaltyTeam(p);
+      if (t === 0) lead -= p.points;
+      else if (t === rival) lead += p.points;
+    }
     return lead;
   });
 }

@@ -19,6 +19,7 @@ import type { TimeStatus, TtTimeDetail } from "@/lib/timeTrials/detail";
 import { TtAddShot } from "./TtAddShot";
 import { TtAskPanel, TtClipForm } from "./TtAskPanel";
 import { TtFixTime } from "./TtFixTime";
+import { fitPicture } from "@/lib/images/shrink";
 
 export function StatusChip({ status }: { status: TimeStatus }) {
   switch (status) {
@@ -120,7 +121,8 @@ export function TtTimeWindow({ timeId, signedIn, onClose, onReport }: {
     setUploading(true);
     try {
       const form = new FormData();
-      form.append("file", file);
+      // Vercel turns away requests over 4.5 MB: a phone photo of the screen is made smaller first.
+      form.append("file", await fitPicture(file));
       form.append("game", time.game);
       const res = await fetch("/api/time-trials/read", { method: "POST", body: form });
       const j = (await res.json().catch(() => ({}))) as { ok?: boolean; proofUrl?: string; error?: string };

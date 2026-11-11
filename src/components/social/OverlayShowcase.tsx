@@ -34,6 +34,7 @@ import type { BreakView } from "@/lib/break/types";
 import type { LiveEvents } from "@/lib/economy/events/live";
 import "@/styles/overlay.css";
 import { TtOverlay } from "@/components/tournament/tt/TtOverlay";
+import { SpeedrunShowcase } from "./SpeedrunShowcase";
 import "@/styles/overlay-showcase.css";
 
 export type ShowcasePiece =
@@ -49,7 +50,9 @@ export type ShowcasePiece =
   | "battle"
   | "chaos"
   | "picks_bans"
-  | "time_trial";
+  | "time_trial"
+  | "speedrun"
+  | "speedrun_strip";
 
 /** How often the sample clock restarts; every countdown below starts further out than this. */
 const CYCLE_MS = 20_000;
@@ -446,7 +449,7 @@ function BattleCard({ roll }: { roll: ChatRoll }) {
   );
 }
 
-function Piece({ piece, t, battle }: { piece: ShowcasePiece; t: number; battle: ChatRoll | null }) {
+function Piece({ piece, t, battle, play }: { piece: ShowcasePiece; t: number; battle: ChatRoll | null; play: boolean }) {
   const at = (toolId: string) => placementStyle(FORMAT, toolId, LAYOUT);
   switch (piece) {
     case "chat_brain":
@@ -475,10 +478,15 @@ function Piece({ piece, t, battle }: { piece: ShowcasePiece; t: number; battle: 
       return <PicksBansBanner picksBans={PICKS_BANS} />;
     case "time_trial":
       return <TtOverlay sample style={at("time_trial")} />;
+    case "speedrun":
+      return <SpeedrunShowcase layout="column" play={play} />;
+    case "speedrun_strip":
+      return <SpeedrunShowcase layout="strip" play={play} />;
   }
 }
 
-export function OverlayShowcase({ piece, battle }: { piece: ShowcasePiece; battle: ChatRoll | null }) {
+/** `play`: pieces that move (the speedrun run) play instead of holding one frame. */
+export function OverlayShowcase({ piece, battle, play = false }: { piece: ShowcasePiece; battle: ChatRoll | null; play?: boolean }) {
   // Null until mounted: the samples' times come from this browser's clock.
   const [t, setT] = useState<number | null>(null);
   useEffect(() => {
@@ -490,7 +498,7 @@ export function OverlayShowcase({ piece, battle }: { piece: ShowcasePiece; battl
       window.clearInterval(iv);
     };
   }, []);
-  const content = useMemo(() => (t === null ? null : <Piece piece={piece} t={t} battle={battle} />), [piece, t, battle]);
+  const content = useMemo(() => (t === null ? null : <Piece piece={piece} t={t} battle={battle} play={play} />), [piece, t, battle, play]);
 
   return (
     <main className="overlay-showcase">

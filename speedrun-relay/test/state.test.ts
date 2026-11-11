@@ -231,3 +231,13 @@ test("sameView ignores seq and at only", () => {
   assert.equal(sameView(a, { ...a, seq: 9, at: 1 }), true);
   assert.equal(sameView(a, { ...a, elapsedMs: 1 }), false);
 });
+
+test("cleanInfo tidies the add-on's message", async () => {
+  const { cleanInfo } = await import("../src/state");
+  assert.equal(cleanInfo({ game: "x" }), null);
+  const i = cleanInfo({ addon: "1.0.0", game: "  Super   Mario Odyssey ", category: "", attempts: 42, runKey: "4-abc", remote: false });
+  assert.deepEqual(i, { addon: "1.0.0", game: "Super Mario Odyssey", category: null, attempts: 42, runKey: "4-abc", remote: false });
+  assert.equal(cleanInfo({ addon: "1", attempts: -3 })?.attempts, null);
+  assert.equal(cleanInfo({ addon: "1", attempts: 4.5 })?.attempts, null);
+  assert.equal(cleanInfo({ addon: "1" })?.remote, true);
+});

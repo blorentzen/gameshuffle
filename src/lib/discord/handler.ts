@@ -1,4 +1,5 @@
 import { handleRandomize, handleRerollAll, handlePlayerReroll } from "./commands/randomize";
+import { handlePbCommand } from "./commands/pb";
 import { handleResult } from "./commands/result";
 import { handleCoinflip } from "./commands/coinflip";
 import { handleRoll } from "./commands/roll";
@@ -45,10 +46,11 @@ import { CHAT_GAMES, getChatGame } from "@/lib/twitch/chatGames";
 import type { DiscordAppId } from "./appIds";
 import { withMoveNote } from "./compMove";
 import { handleWarCommand, handleWarComponent, handleWarModal, warAutocomplete, WAR_MODAL_PREFIX, WAR_PREFIX } from "./commands/war";
+import { CARRY_COMMAND, CARRY_MODAL_PREFIX, CARRY_PREFIX, handleCarryCommand, handleCarryComponent, handleCarryModal } from "./commands/warCarry";
 import { CANS_PREFIX, cansAutocomplete, handleCansCommand, handleCansComponent } from "./commands/cans";
 import { handleLogoCommand, handleLogoComponent, logoAutocomplete, LOGO_PREFIX } from "./commands/warLogos";
 import { handleFlagCommand, handleFlagComponent, flagAutocomplete, FLAG_PREFIX } from "./commands/warFlags";
-import { handleTableCommand, handleTableComponent, handleTableModal, TABLE_MODAL_PREFIX, TABLE_PREFIX } from "./commands/warTables";
+import { handleTableCommand, handleTableComponent, handleTableModal, tableAutocomplete, TABLE_MODAL_PREFIX, TABLE_PREFIX } from "./commands/warTables";
 import { CARD_MODAL_PREFIX, CARD_PREFIX, handleCardComponent, handleCardModal, handleMeCommand, handleRaceCommand, handleTeamCommand, teamAutocomplete } from "./commands/warCards";
 import { handleLadderCommand, handleLadderComponent, handleLadderModal, ladderAutocomplete, LADDER_MODAL_PREFIX, LADDER_PREFIX } from "./commands/ladder";
 import { handleQueueComponent, handleRoomModal, QUEUE_PREFIX, ROOM_MODAL_PREFIX, ROOM_PREFIX } from "./commands/rankedQueue";
@@ -77,6 +79,7 @@ function handleCompCommand(interaction: Record<string, unknown>, name: string): 
     case "me": return handleMeCommand(interaction);
     case "team": return handleTeamCommand(interaction);
     case "race": return handleRaceCommand(interaction);
+    case "pb": return handlePbCommand(interaction);
     case "ranked":
     case "ladder": return handleLadderCommand(interaction);
     default: return ephemeralMessage(`Unknown command: \`${name}\``);
@@ -92,6 +95,8 @@ export function handleInteraction(interaction: Record<string, unknown>, app: Dis
   if (type === INTERACTION_TYPE.APPLICATION_COMMAND) {
     const data = interaction.data as { name: string; type?: number };
     // Message commands (Apps menu on a message): "Save to GameShuffle" on Quaxly's time trials list.
+    // Apps ▸ Continue in GameShuffle on another bot's war score (GameShuffle Competitive).
+    if (data.type === 3 && data.name === CARRY_COMMAND) return handleCarryCommand(interaction);
     if (data.type === 3 && data.name === TT_SAVE_COMMAND) return app === "main" ? withMoveNote(interaction, "save", () => handleTtSaveCommand(interaction)) : handleTtSaveCommand(interaction);
     if (app === "comp") return handleCompCommand(interaction, data.name);
     switch (data.name) {
@@ -156,6 +161,7 @@ export function handleInteraction(interaction: Record<string, unknown>, app: Dis
 
     // Wars: the war card's buttons and menus (GameShuffle Competitive).
     if (customId.startsWith(WAR_PREFIX)) return handleWarComponent(interaction, customId);
+    if (customId.startsWith(CARRY_PREFIX)) return handleCarryComponent(interaction, customId);
     if (customId.startsWith(CANS_PREFIX)) return handleCansComponent(interaction, customId);
     if (customId.startsWith(LOGO_PREFIX)) return handleLogoComponent(interaction, customId);
     if (customId.startsWith(FLAG_PREFIX)) return handleFlagComponent(interaction, customId);
@@ -220,6 +226,7 @@ export function handleInteraction(interaction: Record<string, unknown>, app: Dis
     const customId = (interaction.data as { custom_id: string }).custom_id;
     if (customId.startsWith(TT_CLIP_MODAL_PREFIX)) return handleTtClipModal(interaction, customId);
     if (customId.startsWith(WAR_MODAL_PREFIX)) return handleWarModal(interaction, customId);
+    if (customId.startsWith(CARRY_MODAL_PREFIX)) return handleCarryModal(interaction, customId);
     if (customId.startsWith(TABLE_MODAL_PREFIX)) return handleTableModal(interaction, customId);
     if (customId.startsWith(CARD_MODAL_PREFIX)) return handleCardModal(interaction, customId);
     if (customId.startsWith(LADDER_MODAL_PREFIX)) return handleLadderModal(interaction, customId);
@@ -243,6 +250,7 @@ export function handleInteraction(interaction: Record<string, unknown>, app: Dis
     const acName = (interaction.data as { name?: string }).name;
     if (acName === "gs-tt" || acName === "tt") return ttAutocomplete(interaction);
     if (acName === "war") return warAutocomplete(interaction);
+    if (acName === "table") return tableAutocomplete(interaction);
     if (acName === "cans") return cansAutocomplete(interaction);
     if (acName === "logo") return logoAutocomplete(interaction);
     if (acName === "team") return teamAutocomplete(interaction);

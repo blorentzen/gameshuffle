@@ -215,6 +215,12 @@ export const EVENTS = {
   speedrunLookSaved: "Speedrun Look Saved",
   /** A speedrun address copied from its setup: the timer's for LiveSplit One, or the OBS link (props: { kind }). */
   speedrunAddressCopied: "Speedrun Address Copied",
+  /** GameShuffle for LiveSplit downloaded from the setup page {from: setup|studio}. */
+  speedrunAddonDownloaded: "Speedrun Addon Downloaded",
+  /** Splits set on the setup page: { from: template:<id> | numbers | typed | file, game }. */
+  speedrunSplitsSet: "Speedrun Splits Set",
+  /** A LiveSplit file downloaded from the setup page: { from: template | numbers | typed }. */
+  speedrunSplitsDownloaded: "Speedrun Splits Downloaded",
   /** The weekly lounge report switched on or off in the MMR studio (props: { on }). */
   loungeWeeklySwitched: "Lounge Weekly Switched",
   /** A lounge name confirmed by Discord on /lounge ({games}: how many lounge games). */

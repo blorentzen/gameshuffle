@@ -4,6 +4,7 @@ import { useRef, useState } from "react";
 import { Button } from "@empac/cascadeds";
 import { useToast } from "@/components/toast/ToastProvider";
 import { useConfirm } from "@/components/confirm/ConfirmProvider";
+import { fitPicture } from "@/lib/images/shrink";
 
 /**
  * Cover-image uploader for a game night (host only). Uploads to R2 via
@@ -35,7 +36,8 @@ export function CoverUploader({ nightId, initialUrl }: { nightId: string; initia
     setBusy(true);
     try {
       const fd = new FormData();
-      fd.append("file", file);
+      // Vercel turns away requests over 4.5 MB: a bigger picture is made smaller first.
+      fd.append("file", await fitPicture(file));
       const res = await fetch(`/api/game-nights/${nightId}/cover`, { method: "POST", body: fd });
       const j = await res.json().catch(() => null);
       if (res.ok && j?.url) {

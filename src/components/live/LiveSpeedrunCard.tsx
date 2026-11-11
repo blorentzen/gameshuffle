@@ -22,6 +22,7 @@ import { everyVisible } from "@/lib/hooks/everyVisible";
 import { refreshViewerBalance, useViewerBalance } from "@/lib/economy/useViewerBalance";
 import { fmtClock, fmtDelta } from "@/lib/speedrun/time";
 import { currentIndex, lastDelta } from "@/lib/speedrun/rules";
+import { shownState } from "@/lib/speedrun/splitGroups";
 import { payoutIfWon } from "@/lib/speedrun/chat";
 import type { LiveSpeedrunBody } from "@/lib/speedrun/prediction";
 import type { RelayState } from "@/lib/speedrun/types";
@@ -31,7 +32,7 @@ const STAKES = [25, 50, 100, 250] as const;
 const n0 = (n: number) => n.toLocaleString("en-US");
 
 /** The run as the stream shows it: each state from the relay, shown once the stream delay has passed. */
-function useDelayedRun(state: RelayState | null, ageMs: number | null, streamDelayMs: number) {
+export function useDelayedRun(state: RelayState | null, ageMs: number | null, streamDelayMs: number) {
   // A second more than the delay: `now` only ticks once a second between runs, so a state's age is read late by up to that.
   const delayMs = streamDelayMs + 1000;
   const [now, setNow] = useState(() => Date.now());
@@ -49,7 +50,7 @@ function useDelayedRun(state: RelayState | null, ageMs: number | null, streamDel
     return () => window.clearInterval(id);
   }, [running]);
   if (!shown) return null;
-  const st = shown.state;
+  const st = shownState(shown.state);
   const ms = st.phase === "running" ? st.elapsedMs + Math.max(0, now - (shown.madeAt + delayMs)) : st.elapsedMs;
   return { st, ms };
 }
@@ -95,9 +96,11 @@ interface CardProps {
   onSignIn: () => void;
   /** After a bet: refresh the body. */
   onPlaced: () => void;
+  /** The live page's run card above already shows the run. */
+  hideRun?: boolean;
 }
 
-export function SpeedrunPredictionCard({ body, streamerSlug, onSignIn, onPlaced }: CardProps) {
+export function SpeedrunPredictionCard({ body, streamerSlug, onSignIn, onPlaced, hideRun = false }: CardProps) {
   const toast = useToast();
   const { activated, balance } = useViewerBalance();
   const [side, setSide] = useState<"pb" | "no">("pb");
@@ -176,7 +179,7 @@ export function SpeedrunPredictionCard({ body, streamerSlug, onSignIn, onPlaced 
       <Card variant="outlined" padding="none" className="lsrp lsrp--mini">
         <div className="lsrp__in">
           <span className="live-poll__eyebrow">This run</span>
-          <RunLine body={body} />
+          {!hideRun && <RunLine body={body} />}
           <div className="lsrp-mini">
             <Badge variant={tag.variant} size="small">{tag.text}</Badge>
             <b>{head}</b>
@@ -193,7 +196,7 @@ export function SpeedrunPredictionCard({ body, streamerSlug, onSignIn, onPlaced 
     <Card variant="outlined" padding="none" className="lsrp">
       <div className="lsrp__in">
         <span className="live-poll__eyebrow">This run</span>
-        <RunLine body={body} />
+        {!hideRun && <RunLine body={body} />}
         <div>
           <h3 className="lsrp__q">{body.market.question || `Will ${body.runner} get a personal best this run?`}</h3>
           <p className="lsrp__meta">
@@ -248,7 +251,7 @@ export function SpeedrunPredictionCard({ body, streamerSlug, onSignIn, onPlaced 
 }
 
 /** The card on its own, for the live page when no GameShuffle stream is running: shows only while a prediction is. */
-export function LiveSpeedrunCard({ streamerSlug }: { streamerSlug: string }) {
+export function LiveSpeedrunCard({ streamerSlug, hideRun = false }: { streamerSlug: string; /** The run card above shows the run. */ hideRun?: boolean }) {
   const host = useLiveHost();
   const [body, setBody] = useState<LiveSpeedrunBody | null>(null);
   const [nudge, setNudge] = useState(0);
@@ -266,7 +269,7 @@ export function LiveSpeedrunCard({ streamerSlug }: { streamerSlug: string }) {
   if (!body) return null;
   return (
     <section className="live-srp" aria-label="Speedrun prediction">
-      <SpeedrunPredictionCard body={body} streamerSlug={streamerSlug} onSignIn={() => host.signIn("bet on this run")} onPlaced={() => setNudge((x) => x + 1)} />
+      <SpeedrunPredictionCard body={body} streamerSlug={streamerSlug} onSignIn={() => host.signIn("bet on this run")} onPlaced={() => setNudge((x) => x + 1)} hideRun={hideRun} />
     </section>
   );
 }

@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- LiveSplit reads this on start for GameShuffle for LiveSplit (UpdateManager's format). Newest first; each update
+     lists the files to download from https://www.gameshuffle.co/livesplit/ plus their path inside LiveSplit's folder. -->
+<updates>
+  <update version="1.0.0">
+    <files>
+      <file path="Components/LiveSplit.GameShuffle.dll" status="changed" />
+    </files>
+    <changelog>
+      <change>First release: sends your splits to your GameShuffle overlay and connects by itself.</change>
+    </changelog>
+  </update>
+</updates>

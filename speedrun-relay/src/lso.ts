@@ -36,6 +36,8 @@ export interface LsoClientOptions {
   onEvent(name: string): void;
   /** A reply went missing or arrived late: the owner should read the run and state again. */
   onLost?(why: "late" | "stray" | "resynced"): void;
+  /** GameShuffle's LiveSplit add-on says what its splits file holds ({"gameshuffle": {...}}). LiveSplit One never sends one. */
+  onInfo?(info: Record<string, unknown>): void;
   timeoutMs?: number;
   quietMs?: number;
   tombstoneMs?: number;
@@ -129,6 +131,10 @@ export class LsoClient {
     }
     if (!msg || typeof msg !== "object" || Array.isArray(msg)) return;
     const obj = msg as Record<string, unknown>;
+    if (obj.gameshuffle && typeof obj.gameshuffle === "object" && !Array.isArray(obj.gameshuffle)) {
+      this.opts.onInfo?.(obj.gameshuffle as Record<string, unknown>);
+      return;
+    }
     if (typeof obj.event === "string") {
       this.opts.onEvent(obj.event);
       return;

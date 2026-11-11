@@ -152,7 +152,7 @@ function isHeroPath(pathname: string): boolean {
 
 /** `shop`: visitors can see the shop (open or Coming soon), so the nav links to it. `previewInterests`: a staff persona
  *  preview's interests (src/lib/preview), which win over the account's own. */
-export function SiteNavbar({ shop = false, previewInterests = null }: { shop?: boolean; previewInterests?: Interest[] | null }) {
+export function SiteNavbar({ shop = false, speedrun = false, previewInterests = null }: { shop?: boolean; speedrun?: boolean; previewInterests?: Interest[] | null }) {
   const { user } = useAuth();
   const pathname = usePathname();
   // Event detail pages open on a hero image. They were rendering the 64px nav
@@ -261,7 +261,7 @@ export function SiteNavbar({ shop = false, previewInterests = null }: { shop?: b
   // sitemap cannot drift apart. The pillar was renamed Organize -> Compete:
   // far more people want to ENTER a tournament than run one, so it is named
   // for the majority intent and organising is an action inside it.
-  const navCtx = { signedIn: !!user, isStreamer, isStaff: false, shop };
+  const navCtx = { signedIn: !!user, isStreamer, isStaff: false, shop, speedrun };
   const pillarSections = (p: Pillar): NavSection[] => {
     const groups = primaryItems(p, navCtx);
     const sections: NavSection[] = groups.map((g) => ({

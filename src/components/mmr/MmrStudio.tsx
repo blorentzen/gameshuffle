@@ -57,6 +57,7 @@ import { MmrStarts } from "./MmrStarts";
 import { MmrMakePick, MmrPictureMaker, useMakeMode } from "./MmrMakePicture";
 import type { PictureSize } from "@/lib/mmr/picture";
 import { GifPicker } from "@/components/gifs/GifPicker";
+import { shrinkPicture } from "@/lib/images/shrink";
 import { clearDraft, clearPicture, draftFor, getPicture, putPicture, readDraft, writeDraft, type DraftPlan } from "@/lib/mmr/draft";
 
 const noop = () => () => {};
@@ -268,12 +269,20 @@ export function MmrStudio({ initial, pro, looksOk: looksAtLoad = pro, chat = fal
     return () => ro.disconnect();
   }, [look.layout, look.rolling.shape]);
 
-  const tryPicture = (file: File) => {
-    if (!PIC_TYPES.includes(file.type)) { toast.error("Use a still PNG, JPG or WebP. A moving background is one of your GIFs."); return; }
-    if (file.size > 4 * 1024 * 1024) { toast.error("That picture is over 4 MB."); return; }
-    setTryPic(URL.createObjectURL(file));
+  /** A picture drawn small enough to upload (phone photos are often over Vercel's 4.5 MB), or null after saying why. */
+  const readyPicture = async (file: File): Promise<Blob | null> => {
+    if (!PIC_TYPES.includes(file.type)) { toast.error("Use a still PNG, JPG or WebP. A moving background is one of your GIFs."); return null; }
+    const small = await shrinkPicture(file, { ground: "#11162e" });
+    if (!small) { toast.error("That picture couldn't be opened. Try a PNG, JPG or WebP."); return null; }
+    if (small.size > 4 * 1024 * 1024) { toast.error("That picture is over 4 MB."); return null; }
+    return small;
+  };
+  const tryPicture = async (file: File) => {
+    const small = await readyPicture(file);
+    if (!small) return;
+    setTryPic(URL.createObjectURL(small));
     // Kept on this device so it can be uploaded once looks are on (never before).
-    void putPicture(file).then((kept) => setHasPic(kept));
+    void putPicture(small).then((kept) => setHasPic(kept));
   };
 
   const checkFont = async () => {
@@ -311,6 +320,7 @@ export function MmrStudio({ initial, pro, looksOk: looksAtLoad = pro, chat = fal
         : data.error === "refused" ? `That picture can't go on the card${data.reason ? `: ${data.reason}` : "."}`
         : data.error === "check_unavailable" ? "We couldn't check that picture just now. Try again in a minute."
         : data.error === "pro_required" ? `Your own picture is part of ${unlockName}.`
+        : res.status === 413 ? "That picture is too big to upload. Try a smaller one."
         : "Couldn't upload that picture. Try again?",
       );
       return null;
@@ -320,7 +330,8 @@ export function MmrStudio({ initial, pro, looksOk: looksAtLoad = pro, chat = fal
   const upload = async (file: File) => {
     setUploading(true);
     try {
-      const url = await uploadPicture(file);
+      const small = await readyPicture(file);
+      const url = small ? await uploadPicture(small) : null;
       if (url) setLook({ fill: "picture", picture: url });
     } finally {
       setUploading(false);
@@ -614,7 +625,7 @@ export function MmrStudio({ initial, pro, looksOk: looksAtLoad = pro, chat = fal
               </div>
               {mode === "picture" ? (
                 <>
-                  <input ref={fileRef} type="file" accept="image/png,image/jpeg,image/webp" hidden onChange={(e) => { const f = e.target.files?.[0]; if (f) { if (looksOk) void upload(f); else tryPicture(f); } e.target.value = ""; }} />
+                  <input ref={fileRef} type="file" accept="image/png,image/jpeg,image/webp" hidden onChange={(e) => { const f = e.target.files?.[0]; if (f) { if (looksOk) void upload(f); else void tryPicture(f); } e.target.value = ""; }} />
                   <Button size="small" variant="secondary" loading={uploading} onClick={() => fileRef.current?.click()}>
                     {looksOk ? (look.picture && !isGif ? "Change picture" : "Upload a picture") : tryPic ? "Try another picture" : "Try a picture"}
                   </Button>

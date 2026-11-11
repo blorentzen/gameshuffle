@@ -116,3 +116,16 @@ export const STREAMER_TOOLKIT: ToolkitItem[] = [
     accent: "#2563eb",
   },
 ];
+
+/** The speedrun overlay (launch picks 2026-11-10), listed once the speedrun_listed switch is on. */
+export const SPEEDRUN_TOOLKIT_ITEM: ToolkitItem = {
+  icon: "clock",
+  title: "Speedrun overlay",
+  description: "Your LiveSplit One splits on stream as you split, for any game, with !pb, !pace and !splits for chat and a PB prediction every run.",
+  href: "/speedrun",
+  cta: "See the speedrun overlay →",
+  accent: "#0d9488",
+};
+
+/** The toolkit as shown: the speedrun overlay joins once it's listed. */
+export const streamerToolkit = (speedrun: boolean): ToolkitItem[] => (speedrun ? [...STREAMER_TOOLKIT, SPEEDRUN_TOOLKIT_ITEM] : STREAMER_TOOLKIT);

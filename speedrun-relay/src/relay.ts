@@ -5,7 +5,7 @@
 import { DurableObject } from "cloudflare:workers";
 import { LsoClient, LsoError, type LsoReply } from "./lso";
 import { observe, readReached, readRun, readSnap, readTimes, timeOf } from "./reads";
-import { REMOTE_COMMANDS, cleanSegments, remoteStep, sameNames, type RemoteClock, type RemoteCommand, type RemoteResult } from "./remote";
+import { REMOTE_COMMANDS, cleanSegments, remoteStep, replacesSegments, type RemoteClock, type RemoteCommand, type RemoteResult } from "./remote";
 import {
   emptyCore,
   finished,
@@ -26,10 +26,12 @@ import {
   started,
   undone,
   type Core,
+  cleanInfo,
   type HookEvent,
   type RelayState,
   type Segment,
   type Snap,
+  type TimerInfo,
 } from "./state";
 import { signBody } from "./tokens";
 
@@ -50,6 +52,8 @@ interface Persist {
   clock?: RemoteClock | null;
   /** Splits the site sent while a remote run was going: they take over at its reset. */
   pendingSegments?: Segment[] | null;
+  /** What the desktop LiveSplit add-on last said (null for LiveSplit One, or nothing connected). */
+  timer?: TimerInfo | null;
 }
 
 interface Attachment {
@@ -108,7 +112,6 @@ function attachmentOf(ws: WebSocket): Attachment | null {
   }
 }
 
-const hasTimes = (segs: readonly Segment[]) => segs.some((s) => s.pbMs != null || s.bestMs != null);
 
 /** A new set of splits with nothing run on them yet. */
 function withSegments(core: Core, segments: Segment[]): Core {
@@ -171,7 +174,7 @@ export class Relay extends DurableObject<RelayEnv> {
       case "admin":
         return this.admin(req);
       case "state":
-        return json({ state: this.p.core.state, overlays: this.overlayCount() });
+        return json({ state: this.p.core.state, overlays: this.overlayCount(), timer: this.p.timer ?? null });
       default:
         return new Response("Not found", { status: 404 });
     }
@@ -287,7 +290,7 @@ export class Relay extends DurableObject<RelayEnv> {
     // new ones wait for its reset. The relay's times win when the names match (it saw the latest PB first).
     if (segments && !this.client) {
       const cur = core.state.segments;
-      const replace = !cur.length || !sameNames(segments, cur) || (!hasTimes(cur) && hasTimes(segments));
+      const replace = replacesSegments(cur, segments, b.replaceSegments === true);
       if (core.state.phase !== "idle") this.p.pendingSegments = replace ? segments : null;
       else if (replace) {
         core = withSegments(core, segments);
@@ -346,6 +349,7 @@ export class Relay extends DurableObject<RelayEnv> {
     this.unbind();
     this.enqueue(async () => {
       if (this.p.lsoConn) return; // a new LiveSplit One connected meanwhile
+      this.p.timer = null;
       await this.commit({ ...this.p.core, state: { ...this.p.core.state, connected: false } }, "disconnect");
     });
   }
@@ -369,10 +373,13 @@ export class Relay extends DurableObject<RelayEnv> {
 
   private bind(ws: WebSocket): LsoClient {
     this.client?.close();
+    // A new timer: the add-on says who it is right after connecting; LiveSplit One never does.
+    this.p.timer = null;
     const lso: LsoClient = new LsoClient({
       send: (text) => ws.send(text),
       onEvent: (name) => this.enqueue(() => this.onEvent(lso, name)),
       onLost: () => this.needSync(lso),
+      onInfo: (info) => this.enqueue(() => this.onInfo(lso, info)),
     });
     this.client = lso;
     this.failures = 0;
@@ -438,6 +445,22 @@ export class Relay extends DurableObject<RelayEnv> {
     } finally {
       if (connecting && lso === this.client) this.hook("connect", this.p.core.state);
     }
+  }
+
+  /**
+   * The desktop LiveSplit add-on's info: kept for /state (the setup page names the timer and shows what the splits file
+   * says) and passed to the site, which fills game, category and attempts from it unless the runner typed their own.
+   * New splits (another file, renamed or added splits) are read again at once; LiveSplit One has no way to say so.
+   */
+  private async onInfo(lso: LsoClient, raw: Record<string, unknown>): Promise<void> {
+    if (lso !== this.client) return;
+    const info = cleanInfo(raw);
+    if (!info) return;
+    const before = this.p.timer?.runKey ?? null;
+    this.p.timer = info;
+    await this.save();
+    if (before && info.runKey && before !== info.runKey) await this.syncAll(lso, false);
+    this.hook("info", this.p.core.state, { timer: info });
   }
 
   private async onEvent(lso: LsoClient, name: string): Promise<void> {
@@ -579,12 +602,12 @@ export class Relay extends DurableObject<RelayEnv> {
   }
 
   /** Tells the site, in order, without holding anything else up. Retried once on a 5xx or a network error. */
-  private hook(event: HookEvent, state: RelayState): void {
+  private hook(event: HookEvent, state: RelayState, extra: { timer?: TimerInfo } = {}): void {
     const origin = this.env.GS_ORIGIN?.replace(/\/+$/, "");
     const secret = this.env.SPEEDRUN_RELAY_SECRET;
     const relayId = this.p.relayId;
     if (!origin || !secret || !relayId) return;
-    const body = JSON.stringify({ relayId, event, state });
+    const body = JSON.stringify({ relayId, event, state, ...extra });
     const send = async () => {
       const signature = await signBody(secret, body);
       for (let attempt = 1; attempt <= 2; attempt++) {

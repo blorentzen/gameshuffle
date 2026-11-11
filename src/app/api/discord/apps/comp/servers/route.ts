@@ -5,6 +5,8 @@
  *   PATCH { guild, settings }   merges channel settings (comp: { channel } for its posts)
  *   PATCH { guild, lounge }     lounge posts in this server: { rankUps?, rolesGame?, boardGame? } (roles and the board
  *                               are GS Pro). GameShuffle's lounge settings for the server come along the first time.
+ *   PATCH { guild, speedrun }   speedrun posts: { pbs?, pace?, paceRole? } (pace alerts are GS Pro); ?guild= GETs list
+ *                               the server's roles for the ping
  *   DELETE ?guild=<id>          forgets the server (the bot stays until someone removes it in Discord)
  *   POST { action: "panel", guild, channel, game }   posts (or moves) the time trial panel; game mk8dx | mkworld | both
  *   POST { action: "panel_remove", guild, game }     takes it down
@@ -17,7 +19,8 @@ import { compAppLive } from "@/lib/discord/appIds";
 import { withDiscordApp } from "@/lib/discord/apps";
 import { appGuildsReady, getAppGuild, listAppGuilds, removeAppGuild, updateAppGuildSettings } from "@/lib/discord/appGuilds";
 import { serverLimit } from "@/lib/discord/guilds";
-import { listTextChannels } from "@/lib/adapters/discord/adapter";
+import { listGuildRoles, listTextChannels } from "@/lib/adapters/discord/adapter";
+import { readCompSpeedrun, type CompSpeedrun } from "@/lib/speedrun/compDiscord";
 import { createServiceClient } from "@/lib/supabase/admin";
 import { isMmrGame } from "@/lib/mmr/rules";
 import { EMPTY_COMP_LOUNGE, readCompLounge, type CompLounge } from "@/lib/lounge/compLounge";
@@ -58,9 +61,11 @@ export async function GET(request: Request) {
   const servers = live && ready ? await listAppGuilds(user.id, "comp") : [];
   const guild = new URL(request.url).searchParams.get("guild");
   let channels: { id: string; name: string }[] | null = null;
+  let roles: { id: string; name: string }[] | null = null;
   if (guild && servers.some((s) => s.guildId === guild)) {
-    const res = await withDiscordApp("comp", () => listTextChannels(guild));
+    const [res, rr] = await withDiscordApp("comp", () => Promise.all([listTextChannels(guild), listGuildRoles(guild)]));
     channels = res.ok ? res.channels.map((c) => ({ id: c.id, name: c.name })) : null;
+    roles = rr.ok ? rr.roles.map((r) => ({ id: r.id, name: r.name })) : null;
   }
   return NextResponse.json({
     ok: true,
@@ -70,16 +75,34 @@ export async function GET(request: Request) {
     pro,
     servers: await Promise.all(servers.map(async (s) => {
       const { lounge, carried } = await effectiveLounge(s.guildId, s.settings);
-      return { guildId: s.guildId, name: s.name, removedAt: s.removedAt, settings: s.settings, lounge: { rankUps: lounge.rankUps, rolesGame: lounge.rolesGame, boardGame: lounge.boardGame, carried } };
+      return { guildId: s.guildId, name: s.name, removedAt: s.removedAt, settings: s.settings, lounge: { rankUps: lounge.rankUps, rolesGame: lounge.rolesGame, boardGame: lounge.boardGame, carried }, speedrun: readCompSpeedrun(s.settings) };
     })),
     channels,
+    roles,
   });
 }
 
 export async function PATCH(request: Request) {
   const user = await who();
   if (!user) return NextResponse.json({ ok: false, error: "unauthenticated" }, { status: 401 });
-  const body = (await request.json().catch(() => ({}))) as { guild?: string; settings?: Record<string, unknown>; lounge?: Record<string, unknown> };
+  const body = (await request.json().catch(() => ({}))) as { guild?: string; settings?: Record<string, unknown>; lounge?: Record<string, unknown>; speedrun?: Record<string, unknown> };
+  if (body.guild && body.speedrun) {
+    const g = await getAppGuild("comp", body.guild);
+    if (!g || g.ownerUserId !== user.id) return NextResponse.json({ ok: false, error: "not_yours" }, { status: 404 });
+    const next: CompSpeedrun = { ...readCompSpeedrun(g.settings) };
+    if (body.speedrun.pbs !== undefined) next.pbs = body.speedrun.pbs === true;
+    if (body.speedrun.pace !== undefined) {
+      if (body.speedrun.pace === true && !(await isProUser(user.id))) return NextResponse.json({ ok: false, error: "pro_required" }, { status: 403 });
+      next.pace = body.speedrun.pace === true;
+    }
+    if (body.speedrun.paceRole !== undefined) {
+      const r = body.speedrun.paceRole;
+      if (!(r === null || r === "" || (typeof r === "string" && /^\d{5,25}$/.test(r)))) return NextResponse.json({ ok: false, error: "bad_role" }, { status: 400 });
+      next.paceRole = r ? String(r) : null;
+    }
+    await updateAppGuildSettings(user.id, "comp", body.guild, { speedrun: next });
+    return NextResponse.json({ ok: true, speedrun: next });
+  }
   if (body.guild && body.lounge) {
     const g = await getAppGuild("comp", body.guild);
     if (!g || g.ownerUserId !== user.id) return NextResponse.json({ ok: false, error: "not_yours" }, { status: 404 });

@@ -14,6 +14,7 @@
  * The renderer can't draw webp (all our box art is webp, and banners may be),
  * so every picture goes through sharp to a PNG first.
  */
+import { symbolFonts } from "@/lib/og/symbolFonts";
 import "server-only";
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
@@ -313,6 +314,7 @@ export async function renderEventCard(card: EventCardInput, init?: { headers?: R
         { name: "Gabarito", data: gabarito, weight: 700, style: "normal" },
         { name: "Outfit", data: outfit500, weight: 500, style: "normal" },
         { name: "Outfit", data: outfit600, weight: 600, style: "normal" },
+        ...(await symbolFonts()),
       ],
       headers: { "Cache-Control": "public, max-age=600, s-maxage=3600, stale-while-revalidate=86400", ...init?.headers },
     },

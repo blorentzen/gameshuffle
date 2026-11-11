@@ -84,7 +84,8 @@ function specsFor(titles) {
   add("/welcome", "Welcome", "Free tools for every game night", G("calendar", "device-tv", "brand-discord", "broadcast", "trophy", "pokeball"));
   // Search pages (2026-10-20): the random Pokémon generator (glyphs only: no Pokémon art on our images).
   add("/randomizers/pokemon", "Random Pokémon", "Roll from all 1,025", G("pokeball", "dice-5", "flame", "droplet", "leaf", "bolt"), "public/images/opengraph/pokemon-og.jpg");
-  add("/twitch-chat-games", "Chat Games", "Twelve ways viewers play along", G("broadcast", "message-circle", "trophy", "dice-5", "users-group"));
+  add("/twitch-chat-games", "Chat Games", "How your viewers play along", G("broadcast", "message-circle", "trophy", "dice-5", "users-group"));
+  add("/speedrun", "Speedrun Overlay", "Every split on stream, live", G("stopwatch", "flag", "trophy", "bolt", "device-gamepad-2"));
   add("/name-every-pokemon", "Name Them All", "How many can you remember?", G("list-numbers", "pokeball", "stopwatch", "brain", "trophy"));
   // The free bracket tools (search pages round, 2026-10-20).
   add("/bracket-generator", "Bracket Maker", "Single or double elimination", G("tournament", "trophy", "users", "crown", "flag"));

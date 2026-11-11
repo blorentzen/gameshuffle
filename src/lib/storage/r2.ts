@@ -2,7 +2,10 @@ import "server-only";
 import {
   S3Client,
   PutObjectCommand,
+  GetObjectCommand,
   DeleteObjectCommand,
+  DeleteObjectsCommand,
+  ListObjectsV2Command,
 } from "@aws-sdk/client-s3";
 
 /**
@@ -65,4 +68,34 @@ export async function deleteFromR2(key: string): Promise<void> {
   } catch {
     /* swallow — orphaned objects are acceptable, a failed UX is not */
   }
+}
+
+/** An object's bytes, or null when it isn't there (or storage can't be reached). */
+export async function getFromR2(key: string): Promise<Uint8Array | null> {
+  try {
+    const res = await r2().send(new GetObjectCommand({ Bucket: bucket, Key: key }));
+    return res.Body ? await res.Body.transformToByteArray() : null;
+  } catch {
+    return null;
+  }
+}
+
+/** Deletes every object under `prefix` last changed before `olderThan`; how many went. Never throws. */
+export async function sweepR2(prefix: string, olderThan: Date): Promise<number> {
+  let gone = 0;
+  try {
+    let token: string | undefined;
+    do {
+      const page = await r2().send(new ListObjectsV2Command({ Bucket: bucket, Prefix: prefix, ContinuationToken: token, MaxKeys: 1000 }));
+      const old = (page.Contents ?? []).filter((o) => o.Key && o.LastModified && o.LastModified < olderThan).map((o) => ({ Key: o.Key! }));
+      if (old.length) {
+        await r2().send(new DeleteObjectsCommand({ Bucket: bucket, Delete: { Objects: old, Quiet: true } }));
+        gone += old.length;
+      }
+      token = page.IsTruncated ? page.NextContinuationToken : undefined;
+    } while (token);
+  } catch (err) {
+    console.error("[r2] sweep failed:", err instanceof Error ? err.message : err);
+  }
+  return gone;
 }

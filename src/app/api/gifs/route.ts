@@ -8,6 +8,8 @@
  */
 
 import { NextResponse, type NextRequest } from "next/server";
+import { readUploadRef } from "@/lib/uploads/parts";
+import { takeUpload } from "@/lib/uploads/partsServer";
 import { createClient } from "@/lib/supabase/server";
 import { rateLimit } from "@/lib/ratelimit";
 import { communityTags, createGif, gifAllowance, gifsReady, listCommunity, listMine } from "@/lib/gifs/store";
@@ -45,13 +47,26 @@ export async function POST(req: NextRequest) {
   if (!user) return NextResponse.json({ error: "signin" }, { status: 401 });
   if (!(await gifsReady())) return NextResponse.json({ error: "not_ready" }, { status: 503 });
   if (!(await rateLimit(`gifs-upload:${user.id}`, { max: 12, windowMs: 10 * 60_000 })).ok) return NextResponse.json({ error: "slow_down" }, { status: 429 });
-  const form = await req.formData().catch(() => null);
-  const file = form?.get("file");
-  if (!(file instanceof File)) return NextResponse.json({ error: "no_file" }, { status: 400 });
-  if (!(GIF_TYPES as readonly string[]).includes(file.type)) return NextResponse.json({ error: "bad_type" }, { status: 400 });
-  if (file.size > GIF_MAX_BYTES) return NextResponse.json({ error: "too_big" }, { status: 400 });
+  // A file over 4 MB comes in parts (Vercel turns away bodies over 4.5 MB): `{ upload, parts }` from /api/uploads/part.
+  // processGif reads what the file really is, so a GIF sent in parts needs no type here.
+  let bytes: Buffer;
+  if ((req.headers.get("content-type") ?? "").includes("application/json")) {
+    const ref = readUploadRef(await req.json().catch(() => null));
+    if (!ref) return NextResponse.json({ error: "no_file" }, { status: 400 });
+    const taken = await takeUpload(user.id, ref, GIF_MAX_BYTES);
+    if (taken === "missing") return NextResponse.json({ error: "no_file" }, { status: 400 });
+    if (taken === "too_big") return NextResponse.json({ error: "too_big" }, { status: 400 });
+    bytes = taken;
+  } else {
+    const form = await req.formData().catch(() => null);
+    const file = form?.get("file");
+    if (!(file instanceof File)) return NextResponse.json({ error: "no_file" }, { status: 400 });
+    if (!(GIF_TYPES as readonly string[]).includes(file.type)) return NextResponse.json({ error: "bad_type" }, { status: 400 });
+    if (file.size > GIF_MAX_BYTES) return NextResponse.json({ error: "too_big" }, { status: 400 });
+    bytes = Buffer.from(await file.arrayBuffer());
+  }
 
-  const res = await createGif(user.id, Buffer.from(await file.arrayBuffer()));
+  const res = await createGif(user.id, bytes);
   if (res.ok) return NextResponse.json({ gif: res.gif, again: res.again });
   if (res.error === "full") return NextResponse.json({ error: "full", ...(await gifAllowance(user.id)) }, { status: 403 });
   const status = res.error === "storage_off" ? 503 : res.error === "blocked" ? 403 : res.error === "refused" ? 422 : 400;

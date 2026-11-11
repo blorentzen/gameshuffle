@@ -20,6 +20,7 @@ import { currentIndex, isNewPb, lastDelta, pbTime } from "@/lib/speedrun/rules";
 import type { RelayState, SpeedrunPredictionView } from "@/lib/speedrun/types";
 import { useRunMs } from "./useRunClock";
 import { useRelayWatch } from "./useRelayWatch";
+import { shownName, shownState } from "@/lib/speedrun/splitGroups";
 
 type Command = "start" | "split" | "undo" | "skip" | "reset" | "resume";
 
@@ -38,7 +39,8 @@ const STATUS_MS = 15_000;
 
 const ERRORS: Record<string, string> = {
   busy: "LiveSplit One is on a settings screen. Close it, then tap again.",
-  no_splits: "Add your splits first: type them in your speedrun setup, or connect LiveSplit One.",
+  unsupported: "Your LiveSplit is set not to take the phone remote. Turn it on in Layout Settings, on the GameShuffle tab.",
+  no_splits: "Add your splits first: type them in your speedrun setup, or connect your timer.",
   no_run: "No run is going.",
   run_finished: "The run is finished. Tap Next attempt to save it.",
   run_already_in_progress: "A run is already going.",
@@ -87,7 +89,7 @@ export function SpeedrunRemote({ blocked, socketUrl, initial, game, category }: 
     return everyVisible(() => void refresh(), STATUS_MS);
   }, [initial, refresh]);
 
-  const st = snap?.state ?? null;
+  const st = snap ? shownState(snap.state) : null;
   const running = st?.phase === "running";
   const going = st?.phase === "running" || st?.phase === "paused";
   const ms = useRunMs(!!running, st?.elapsedMs ?? 0, snap?.at ?? 0);
@@ -135,7 +137,7 @@ export function SpeedrunRemote({ blocked, socketUrl, initial, game, category }: 
       if (command === "split" || command === "start") { try { navigator.vibrate?.(25); } catch { /* no vibration */ } }
       // Said aloud for screen readers.
       const d = lastDelta(s);
-      if (command === "split") setSaid(s.phase === "ended" ? `Finished in ${fmtClock(s.splits.at(-1) ?? s.elapsedMs)}.` : `Split. ${d ? `${fmtDelta(d.ms)} ${d.ms <= 0 ? "ahead" : "behind"}.` : ""} Now ${s.segments[s.index ?? 0]?.name ?? ""}.`);
+      if (command === "split") setSaid(s.phase === "ended" ? `Finished in ${fmtClock(s.splits.at(-1) ?? s.elapsedMs)}.` : `Split. ${d ? `${fmtDelta(d.ms)} ${d.ms <= 0 ? "ahead" : "behind"}.` : ""} Now ${shownName(s.segments[s.index ?? 0]?.name ?? "")}.`);
       else if (command === "start") setSaid("Run started.");
       else if (command === "reset") setSaid("Run reset.");
       else if (command === "undo") setSaid("Split undone.");
@@ -174,7 +176,7 @@ export function SpeedrunRemote({ blocked, socketUrl, initial, game, category }: 
 
   const title = !n ? "No splits yet" : ended ? (newPb ? "New personal best" : "Finished") : seg?.name ?? "";
   const meta = !n
-    ? "Type your splits in your speedrun setup, or connect LiveSplit One."
+    ? "Start from a template, type them or bring your LiveSplit file in your speedrun setup, or connect your timer."
     : st.phase === "idle"
       ? `Split 1 of ${n} · attempt ${attemptNow.toLocaleString("en-US")}${pb != null ? ` · PB ${fmtClock(pb)}` : ""}`
       : ended
@@ -220,6 +222,7 @@ export function SpeedrunRemote({ blocked, socketUrl, initial, game, category }: 
         <span className="rm-eyebrow">{eyebrow}</span>
         <h1>{title}</h1>
         <p className="rm-meta">{meta}</p>
+        {!n && <p className="rm-meta"><Link href="/speedrun#splits">Set up your splits</Link></p>}
         <div className={`rm-clock${newPb ? " is-pb" : ""}`} aria-hidden="true"><Clock ms={st.phase === "idle" ? 0 : ms} /></div>
         {chip && (
           <span className={`rm-chip ${d!.ms <= 0 ? "is-ahead" : "is-behind"}`}>
@@ -240,7 +243,7 @@ export function SpeedrunRemote({ blocked, socketUrl, initial, game, category }: 
       </div>
 
       {problem ? <p className="rm-problem" role="alert">{problem}</p> : (
-        <p className="rm-note">{st.connected ? "LiveSplit One is connected: these buttons split it." : "Your screen stays on while a run is going."}</p>
+        <p className="rm-note">{st.connected ? "Your timer is connected: these buttons split it." : "Your screen stays on while a run is going."}</p>
       )}
       <p className="sr-only" aria-live="polite">{said}</p>
 

@@ -105,6 +105,8 @@ export async function postEmbed(args: {
     roles?: string[];
     parse?: Array<"roles" | "users" | "everyone">;
   };
+  /** Optional link buttons under the embed. */
+  components?: unknown[];
 }): Promise<DiscordAdapterResult> {
   const result = await request<DiscordMessage>(
     "POST",
@@ -113,6 +115,7 @@ export async function postEmbed(args: {
       embeds: [args.embed],
       content: args.content,
       allowed_mentions: args.allowedMentions ?? { parse: [] },
+      ...(args.components?.length ? { components: args.components } : {}),
     },
   );
   if (!result.ok) return result;
@@ -423,6 +426,13 @@ export interface DiscordGuildMember {
   userId: string;
   roles: string[];
   bot: boolean;
+}
+
+/** Whether a Discord user is in a server (true / false), or null when Discord couldn't say. */
+export async function isGuildMember(guildId: string, userId: string): Promise<boolean | null> {
+  const r = await request<{ user?: { id: string } }>("GET", `/guilds/${guildId}/members/${userId}`);
+  if (r.ok) return !!r.data.user?.id;
+  return /^404:/.test(r.error) ? false : null;
 }
 
 /** List guild members (up to `limit`, max 1000). Requires the Guild Members

@@ -11,6 +11,7 @@
  * long name, channel or game can't push anything out of place.
  */
 
+import { symbolFonts } from "@/lib/og/symbolFonts";
 import "server-only";
 import type { ReactElement, ReactNode } from "react";
 import { ImageResponse } from "next/og";
@@ -187,6 +188,7 @@ async function draw(el: ReactElement, h: number): Promise<Buffer> {
       { name: "Gabarito", data: gabarito, weight: 700, style: "normal" },
       { name: "Outfit", data: outfit500, weight: 500, style: "normal" },
       { name: "Outfit", data: outfit600, weight: 600, style: "normal" },
+      ...(await symbolFonts()),
     ],
   });
   return Buffer.from(await res.arrayBuffer());

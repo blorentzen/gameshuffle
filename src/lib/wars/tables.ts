@@ -10,26 +10,29 @@ import { createServiceClient } from "@/lib/supabase/admin";
 import { compRestFile } from "@/lib/discord/compRest";
 import { COMP_COLOR } from "@/lib/discord/ttPanel";
 import { loungeBasic } from "@/lib/mmr/mkcentral";
-import { POINTS, standing, type WarGame } from "./rules";
-import { formatTable, parseTable, type TableModel } from "./table";
+import { penaltyTeam, type WarGame } from "./rules";
+import { placePoints, pointsTable, roomOf } from "./format";
+import { formatTable, parseTable, teamTotal, type TableModel } from "./table";
 import { renderTable, type TablePicture } from "./tableCard";
 import { lookForTable, tableLooksReady } from "./tableLooks";
 import { isTableLayout, type TableLayout, type TableLook } from "./tableLook";
-import { listLogos } from "./logos";
+import { listLogos, uploadTableLogo } from "./logos";
 import { cardsReady, listTeams, playerCardsById } from "./cardStore";
 import { mkcTeam } from "./mkcTeams";
 import { teamAliases, teamCardFor, type TeamCard } from "./cards";
 import { tagKey } from "./tags";
 import { flagsFor } from "./flags";
 import { registryTeam } from "./teams";
-import { getWar, warChannel, type War, type WarTeamRef } from "./store";
+import { getWar, warChannel, warStanding, warTeams, type War, type WarTeamRef } from "./store";
 import { SITE_URL } from "@/lib/seo";
 import { linkBtn } from "./discord";
 import { warPagePath } from "./page";
 
 export interface WarTableRow { id: string; warId: string | null; guildId: string; channelId: string; body: string; backgroundUrl: string | null; status: "draft" | "posted" | "canceled"; messageId: string | null; createdBy: string; createdByName: string | null; readBody: string | null;
   /** The layout this table is drawn in when it isn't the channel's (wars-m7). */
-  layout: TableLayout | null }
+  layout: TableLayout | null;
+  /** When it was last posted or changed (lists only). */
+  postedAt?: string }
 type Row = { id: string; war_id: string | null; guild_id: string; channel_id: string; body: string; background_url: string | null; status: WarTableRow["status"]; message_id: string | null; created_by: string; created_by_name: string | null; read_body?: string | null; layout?: string | null };
 const COLS = "id, war_id, guild_id, channel_id, body, background_url, status, message_id, created_by, created_by_name";
 const toRow = (r: Row): WarTableRow => ({ id: r.id, warId: r.war_id, guildId: r.guild_id, channelId: r.channel_id, body: r.body, backgroundUrl: r.background_url, status: r.status, messageId: r.message_id, createdBy: r.created_by, createdByName: r.created_by_name, readBody: r.read_body ?? null, layout: isTableLayout(r.layout) ? r.layout : null });
@@ -45,16 +48,18 @@ async function withTimeout<T>(p: Promise<T>, ms: number, fallback: T): Promise<T
 /** The text a war's table starts from. */
 export async function prefillFor(war: War): Promise<string> {
   const date = new Date(war.createdAt).toLocaleDateString("en-CA", { timeZone: "America/Los_Angeles" });
-  const model: TableModel = { title: `${war.us.name || war.us.tag} vs ${war.them.name || war.them.tag}`, date, settings: [], skipped: [], teams: [
-    { tag: war.us.tag, name: war.us.name, color: null, players: [], penalty: war.penalties.filter((p) => p.side === "us").reduce((a, p) => a + p.points, 0) },
-    { tag: war.them.tag, name: war.them.name, color: null, players: [], penalty: war.penalties.filter((p) => p.side === "them").reduce((a, p) => a + p.points, 0) },
-  ] };
+  const teams = warTeams(war);
+  const title = teams.length > 3 ? teams.map((t) => t.tag).join(" vs ") : teams.map((t) => t.name || t.tag).join(" vs ");
+  const model: TableModel = { title, date, settings: [], skipped: [], teams: teams.map((t, i) => (
+    { tag: t.tag, name: t.name, color: null, players: [], penalty: war.penalties.filter((p) => penaltyTeam(p) === i).reduce((a, p) => a + p.points, 0) }
+  )) };
   // Every race tapped in by the players themselves: their scores are known exactly.
   if (war.races.length && war.races.every((r) => r.players?.length)) {
+    const table = pointsTable(war.game, roomOf(war.format)) ?? [];
     const pts = new Map<string, { name: string; score: number }>();
     for (const r of war.races) for (const p of r.players ?? []) {
       const now = pts.get(p.id) ?? { name: p.name, score: 0 };
-      now.score += POINTS[p.place - 1] ?? 0;
+      now.score += placePoints(table, p.place);
       pts.set(p.id, now);
     }
     const ids = [...pts.keys()];
@@ -74,13 +79,16 @@ export async function prefillFor(war: War): Promise<string> {
  * team card, and in order (your team first) for a table team that matches none of those.
  */
 export function warTotals(war: War, cards: TeamCard[] = []): { totals: Record<string, number>; team: number; order: number[] } {
-  const s = standing(war.races, war.penalties, war.racesTotal);
+  const s = warStanding(war);
+  const teams = warTeams(war);
   const totals: Record<string, number> = {};
-  for (const [side, total] of [[war.them, s.them], [war.us, s.us]] as const) {
+  // Later teams first, so a name your team shares with another can't be overwritten by theirs.
+  for (let i = teams.length - 1; i >= 0; i--) {
+    const side = teams[i];
     const card = teamCardFor(cards, side.tag, side.name);
-    for (const k of [side.name, side.tag, card?.name, ...(card?.tags ?? [])]) if (k) totals[k.toLowerCase()] = total;
+    for (const k of [side.name, side.tag, card?.name, ...(card?.tags ?? [])]) if (k) totals[k.toLowerCase()] = s.totals[i] ?? 0;
   }
-  return { totals, team: 6, order: [s.us, s.them] };
+  return { totals, team: war.format.size, order: s.totals };
 }
 
 export async function createDraft(input: { warId: string | null; guildId: string; channelId: string; body: string; backgroundUrl: string | null; by: { id: string; name: string }; readBody?: string | null; layout?: TableLayout | null }): Promise<string | null> {
@@ -132,12 +140,12 @@ export function logoFrom(t: { tag: string; name: string | null }, own: { tag: st
  * Each team's logo for a table: this server's logo for its tag or its name, then the war's own team (matched by tag or
  * name: a team the screenshot showed under another tag keeps the war's as its name), then MKCentral's for either tag.
  */
-async function logosFor(model: TableModel, guildId: string, war: War | null): Promise<Record<string, string | null>> {
+export async function logosFor(model: TableModel, guildId: string, war: War | null): Promise<Record<string, string | null>> {
   const game: WarGame = war?.game ?? "mk8dx";
   const [own, cards] = await Promise.all([listLogos(guildId).catch(() => []), listTeams(guildId).catch(() => [])]);
   const entries = await Promise.all(model.teams.map(async (t) => {
     const card = teamCardFor(cards, t.tag, t.name);
-    const { url, side } = logoFrom(t, own, war ? [war.us, war.them] : [], cards);
+    const { url, side } = logoFrom(t, own, war ? warTeams(war) : [], cards);
     // logoFrom's url is an upload or the war's own team logo; which counts depends on the card's logo setting.
     const upload = logoFrom(t, own, [], cards).url;
     return [t.tag.toLowerCase(), await cardLogo(card, { upload, warLogo: url !== upload ? url : null, tags: [t.tag, side?.tag], game })] as const;
@@ -185,7 +193,70 @@ export async function tagAliases(tags: string[], game: WarGame, guildId: string)
   return out;
 }
 
-function tableMessage(table: WarTableRow, alt: string, war: War | null): Record<string, unknown> {
+/** The teams on a table with no logo from anywhere (its text, this server, the team card or MKCentral), by index. */
+export async function missingLogos(model: TableModel, guildId: string, war: War | null): Promise<number[]> {
+  const logos = await logosFor(model, guildId, war).catch(() => ({} as Record<string, string | null>));
+  return model.teams.map((t, i) => (t.players.length && !t.logo && !logos[t.tag.toLowerCase()] ? i : -1)).filter((i) => i >= 0);
+}
+
+const KEPT_HOSTS = ["gs-ugc.empac.co", "cdn.empac.co", "mkcentral.com"];
+const DISCORD_HOSTS = ["cdn.discordapp.com", "media.discordapp.net"];
+
+/**
+ * Logo links in a table's text (doc asks pick 2, Ice Mario's way): links to our storage or MKCentral stay; a picture
+ * on Discord is checked and copied into our storage (Discord's links expire); anything else is dropped with a note.
+ */
+export async function settleLogoLinks(model: TableModel, guildId: string, by: { id: string }, userId: string | null): Promise<string[]> {
+  const notes: string[] = [];
+  for (const t of model.teams) {
+    if (!t.logo) continue;
+    let host = "";
+    try { host = new URL(t.logo).hostname; } catch { /* not a link */ }
+    if (KEPT_HOSTS.includes(host)) continue;
+    const name = t.name || t.tag;
+    if (!DISCORD_HOSTS.includes(host)) {
+      t.logo = null;
+      notes.push(`${name}'s logo link isn't from Discord or MKCentral, so it wasn't used. Add logos puts one on.`);
+      continue;
+    }
+    const res = await fetch(t.logo, { signal: AbortSignal.timeout(8000) }).catch(() => null);
+    const type = res?.headers.get("content-type") ?? "";
+    const bytes = res?.ok && /^image\/(png|jpe?g|webp|gif)/.test(type) ? new Uint8Array(await res.arrayBuffer()) : null;
+    const stored = bytes && bytes.byteLength <= 8 * 1024 * 1024 ? await uploadTableLogo({ guildId, image: bytes, by, userId }) : null;
+    if (stored?.ok) t.logo = stored.url;
+    else {
+      t.logo = null;
+      notes.push(stored && !stored.ok && stored.error === "refused" ? `${name}'s logo can't be used.` : `${name}'s logo link couldn't be opened (Discord's links expire), so it wasn't used. Add logos puts one on.`);
+    }
+  }
+  return notes;
+}
+
+/** A channel's posted tables, newest first (/table show). */
+export async function recentTables(guildId: string, channelId: string, limit = 25): Promise<WarTableRow[]> {
+  const [read, looks] = await Promise.all([cardsReady(), tableLooksReady()]);
+  const cols: string = `${COLS}${read ? ", read_body" : ""}${looks ? ", layout" : ""}, updated_at`;
+  const { data } = await createServiceClient().from("war_tables").select(cols).eq("guild_id", guildId).eq("channel_id", channelId).eq("status", "posted").order("updated_at", { ascending: false }).limit(limit);
+  return ((data ?? []) as unknown as (Row & { updated_at: string })[]).map((r) => ({ ...toRow(r), postedAt: r.updated_at }));
+}
+
+/** "Alpakarts vs Another Kart" and "512 to 490 · Nov 10, 10:04 PM" for a table in a list. */
+export function tableLabel(table: WarTableRow): { title: string; line: string } {
+  const model = parseTable(table.body);
+  const teams = model.teams.filter((t) => t.players.length);
+  const title = model.title ?? (teams.map((t) => t.name || t.tag).join(" vs ") || "A table");
+  const when = table.postedAt ? new Date(table.postedAt).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit", timeZone: "America/Los_Angeles" }) : "";
+  return { title, line: [teams.map(teamTotal).join(" to "), when].filter(Boolean).join(" · ") };
+}
+
+/** Posts a copy of a table at the bottom of its channel (the old message stays), with its own Edit button. */
+export async function repostTable(table: WarTableRow, by: { id: string; name: string }): Promise<PostResult> {
+  const id = await createDraft({ warId: table.warId, guildId: table.guildId, channelId: table.channelId, body: table.body, backgroundUrl: table.backgroundUrl, by, layout: table.layout });
+  if (!id) return "failed";
+  return postTable(id, table.warId ? await getWar(table.warId) : null);
+}
+
+function tableMessage(table: WarTableRow, alt: string, war: War | null, missing = false): Record<string, unknown> {
   return {
     flags: V2,
     allowed_mentions: { parse: [] },
@@ -193,6 +264,7 @@ function tableMessage(table: WarTableRow, alt: string, war: War | null): Record<
       { type: 12, items: [{ media: { url: "attachment://table.png" }, description: alt }] },
       { type: 1, components: [
         { type: 2, style: 2, label: "Edit", custom_id: `${TABLE_PREFIX}edit:${table.id}` },
+        ...(missing ? [{ type: 2, style: 2, label: "Add logos", custom_id: `${TABLE_PREFIX}logos:${table.id}` }] : []),
         { type: 2, style: 2, label: "Copy the text", custom_id: `${TABLE_PREFIX}copy:${table.id}` },
         ...(war?.races.length ? [linkBtn("War page", `${SITE_URL}${warPagePath(war)}`)] : []),
       ] },
@@ -210,7 +282,8 @@ export async function postTable(id: string, war: War | null): Promise<PostResult
   const codes = model.teams.flatMap((t) => t.players.map((p) => p.flag).filter((f): f is string => !!f));
   const [logos, flags, drawn] = await Promise.all([logosFor(model, table.guildId, war), flagsFor(table.guildId, codes), lookForTable(table.guildId, table.channelId, table.layout)]);
   const pic = await renderTable(model, { logos, flags, background: table.backgroundUrl, races: war ? war.races.length : null, look: drawn.look });
-  const body = tableMessage(table, pic.alt, war);
+  const missing = model.teams.some((t) => t.players.length && !t.logo && !logos[t.tag.toLowerCase()]);
+  const body = tableMessage(table, pic.alt, war, missing);
   const file = { name: "table.png", data: pic.png };
   if (table.status === "posted" && table.messageId) {
     const { flags: _flags, ...edit } = body;

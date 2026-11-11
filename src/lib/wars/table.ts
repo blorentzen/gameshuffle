@@ -3,6 +3,8 @@
  * Pure, client-safe.
  *   #title Kart Club vs Night Owls      settings start with # (#title and #date are used; the rest are kept as is)
  *   KC - Kart Club #1f5f9a              a team: its tag, then " - " and a name, then a color, both optional
+ *   KC - Kart Club https://…/kc.webp    a logo for this table only, at the end of the team's line (doc asks pick 1, 2026-11-10)
+ *   https://…/ak.png - Another Kart     Ice Mario's way: an image link in place of the tag (the tag comes from the name)
  *   Riley [us] 118                      a player: name, an optional flag code, and a score (70+20+8 adds up, | splits GPs)
  *   Penalty -15                         points off the team above
  * A line that isn't a setting, a player or a penalty starts a team, which is how Ice Mario's headers work ("INTWARD").
@@ -13,12 +15,45 @@ import { bestSplit, groupByTag, samePlayer, stripTag, tagAt, tagKey, type TagGro
 export { withoutTag } from "./tags";
 
 export interface TablePlayer { name: string; flag: string | null; score: number }
-export interface TableTeam { tag: string; name: string | null; color: string | null; players: TablePlayer[]; penalty: number }
+export interface TableTeam {
+  tag: string; name: string | null; color: string | null; players: TablePlayer[]; penalty: number;
+  /** A logo for this table only (a link at the end of the team's line, or in place of its tag). */
+  logo?: string | null;
+}
 export interface TableModel { title: string | null; date: string | null; settings: string[]; teams: TableTeam[]; skipped: string[] }
 
 const PLAYER = /^(.+?)\s*(?:\[([a-z]{2,10}(?:_[a-z]{2,3})?)\])?\s+([+-]?\d{1,4}(?:\s*[+\-|]\s*\d{1,4})*)$/i;
 const PENALTY = /^(?:penalty|pen)\s*:?\s*([+-]?\d{1,4})$/i;
 const TEAM = /^(.+?)(?:\s+-\s+(.+?))?(?:\s+(#[0-9a-f]{6}))?$/i;
+const LINK = /^https?:\/\/\S+$/i;
+
+/** A tag for a team named only by its logo link: its name's initials ("Another Kart" → AK), else its first letters. */
+export function tagFromName(name: string | null): string {
+  const words = (name ?? "").normalize("NFKD").replace(/[^A-Za-z0-9 ]+/g, " ").split(/\s+/).filter(Boolean);
+  if (!words.length) return "?";
+  return (words.length > 1 ? words.map((w) => w[0]).join("") : words[0].slice(0, 3)).toUpperCase().slice(0, 5);
+}
+
+/** A team line: "TAG - Name #color", with a logo link at its end, or Ice Mario's link in place of the tag. */
+function teamLine(line: string): TableTeam | null {
+  const parts = line.split(/\s+/);
+  let logo: string | null = null;
+  let rest = line;
+  if (LINK.test(parts[0])) {
+    logo = parts[0];
+    const after = line.slice(parts[0].length).trim().replace(/^-\s*/, "");
+    const t = TEAM.exec(after || "?");
+    const name = after ? (t?.[1] ?? after).trim().slice(0, 60) : null;
+    return { tag: tagFromName(name), name, color: t?.[3]?.toLowerCase() ?? null, players: [], penalty: 0, logo };
+  }
+  if (parts.length > 1 && LINK.test(parts[parts.length - 1])) {
+    logo = parts[parts.length - 1];
+    rest = line.slice(0, line.length - logo.length).trim();
+  }
+  const t = TEAM.exec(rest);
+  if (!t || rest.length > 80) return null;
+  return { tag: t[1].trim().slice(0, 12).trim(), name: t[2]?.trim().slice(0, 60) || null, color: t[3]?.toLowerCase() ?? null, players: [], penalty: 0, ...(logo ? { logo } : {}) };
+}
 
 /** "70+20+8" or "60|40-10": the parts added up. */
 function scoreOf(expr: string): number {
@@ -57,9 +92,9 @@ export function parseTable(text: string): TableModel {
       team.players.push({ name: p[1].trim().slice(0, 32), flag: p[2] ? p[2].toLowerCase() : null, score: scoreOf(p[3]) });
       continue;
     }
-    const t = TEAM.exec(line);
-    if (t && line.length <= 80) {
-      team = { tag: t[1].trim().slice(0, 12).trim(), name: t[2]?.trim().slice(0, 60) || null, color: t[3]?.toLowerCase() ?? null, players: [], penalty: 0 };
+    const t = teamLine(line);
+    if (t) {
+      team = t;
       model.teams.push(team);
       continue;
     }
@@ -101,7 +136,7 @@ export function formatTable(model: TableModel): string {
   if (model.date) out.push(`#date ${model.date}`);
   out.push(...model.settings);
   for (const t of model.teams) {
-    out.push(`${t.tag}${t.name && t.name !== t.tag ? ` - ${t.name}` : ""}${t.color ? ` ${t.color}` : ""}`);
+    out.push(`${t.tag}${t.name && t.name !== t.tag ? ` - ${t.name}` : ""}${t.color ? ` ${t.color}` : ""}${t.logo ? ` ${t.logo}` : ""}`);
     for (const p of t.players) out.push(`${p.name}${p.flag ? ` [${p.flag}]` : ""} ${p.score}`);
     if (t.penalty) out.push(`Penalty -${t.penalty}`);
   }
@@ -109,6 +144,15 @@ export function formatTable(model: TableModel): string {
 }
 
 export const teamTotal = (t: TableTeam) => t.players.reduce((a, p) => a + p.score, 0) - t.penalty;
+
+/**
+ * Each team's players best score first, as the table is drawn (Umiko's ask, 2026-11-10: typed in any order, the best
+ * player still lands on top). Ties keep the order they were typed; teams keep theirs. The text itself isn't reordered,
+ * since a pasted Lounge block reads its teams from the order of its lines.
+ */
+export function byScore(model: TableModel): TableModel {
+  return { ...model, teams: model.teams.map((t) => ({ ...t, players: [...t.players].sort((a, b) => b.score - a.score) })) };
+}
 
 /** Each player's place across the whole room (ties share a place). */
 export function placesOf(model: TableModel): Map<TablePlayer, number> {

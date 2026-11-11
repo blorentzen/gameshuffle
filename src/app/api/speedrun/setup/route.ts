@@ -2,7 +2,9 @@
  * The signed-in runner's speedrun setup (phase 1 contract, "Site: surfaces in step 1").
  *   GET   → { ready: true, setup } (made on the first visit), or { ready: false, reason }:
  *           "not_ready" = the database needs supabase/speedrun-m1.sql, "not_configured" = the relay's settings are missing.
- *   PATCH { look?, game?, category?, attempts?, settings?, splitNames? } → { setup, synced }
+ *   PATCH { look?, game?, category?, attempts?, settings?, splitNames?, useTimer?, importRun? } → { setup, synced }
+ *           importRun = a LiveSplit file read in the browser: { segments: [{ name, pbMs, bestMs }], game?, category?, attempts? }
+ *           useTimer = "game" | "category" | "attempts": go back to what LiveSplit says (no_timer_info when it said nothing)
  *           (only what changed; synced = the relay heard it). settings is partial; turning the prediction on needs
  *           GS Pro (403 pro_required). splitNames = the phone remote's splits, one per line.
  *   POST  { action: "new-timer" | "new-overlay" } → { setup, synced }  (the old address stops working)
@@ -50,6 +52,7 @@ export async function PATCH(req: NextRequest) {
   if (!body || typeof body !== "object") return NextResponse.json({ error: "bad_request" }, { status: 400 });
   const res = await saveSetup(userId, {
     look: body.look, game: body.game, category: body.category, attempts: body.attempts, settings: body.settings, splitNames: body.splitNames,
+    useTimer: body.useTimer, importRun: body.importRun,
   });
   if (!res.ok) {
     const status = res.error === "bad_attempts" || res.error === "bad_splits" ? 400 : res.error === "pro_required" ? 403 : res.error === "not_ready" ? 503 : 500;

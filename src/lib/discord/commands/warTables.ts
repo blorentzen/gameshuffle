@@ -6,6 +6,8 @@
  *   wtab:make:<warId|none>   the form            wtabm:new:<warId|none>  its answer
  *   wtab:draw|fix|swap|cancel:<tableId>          the check's buttons; wtabm:fix:<tableId> the fixed text
  *   wtab:edit|copy:<tableId>                     on a posted table; wtabm:edit:<tableId>
+ *   wtab:logos:<tableId>                         Add logos (check and posted table); wtabm:logos:<tableId>
+ *   wtab:showp:none                              /table show's menu (doc asks picks 1 and 3, 2026-11-10)
  */
 
 import { after } from "next/server";
@@ -17,13 +19,17 @@ import { COMP_COLOR } from "../ttPanel";
 import { accountForDiscord } from "@/lib/daily/results";
 import { checkImage } from "@/lib/moderation/imageCheck";
 import { isR2Configured, uploadToR2 } from "@/lib/storage/r2";
-import { getWar, rememberChannel, warChannel, type War } from "@/lib/wars/store";
+import { getWar, rememberChannel, warChannel, type War, warTeams } from "@/lib/wars/store";
 import { fillFromRows, formatTable, parsePasted, parseTable, swapTeams, tableIssues, teamTotal } from "@/lib/wars/table";
 import { applyCards, EMPTY_CARDS, fixesBetween, teamCardFor, unknownOnLinked, type TeamCard } from "@/lib/wars/cards";
 import { tagKey } from "@/lib/wars/tags";
 import { cardSetFor, cardsReady, linksReady, listTeams, saveTeam, setRoster } from "@/lib/wars/cardStore";
 import { readResults } from "@/lib/wars/tableRead";
-import { createDraft, getTable, postTable, prefillFor, recentWarId, TABLE_PREFIX, tagAliases, updateTable, warTotals, type WarTableRow } from "@/lib/wars/tables";
+import {
+  createDraft, getTable, missingLogos, postTable, prefillFor, recentTables, recentWarId, repostTable, settleLogoLinks, TABLE_PREFIX, tableLabel, tagAliases,
+  updateTable, warTotals, type WarTableRow,
+} from "@/lib/wars/tables";
+import { confirmLogo, prepareLogo, uploadTableLogo } from "@/lib/wars/logos";
 import { savedTableLook, saveTableLayout, tableLooksReady } from "@/lib/wars/tableLooks";
 import { isTableLayout, layoutLabel, TABLE_LAYOUTS, type TableLayout } from "@/lib/wars/tableLook";
 import { randomBytes } from "node:crypto";
@@ -128,20 +134,87 @@ export async function handleTableCommand(interaction: Record<string, unknown>): 
   const guildId = (interaction.guild_id as string | undefined) ?? null;
   const channelId = (interaction.channel_id as string | undefined) ?? null;
   if (!guildId || !channelId) return say("Make tables in a server's channel.");
+  const show = (((interaction.data as { options?: { name: string; value?: unknown }[] } | undefined)?.options) ?? []).find((o) => o.name === "show")?.value;
+  if (show !== undefined) return showTable(interaction, guildId, channelId, String(show));
   return tableForm(await recentWarId(guildId, channelId), { guildId, channelId });
+}
+
+// ── /table show: a table posted here before, posted again (doc asks pick 3, 2026-11-10) ─────────────────────────
+
+/** `show` is a table's id (picked from the suggestions) or words to look for; words get a menu of this channel's tables. */
+async function showTable(interaction: Record<string, unknown>, guildId: string, channelId: string, show: string): Promise<Response> {
+  const by = who(interaction);
+  if (!by) return say("Couldn't tell who you are.");
+  const picked = /^[0-9a-f-]{36}$/.test(show) ? await getTable(show) : null;
+  if (picked && picked.guildId === guildId && picked.channelId === channelId && picked.status === "posted") {
+    const appId = String(interaction.application_id ?? "");
+    const token = String(interaction.token ?? "");
+    after(async () => { await editOriginal(appId, token, { content: repostText(await repostTable(picked, by)) }); });
+    return Response.json({ type: 5, data: { flags: EPHEMERAL } });
+  }
+  const q = show.trim().toLowerCase();
+  const list = (await recentTables(guildId, channelId)).filter((t) => !q || /^[0-9a-f-]{36}$/.test(show) || `${tableLabel(t).title} ${t.body}`.toLowerCase().includes(q));
+  if (!list.length) return say(q ? `No table here matches "${show.slice(0, 40)}".` : "No tables have been posted in this channel yet. /table makes one.");
+  return say("Which table? It posts again at the bottom of the channel; the old one stays where it is.", [row({
+    type: 3, custom_id: `${TABLE_PREFIX}showp:none`, placeholder: "Pick a table",
+    options: list.slice(0, 25).map((t) => { const l = tableLabel(t); return { label: l.title.slice(0, 100), value: t.id, description: l.line.slice(0, 100) }; }),
+  })]);
+}
+
+const repostText = (res: "ok" | "no_access" | "failed") =>
+  res === "ok" ? "Posted again at the bottom of the channel." : res === "no_access" ? "I can't post here. Give GameShuffle Competitive Send Messages and Attach Files in this channel." : "The table couldn't be posted. Try again in a moment.";
+
+/** /table show's suggestions as you type: this channel's posted tables, newest first. */
+export async function tableAutocomplete(interaction: Record<string, unknown>): Promise<Response> {
+  const guildId = (interaction.guild_id as string | undefined) ?? null;
+  const channelId = (interaction.channel_id as string | undefined) ?? null;
+  const focused = (((interaction.data as { options?: { name: string; value?: unknown; focused?: boolean }[] } | undefined)?.options) ?? []).find((o) => o.focused);
+  const q = String(focused?.value ?? "").trim().toLowerCase();
+  const list = guildId && channelId ? await recentTables(guildId, channelId).catch(() => []) : [];
+  const choices = list
+    .map((t) => ({ t, l: tableLabel(t) }))
+    .filter(({ t, l }) => !q || `${l.title} ${t.body}`.toLowerCase().includes(q))
+    .slice(0, 25)
+    .map(({ t, l }) => ({ name: `${l.title} · ${l.line}`.slice(0, 100), value: t.id }));
+  return Response.json({ type: 8, data: { choices } });
+}
+
+// ── Add logos (doc asks pick 1): an image box per team with no logo, saved by team or for this table ───────────
+
+function logosForm(table: WarTableRow, model: ReturnType<typeof parseTable>, teams: number[]): Record<string, unknown> {
+  return {
+    custom_id: `${TABLE_MODAL_PREFIX}logos:${table.id}`,
+    title: "Logos for this table",
+    components: [
+      ...teams.slice(0, 4).map((i) => {
+        const t = model.teams[i];
+        return { type: 18, label: (t.name && t.name !== t.tag ? `${t.name} (${t.tag})` : t.tag).slice(0, 45), description: "Optional. PNG, JPEG or WebP.", component: { type: 19, custom_id: `logo:${i}`, min_values: 0, max_values: 1, required: false } };
+      }),
+      { type: 18, label: "Use them for", component: { type: 21, custom_id: "use", required: false, options: [
+        { value: "keep", label: "Every table, card and overlay in this server", default: true },
+        { value: "once", label: "Just this table" },
+      ] } },
+    ],
+  };
 }
 
 // ── Building, checking, posting ───────────────────────────────────────────────────────────────
 
-const checkButtons = (id: string, guessed: boolean) => [row(
+const checkButtons = (id: string, guessed: boolean, logos = false) => [row(
   btn("Draw it anyway", `${TABLE_PREFIX}draw:${id}`, 3),
+  ...(logos ? [btn("Add logos", `${TABLE_PREFIX}logos:${id}`, 1)] : []),
   btn("Fix the text", `${TABLE_PREFIX}fix:${id}`),
   ...(guessed ? [btn("Swap teams", `${TABLE_PREFIX}swap:${id}`)] : []),
   btn("Cancel", `${TABLE_PREFIX}cancel:${id}`),
 )];
 
-/** What the private check message says for a table body, and whether it's ready to post. */
-function checkMessage(table: WarTableRow, war: War | null, notes: string[], guessed: boolean, cards: TeamCard[], unknown = 0): { ready: boolean; data: Record<string, unknown> } {
+const listNames = (names: string[]) => (names.length <= 1 ? names.join("") : `${names.slice(0, -1).join(", ")} and ${names[names.length - 1]}`);
+
+/**
+ * What the private check message says for a table body, and whether it's ready to post. `noLogo`: teams with no logo
+ * from anywhere; said on the check (with Add logos) but never a reason to stop and check on its own.
+ */
+function checkMessage(table: WarTableRow, war: War | null, notes: string[], guessed: boolean, cards: TeamCard[], unknown = 0, noLogo: string[] = []): { ready: boolean; data: Record<string, unknown> } {
   const model = parseTable(table.body);
   const issues = tableIssues(model, war ? warTotals(war, cards) : null).map((i) => i.text);
   const all = [...notes, ...issues, ...(unknown ? [`${unknown === 1 ? "A name isn't" : `${unknown} names aren't`} matched to a player on their team's MKCentral list yet. Who are these? picks them from the list, once.`] : [])];
@@ -150,9 +223,9 @@ function checkMessage(table: WarTableRow, war: War | null, notes: string[], gues
   return {
     ready: false,
     data: {
-      content: `Check this before it's posted:\n${all.map((l) => `• ${l}`).join("\n")}`,
+      content: `Check this before it's posted:\n${[...all, ...(noLogo.length ? [`${listNames(noLogo)} ${noLogo.length === 1 ? "has" : "have"} no logo yet, so the tag shows instead. Add logos puts one on and keeps it for next time.`] : [])].map((l) => `• ${l}`).join("\n")}`,
       embeds: summary ? [{ color: COMP_COLOR, description: summary.slice(0, 3900) }] : [],
-      components: unknown ? [row(btn(`Who are these? (${unknown})`, `${TABLE_PREFIX}who:${table.id}`, 1)), ...checkButtons(table.id, guessed)] : checkButtons(table.id, guessed),
+      components: unknown ? [row(btn(`Who are these? (${unknown})`, `${TABLE_PREFIX}who:${table.id}`, 1)), ...checkButtons(table.id, guessed, noLogo.length > 0)] : checkButtons(table.id, guessed, noLogo.length > 0),
     },
   };
 }
@@ -197,7 +270,9 @@ async function storeBackground(bytes: Uint8Array, guildId: string, by: { id: str
 
 async function finish(table: WarTableRow, war: War | null, appId: string, token: string, notes: string[], guessed: boolean, opts: { skipWho?: boolean } = {}): Promise<void> {
   const unknown = opts.skipWho ? 0 : (await unknownsFor(table, war).catch(() => [])).length;
-  const check = checkMessage(table, war, notes, guessed, await listTeams(table.guildId).catch(() => []), unknown);
+  const model = parseTable(table.body);
+  const noLogo = (await missingLogos(model, table.guildId, war).catch(() => [])).map((i) => model.teams[i].name || model.teams[i].tag);
+  const check = checkMessage(table, war, notes, guessed, await listTeams(table.guildId).catch(() => []), unknown, noLogo);
   if (!check.ready) { await editOriginal(appId, token, check.data); return; }
   const res = await postTable(table.id, war);
   if (res === "ok") { await editOriginal(appId, token, rememberPrompt(table, "The table is up.")); return; }
@@ -268,6 +343,7 @@ export async function handleTableModal(interaction: Record<string, unknown>, cus
         // otherwise come from the taps' Discord accounts (prefill) or the text; a name alone matches too many lounge players.
         const filled = model.teams.map((t, i) => (!before[i] && t.players.length ? i : -1)).filter((i) => i >= 0);
         if (await cardsReady()) model = applyCards(model, await cardSetFor(guildId, model, war?.game ?? "mk8dx").catch(() => EMPTY_CARDS), filled);
+        notes.push(...await settleLogoLinks(model, guildId, by, account));
         const readBody = shot && filled.length ? formatTable(model) : null;
         let backgroundUrl: string | null = null;
         if (bg) {
@@ -294,6 +370,64 @@ export async function handleTableModal(interaction: Record<string, unknown>, cus
 
   const table = await getTable(ref ?? "");
   if (!table) return say("That table is gone.");
+
+  if (kind === "logos") {
+    const keep = parts.get("use")?.value !== "once";
+    const manage = canManageGuild(interaction);
+    // From the private check the answer replaces the check; from a posted table it comes back privately.
+    const fromCheck = ((((interaction.message as { flags?: number } | undefined)?.flags ?? 0) & EPHEMERAL) !== 0);
+    const files = [...parts].flatMap(([id, part]) => {
+      const m = /^logo:(\d+)$/.exec(id);
+      const att = m ? attachmentOf(interaction, part.values?.[0]) : null;
+      return m && att ? [{ team: Number(m[1]), att }] : [];
+    });
+    after(async () => {
+      try {
+        const war = table.warId ? await getWar(table.warId) : null;
+        const model = parseTable(table.body);
+        const account = await accountForDiscord(by.id).catch(() => null);
+        const saved: string[] = [];
+        const once: string[] = [];
+        const notes: string[] = [];
+        for (const f of files) {
+          const t = model.teams[f.team];
+          if (!t) continue;
+          const name = t.name || t.tag;
+          const bytes = await fetchAttachment(f.att);
+          if (!bytes) { notes.push(`${name}'s picture couldn't be opened (PNG, JPEG or WebP).`); continue; }
+          if (keep && t.tag !== "?") {
+            const prep = await prepareLogo({ guildId: table.guildId, tag: t.tag, name: t.name, image: bytes, by, userId: account });
+            if (!prep.ok) { notes.push(prep.error === "refused" ? `${name}'s logo can't be used.${prep.reason ? ` ${prep.reason}` : ""}` : `${name}'s logo couldn't be saved.`); continue; }
+            const done = await confirmLogo(prep.logo.id, by, manage);
+            if (done.ok) { saved.push(name); continue; }
+            // Someone else saved a logo for that tag meanwhile: this one goes on this table only.
+            t.logo = prep.logo.url;
+            once.push(name);
+            continue;
+          }
+          const up = await uploadTableLogo({ guildId: table.guildId, image: bytes, by, userId: account });
+          if (!up.ok) { notes.push(up.error === "refused" ? `${name}'s logo can't be used.${up.reason ? ` ${up.reason}` : ""}` : `${name}'s logo couldn't be saved.`); continue; }
+          t.logo = up.url;
+          once.push(name);
+        }
+        if (once.length) await updateTable(table.id, { body: formatTable(model) });
+        const said = [
+          saved.length ? `${listNames(saved)} ${saved.length === 1 ? "has its logo" : "have their logos"} for every table, card and overlay here now.` : "",
+          once.length ? `${listNames(once)} ${once.length === 1 ? "has a logo" : "have logos"} on this table.` : "",
+          ...notes,
+        ].filter(Boolean);
+        const fresh = (await getTable(table.id))!;
+        if (fromCheck) { await finish(fresh, war, appId, token, said.length ? said : ["No pictures were added."], false); return; }
+        const res = saved.length || once.length ? await postTable(fresh.id, war) : "ok";
+        await editOriginal(appId, token, { content: res === "ok" ? (said.join(" ") || "No pictures were added.") : "The logos are saved, but the table couldn't be redrawn. Try Edit." });
+      } catch (err) {
+        console.error("[wars] table logos failed:", err);
+        await editOriginal(appId, token, { content: "The logos couldn't be added. Try again in a moment." });
+      }
+    });
+    return Response.json(fromCheck ? { type: 6 } : { type: 5, data: { flags: EPHEMERAL } });
+  }
+
   const body = String(parts.get("body")?.value ?? "").trim();
   if (!body && kind !== "who") return say("The table needs some text.");
 
@@ -338,9 +472,11 @@ export async function handleTableModal(interaction: Record<string, unknown>, cus
 
   if (kind === "fix") {
     after(async () => {
-      await updateTable(table.id, { body: formatTable(parsePasted(body)) });
+      const model = parsePasted(body);
+      const notes = await settleLogoLinks(model, table.guildId, by, await accountForDiscord(by.id).catch(() => null));
+      await updateTable(table.id, { body: formatTable(model) });
       const fresh = await getTable(table.id);
-      await finish(fresh!, table.warId ? await getWar(table.warId) : null, appId, token, [], false);
+      await finish(fresh!, table.warId ? await getWar(table.warId) : null, appId, token, notes, false);
     });
     return Response.json({ type: 6 });
   }
@@ -349,10 +485,13 @@ export async function handleTableModal(interaction: Record<string, unknown>, cus
     const picked = parts.get("look")?.values?.[0];
     const layout = isTableLayout(picked) ? picked : picked === "channel" ? null : undefined;
     after(async () => {
-      await updateTable(table.id, { body: formatTable(parsePasted(body)), ...(layout !== undefined ? { layout } : {}) });
+      const model = parsePasted(body);
+      const notes = await settleLogoLinks(model, table.guildId, by, await accountForDiscord(by.id).catch(() => null));
+      await updateTable(table.id, { body: formatTable(model), ...(layout !== undefined ? { layout } : {}) });
       const res = await postTable(table.id, table.warId ? await getWar(table.warId) : null);
       const fresh = await getTable(table.id);
-      await editOriginal(appId, token, res === "ok" && fresh ? rememberPrompt(fresh, "Updated.") : { content: res === "ok" ? "Updated." : "The table couldn't be updated. Try again in a moment." });
+      const first = `Updated.${notes.length ? ` ${notes.join(" ")}` : ""}`;
+      await editOriginal(appId, token, res === "ok" && fresh ? rememberPrompt(fresh, first) : { content: res === "ok" ? first : "The table couldn't be updated. Try again in a moment." });
     });
     return Response.json({ type: 5, data: { flags: EPHEMERAL } });
   }
@@ -364,6 +503,15 @@ export async function handleTableComponent(interaction: Record<string, unknown>,
   if (!by) return say("Couldn't tell who you are.");
   const [kind, ref, a, b] = customId.slice(TABLE_PREFIX.length).split(":");
   if (kind === "make") return tableForm(ref && ref !== "none" ? ref : null, { guildId: (interaction.guild_id as string | undefined) ?? null, channelId: (interaction.channel_id as string | undefined) ?? null });
+  if (kind === "showp") {
+    const id = (((interaction.data as { values?: string[] } | undefined)?.values) ?? [])[0] ?? "";
+    const picked = await getTable(id);
+    if (!picked || picked.status !== "posted" || picked.guildId !== interaction.guild_id) return update("That table is gone.");
+    const appId = String(interaction.application_id ?? "");
+    const token = String(interaction.token ?? "");
+    after(async () => { await editOriginal(appId, token, { content: repostText(await repostTable(picked, by)), components: [] }); });
+    return Response.json({ type: 6 });
+  }
   const table = await getTable(ref ?? "");
   if (!table) return say("That table is gone.");
   const appId = String(interaction.application_id ?? "");
@@ -398,7 +546,7 @@ export async function handleTableComponent(interaction: Record<string, unknown>,
       const manage = canManageGuild(interaction);
       // The team's card (made now if it has none), with the tag the screen showed when someone changed it. A team
       // shown under the war's tag as its name keeps that as one of its tags, not its name.
-      const warTags = war ? [war.us.tag, war.them.tag].map(tagKey) : [];
+      const warTags = war ? warTeams(war).map((t) => tagKey(t.tag)) : [];
       const nameIsTag = !!team.name && warTags.includes(tagKey(team.name));
       const before = read.teams[idx];
       const extra = [...(before && tagKey(before.tag) !== tagKey(team.tag) ? [before.tag] : []), ...(nameIsTag ? [team.name!] : [])].filter((t) => t !== "?");
@@ -427,6 +575,12 @@ export async function handleTableComponent(interaction: Record<string, unknown>,
       return Response.json({ type: 9, data: textForm("edit", table, await channelLayout(table.guildId, table.channelId)) });
     }
     case "copy": return say("Lorenzi's text for this table:", [], { embeds: [{ color: COMP_COLOR, description: `\`\`\`\n${table.body.slice(0, 3900)}\n\`\`\`` }] });
+    case "logos": {
+      const model = parseTable(table.body);
+      const teams = await missingLogos(model, table.guildId, war);
+      if (!teams.length) return say("Every team on this table has a logo. /logo add replaces one.");
+      return Response.json({ type: 9, data: logosForm(table, model, teams) });
+    }
     default: return say("Unknown button.");
   }
 }

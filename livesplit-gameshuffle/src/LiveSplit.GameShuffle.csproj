@@ -1,0 +1,43 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- GameShuffle for LiveSplit: one DLL for LiveSplit's Components folder. Builds on any computer with the .NET SDK
+       (the .NET Framework reference assemblies come from NuGet); fetch-livesplit.sh puts LiveSplit's own DLLs in lib/. -->
+  <PropertyGroup>
+    <TargetFramework>net481</TargetFramework>
+    <OutputType>Library</OutputType>
+    <AssemblyName>LiveSplit.GameShuffle</AssemblyName>
+    <RootNamespace>GameShuffle.Link</RootNamespace>
+    <LangVersion>latest</LangVersion>
+    <Nullable>disable</Nullable>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <Version>1.0.0</Version>
+    <AssemblyVersion>1.0.0.0</AssemblyVersion>
+    <FileVersion>1.0.0.0</FileVersion>
+    <Product>GameShuffle for LiveSplit</Product>
+    <Company>GameShuffle</Company>
+    <Description>Sends your LiveSplit splits to your GameShuffle speedrun overlay.</Description>
+    <Copyright>MIT License</Copyright>
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
+    <Deterministic>true</Deterministic>
+    <DebugType>none</DebugType>
+    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies" Version="1.0.3" PrivateAssets="all" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="../shared/*.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <Reference Include="System.Windows.Forms" />
+    <Reference Include="System.Drawing" />
+    <Reference Include="System.Xml" />
+    <Reference Include="LiveSplit.Core">
+      <HintPath>../lib/LiveSplit.Core.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="UpdateManager">
+      <HintPath>../lib/UpdateManager.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+  </ItemGroup>
+</Project>

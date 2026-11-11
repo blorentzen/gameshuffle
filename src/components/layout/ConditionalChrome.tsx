@@ -40,7 +40,7 @@ const CHROME_FREE_PATTERNS: RegExp[] = [
   /^\/war\/[^/]+/, // a channel's war overlay (GameShuffle Competitive)
 ];
 
-export function ConditionalChrome({ children, shop = false, previewInterests = null }: { children: React.ReactNode; shop?: boolean; previewInterests?: Interest[] | null }) {
+export function ConditionalChrome({ children, shop = false, speedrun = false, previewInterests = null }: { children: React.ReactNode; shop?: boolean; speedrun?: boolean; previewInterests?: Interest[] | null }) {
   const pathname = usePathname() || "";
   const hideChrome = CHROME_FREE_PATTERNS.some((p) => p.test(pathname));
 
@@ -50,10 +50,10 @@ export function ConditionalChrome({ children, shop = false, previewInterests = n
     <PresenceProvider>
       <MessengerProvider>
         <PolicyUpdateBanner />
-        <SiteNavbar shop={shop} previewInterests={previewInterests} />
+        <SiteNavbar shop={shop} speedrun={speedrun} previewInterests={previewInterests} />
         <RecentPlaces />
         {children}
-        <SiteFooter shop={shop} />
+        <SiteFooter shop={shop} speedrun={speedrun} />
         <CookieConsent />
         {/* Members on phones: Home, Games, Create, Inbox, You (journeys picks 2026-11-06). */}
         <AppBar />

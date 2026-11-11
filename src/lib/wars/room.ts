@@ -16,10 +16,11 @@ import { ttTracks } from "@/lib/timeTrials/tracks";
 import type { ActivitySession } from "@/lib/activity/session";
 import { channelLabel } from "./channelLabel";
 import { warPagePath } from "./page";
-import { readTrack, standing, warTrack, type WarGame, type WarSide } from "./rules";
+import { penaltyTeam, readTrack, warTrack, type WarGame, type WarSide } from "./rules";
+import { pointsTable, roomOf } from "./format";
 import {
   addPenalty, addRace, endWar, getWar, latestWar, latestWarIn, liveWar, liveWarsIn, markRoom, pendingTrack, rememberChannel,
-  replaceRace, setPendingTrack, setTrack, startWar, tapPlace, undoRace, warChannel, type War, type WarTeamRef,
+  replaceRace, setPendingTrack, setTrack, startWar, tapPlace, tapsFit, undoRace, warChannel, warStanding, warTeams, type War, type WarTeamRef,
 } from "./store";
 import { answersFor, cansReady, lineupNow } from "@/lib/cans/store";
 import { headlineFor, leads, playerRows, tapGrid, waitingOn, type RoomTrack, type WarRoomView } from "./roomView";
@@ -54,14 +55,16 @@ export function roomTracks(game: WarGame): (RoomTrack & { cup: string })[] {
 const team = (t: WarTeamRef, total: number) => ({ tag: t.tag, name: t.name, logo: roomImg(t.logo), total });
 
 export function roomView(war: War, viewerId: string): WarRoomView {
-  const s = standing(war.races, war.penalties, war.racesTotal);
-  const us = team(war.us, s.us);
-  const them = team(war.them, s.them);
-  const lead = leads(war.races, war.penalties);
+  const s = warStanding(war);
+  const all = warTeams(war);
+  const teams = all.map((t, i) => team(t, s.totals[i] ?? 0));
+  const us = teams[0];
+  const them = teams[s.rival] ?? teams[1];
+  const lead = leads(war.races, war.penalties, war.game, war.format, s.rival);
   const n = war.races.length + 1;
   const taps = war.taps.filter((t) => t.race === n);
   const grid = tapGrid(taps);
-  const { rows, byHand } = playerRows(war.races, war.racesTotal);
+  const { rows, byHand } = playerRows(war.races, war.racesTotal, pointsTable(war.game, roomOf(war.format)) ?? undefined);
   const live = war.status === "live";
   const top = rows[0] ?? null;
   return {
@@ -69,21 +72,26 @@ export function roomView(war: War, viewerId: string): WarRoomView {
     status: war.status,
     game: war.game,
     racesTotal: war.racesTotal,
-    us, them,
+    size: war.format.size,
+    room: roomOf(war.format),
+    teamsCount: war.format.teams,
+    rank: s.rank,
+    tapsOn: tapsFit(war),
+    us, them, teams,
     diff: s.diff, diffs: s.diffs, played: s.played, left: s.left, decided: s.decided, need: s.need,
     race: live ? {
       n,
       track: roomTrack(war.game, pendingTrack(war, n)),
       taps: grid.taps,
       clashes: grid.clashes,
-      waiting: waitingOn(war.races, taps),
+      waiting: waitingOn(war.races, taps, war.format.size),
       count: taps.length,
       mine: taps.find((t) => t.id === viewerId)?.place ?? null,
     } : null,
     races: war.races.map((r, i) => ({ n: r.n, track: roomTrack(war.game, r.track), spots: r.spots, diff: s.diffs[i] ?? 0, lead: lead[i] ?? 0, by: r.by.name, tapped: !!r.players?.length })),
     players: rows,
     byHand,
-    penalties: war.penalties.map((p) => ({ side: p.side, points: p.points, reason: p.reason })),
+    penalties: war.penalties.map((p) => ({ side: p.side, points: p.points, reason: p.reason, team: penaltyTeam(p) })),
     headline: headlineFor(war.status, s.played, war.racesTotal, us, them),
     topPlayer: !live && top ? { name: top.name, points: top.points } : null,
     cardUrl: war.cardMessageId ? `https://discord.com/channels/${war.guildId}/${war.channelId}/${war.cardMessageId}` : null,
@@ -146,7 +154,7 @@ export async function roomState(session: ActivitySession, hint: string | null = 
       kind: "pick",
       start: await startTarget(guildId, channelId),
       wars: lives.map((w, i) => {
-        const s = standing(w.races, w.penalties, w.racesTotal);
+        const s = warStanding(w);
         return { id: w.id, us: { tag: w.us.tag, name: w.us.name, logo: roomImg(w.us.logo) }, them: { tag: w.them.tag, name: w.them.name, logo: roomImg(w.them.logo) }, channel: labels[i].channel, played: s.played, racesTotal: w.racesTotal, diff: s.diff };
       }),
     };
@@ -175,7 +183,7 @@ export type RoomAction =
   | { action: "fill"; war: string; n: number; places: number[] }
   | { action: "fix"; war: string; n: number; places: number[]; track?: string | null }
   | { action: "undo"; war: string; n: number }
-  | { action: "penalty"; war: string; side: WarSide; points: number; reason?: string }
+  | { action: "penalty"; war: string; side: WarSide; points: number; reason?: string; /** Several teams: which team, by its number. */ team?: number }
   | { action: "end"; war: string }
   | { action: "rematch"; war: string }
   | { action: "pick"; war: string }
@@ -186,10 +194,12 @@ export type CardWork = { war: string; move: boolean } | null;
 export type ActionResult = { ok: true; war: War; card: CardWork; note?: string } | { ok: false; error: string; message: string };
 
 const fail = (error: string, message: string): ActionResult => ({ ok: false, error, message });
-const cleanPlaces = (list: unknown): number[] | null => {
+/** Your team's places from the room: the team's size, each inside the room. */
+const cleanPlaces = (list: unknown, war: War): number[] | null => {
   if (!Array.isArray(list)) return null;
-  const places = [...new Set(list.map(Number))].filter((p) => Number.isInteger(p) && p >= 1 && p <= 12).sort((a, b) => a - b);
-  return places.length === 6 ? places : null;
+  const room = roomOf(war.format);
+  const places = [...new Set(list.map(Number))].filter((p) => Number.isInteger(p) && p >= 1 && p <= room).sort((a, b) => a - b);
+  return places.length === war.format.size ? places : null;
 };
 const cleanTag = (v: unknown) => String(v ?? "").trim().replace(/\s+/g, " ").slice(0, 12);
 
@@ -229,11 +239,12 @@ export async function roomAction(session: ActivitySession, body: RoomAction): Pr
     }
     case "tap": {
       const place = Number(body.place);
-      if (!(place >= 1 && place <= 12)) return fail("place", "That place isn't on the board.");
+      if (!(place >= 1 && place <= roomOf(war.format))) return fail("place", "That place isn't on the board.");
       const res = await tapPlace(war.id, { n: Number(body.n), place, user: by });
       if (!res.ok) {
         if (res.error === "stale") return fail("stale", `Race ${body.n} is already in.`);
-        if (res.error === "full") return fail("full", "Six places are in already. Tap one of them to change it, or use Fill in the rest.");
+        if (res.error === "full") return fail("full", `${war.format.size} places are in already. Tap one of them to change it, or use Fill in the rest.`);
+        if (res.error === "no_taps") return fail("no_taps", "This war's races go in on the card in the channel.");
         return fail("over", "This war is over.");
       }
       return { ok: true, war: res.war, card: { war: war.id, move: !!res.result.race } };
@@ -247,8 +258,9 @@ export async function roomAction(session: ActivitySession, body: RoomAction): Pr
       return { ok: true, war: res.war, card: { war: war.id, move: false } };
     }
     case "fill": {
-      const spots = cleanPlaces(body.places);
-      if (!spots) return fail("places", "Pick six different places.");
+      if (!tapsFit(war)) return fail("no_taps", "This war's races go in on the card in the channel.");
+      const spots = cleanPlaces(body.places, war);
+      if (!spots) return fail("places", `Pick ${war.format.size} different places.`);
       if (Number(body.n) !== next) return fail("stale", `Race ${body.n} is already in.`);
       const players = war.taps.filter((t) => t.race === next && spots.includes(t.place)).map((t) => ({ id: t.id, name: t.name, place: t.place }));
       const unique = players.filter((p, i) => players.findIndex((q) => q.place === p.place) === i);
@@ -257,8 +269,10 @@ export async function roomAction(session: ActivitySession, body: RoomAction): Pr
       return { ok: true, war: res.war, card: { war: war.id, move: true } };
     }
     case "fix": {
-      const spots = cleanPlaces(body.places);
-      if (!spots) return fail("places", "Pick six different places.");
+      // With several teams a race holds every team's places: fix those on the card, where they're typed.
+      if (war.format.teams > 2) return fail("several", "Fix this war's races on the card in the channel.");
+      const spots = cleanPlaces(body.places, war);
+      if (!spots) return fail("places", `Pick ${war.format.size} different places.`);
       const t = body.track ? warTrack(war.game, body.track) : null;
       const res = await replaceRace(war.id, { n: Number(body.n), spots, ...(t ? { track: t.id } : {}), by });
       if (!res.ok) return fail("gone", "That race isn't there any more.");
@@ -272,7 +286,8 @@ export async function roomAction(session: ActivitySession, body: RoomAction): Pr
     case "penalty": {
       const points = Number(body.points);
       if (!Number.isInteger(points) || points < 1 || points > 200) return fail("points", "Points off should be a whole number from 1 to 200.");
-      const res = await addPenalty(war.id, { side: body.side === "us" ? "us" : "them", points, reason: String(body.reason ?? "").trim().slice(0, 40), by: by.name });
+      const team = typeof body.team === "number" && Number.isInteger(body.team) ? body.team : null;
+      const res = await addPenalty(war.id, { side: body.side === "us" || team === 0 ? "us" : "them", points, reason: String(body.reason ?? "").trim().slice(0, 40), by: by.name, ...(team != null ? { team } : {}) });
       if (!res.ok) return fail("over", "This war is over.");
       return { ok: true, war: res.war, card: { war: war.id, move: false } };
     }
@@ -284,7 +299,7 @@ export async function roomAction(session: ActivitySession, body: RoomAction): Pr
     case "rematch": {
       const live = await liveWar(war.guildId, war.channelId);
       if (live) return { ok: true, war: live, card: null };
-      const started = await startWar({ guildId: war.guildId, channelId: war.channelId, game: war.game, entry: war.entry, us: war.us, them: war.them, by });
+      const started = await startWar({ guildId: war.guildId, channelId: war.channelId, game: war.game, entry: war.entry, us: war.us, them: war.them, by, format: war.format, others: war.others, racesTotal: war.racesTotal });
       if (!started.ok) return started.error === "live" ? { ok: true, war: started.war, card: null } : fail("failed", "The rematch couldn't start. Try again in a moment.");
       return { ok: true, war: started.war, card: { war: started.war.id, move: true } };
     }

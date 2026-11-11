@@ -23,6 +23,8 @@ import { gameKey } from "@/lib/games/key";
 import { GAME_SPACES } from "@/lib/games/spaces";
 import type { FeedPost } from "@/lib/social/feed";
 import { IconTrophy, IconDeviceGamepad2, IconCalendarEvent } from "@tabler/icons-react";
+import { fitPicture, isMoving } from "@/lib/images/shrink";
+import { DIRECT_MAX, sendInParts } from "@/lib/uploads/parts";
 
 /** The post's own game (game spaces step 3): the games with spaces first, then every game we know. */
 const SPACE_GAME_NAMES = GAME_SPACES.map((sp) => FAVORITE_GAME_CATALOG.find((g) => gameKey(g.name) === sp.primary)?.name).filter((n): n is string => !!n);
@@ -130,14 +132,24 @@ export function PostComposer({
     for (const file of imgs) {
       if (images.length >= 8) break;
       try {
-        const fd = new FormData();
-        fd.append("file", file);
-        const res = await fetch("/api/social/posts/image", { method: "POST", body: fd });
+        // Vercel turns away requests over 4.5 MB: a big still is made smaller, a big GIF goes up in parts.
+        const ready = await fitPicture(file);
+        let res: Response;
+        if (ready.size > DIRECT_MAX && (await isMoving(ready))) {
+          const sent = await sendInParts(ready);
+          res = "error" in sent
+            ? new Response(JSON.stringify({ error: sent.error === "too_big" ? "too_large" : sent.error }), { status: 400 })
+            : await fetch("/api/social/posts/image", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(sent) });
+        } else {
+          const fd = new FormData();
+          fd.append("file", ready);
+          res = await fetch("/api/social/posts/image", { method: "POST", body: fd });
+        }
         const d = await res.json().catch(() => ({}));
         if (res.ok && d.url) setImages((cur) => (cur.length < 8 ? [...cur, d.url as string] : cur));
         else if (d.error === "refused") toast.error(d.reason ? `That picture can't go in a post: ${d.reason}` : "That picture can't go in a post.");
         else if (d.error === "check_unavailable") toast.error("We couldn't check that picture just now. Try again in a minute.");
-        else toast.error(d.error === "too_large" ? "One image was too large (8MB max)." : "An image failed to upload.");
+        else toast.error(d.error === "too_large" || res.status === 413 ? "One image was too large (8MB max)." : "An image failed to upload.");
       } catch { toast.error("An image failed to upload."); }
     }
     setImageBusy(false);

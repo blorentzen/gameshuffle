@@ -8,6 +8,7 @@ import "server-only";
  * never the answer. Drawn with next/og like the Discord cards; pictures go through sharp to PNG.
  */
 
+import { symbolFonts } from "@/lib/og/symbolFonts";
 import type { ReactNode } from "react";
 import { ImageResponse } from "next/og";
 import sharp from "sharp";
@@ -584,6 +585,7 @@ export async function renderShareCard(data: ShareData, size: "wide" | "tall"): P
       { name: "Gabarito", data: gabarito, weight: 700, style: "normal" },
       { name: "Outfit", data: outfit500, weight: 500, style: "normal" },
       { name: "Outfit", data: outfit600, weight: 600, style: "normal" },
+      ...(await symbolFonts()),
     ],
   });
   return Buffer.from(await res.arrayBuffer());

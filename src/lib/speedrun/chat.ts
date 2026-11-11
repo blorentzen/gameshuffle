@@ -4,6 +4,7 @@
  * remote and the live page show it. Emoji only in chat lines. Pure and client-safe; tests in scripts/test-speedrun.ts.
  */
 
+import { shownState } from "./splitGroups";
 import { fmtClock, fmtDelta } from "./time";
 import { currentIndex, deltas, isNewPb, lastDelta, pace, pbTime, sumOfBest } from "./rules";
 import type { RelaySegment, RelayState, SpeedrunPredictionView } from "./types";
@@ -27,7 +28,8 @@ export function pbLine(o: { name: string; game: string; category: string; segmen
 }
 
 /** `!pace`: where the run stands against the PB and where it's heading. */
-export function paceLine(st: RelayState): string {
+export function paceLine(raw: RelayState): string {
+  const st = shownState(raw);
   const n = st.segments.length;
   const pb = pbTime(st.segments);
   if (!n) return "⏱️ No splits yet.";
@@ -49,7 +51,8 @@ export function paceLine(st: RelayState): string {
 }
 
 /** `!splits`: "📋 Mushroom ▼2.3 · Flower ▲1.0 · Star ▼7.3 ⭐ · … · now Lightning". Long runs keep the latest that fit. */
-export function splitsLine(st: RelayState): string {
+export function splitsLine(raw: RelayState): string {
+  const st = shownState(raw);
   const n = st.segments.length;
   if (!n) return "📋 No splits yet.";
   if (st.phase === "idle") return "📋 No run going right now.";

@@ -21,7 +21,7 @@ import { reportFromDiscord } from "@/lib/timeTrials/review";
 import { categoryText, vehicleFor, vehicleLabel, type TtItems, type TtVehicle } from "@/lib/timeTrials/categories";
 import { partsText, type TtParts } from "@/lib/timeTrials/parts";
 import { COMMUNITY_VOUCHES, formatGap, formatLap, formatTime, ordinal, parseTime, videoProof, type ProofKind } from "@/lib/timeTrials/rules";
-import { setVouch } from "@/lib/timeTrials/detail";
+import { lapsAgainst, recordLaps, setVouch } from "@/lib/timeTrials/detail";
 import { rateLimit } from "@/lib/ratelimit";
 import { vouchCounts } from "@/lib/timeTrials/status";
 import { isClassFor, isTtGame, searchTracks, trackFromKey, trackKey, trackPath, ttTrack, ttTracks, TT_GAMES, type TtClass, type TtGame, type TtTrack } from "@/lib/timeTrials/tracks";
@@ -197,6 +197,16 @@ export async function postServerRecord(a: {
   });
 }
 
+/** Each lap beside the record's (or the fastest time with laps): "Lap 2 · 0:37.540 · record 0:37.591 · −0.051". */
+function lapLines(mine: number[], vs: { name: string; laps: number[]; record: boolean }): string[] {
+  return mine.map((lap, i) => {
+    const other = vs.laps[i];
+    if (other == null) return `Lap ${i + 1} · ${formatLap(lap)}`;
+    const gap = lap - other;
+    return `Lap ${i + 1} · ${formatLap(lap)} · ${vs.record ? "record" : vs.name} ${formatLap(other)} · ${gap === 0 ? "even" : `${gap < 0 ? "−" : "+"}${formatGap(Math.abs(gap))}`}`;
+  });
+}
+
 async function saveAndAnswer(args: {
   appId: string; token: string; actor: TtActor; guildId: string | null; track: TtTrack; cc: TtClass; timeMs: number;
   proof: ProofKind; proofUrl: string | null; readByAi: boolean; items: TtItems; vehicle: TtVehicle; clip: string | null;
@@ -235,11 +245,16 @@ async function saveAndAnswer(args: {
     ? (await eventsForBoardTimeAll(actor.userId, { game: track.game, track: track.id, cc, items: args.items, vehicle: res.vehicle }).catch(() => [])).slice(0, 3)
     : [];
   const eventLine = events.length ? `You're in ${events.length === 1 ? events[0].title : `${events.length} time trial events`} on this track. Count this run there too?` : null;
+  // Splits in Discord (doc asks pick 4, 2026-11-10): each lap against the record's, when both have laps.
+  const vs = res.best && args.laps?.length
+    ? await lapsAgainst({ timeId: res.timeId, game: track.game, track: track.id, cc, items: args.items, board: args.vehicle, laps: args.laps }).catch(() => null)
+    : null;
+  const splitTitle = vs ? (vs.record ? "Laps against the record" : `Laps against ${vs.name}'s ${formatTime(vs.timeMs)}`) : null;
   // Asked once in Discord (round 4 pick 1A): a player with no country.
   const askCountry = await shouldAskCountry(actor.player, "discord");
   const countryLine = askCountry ? `Add your country with ${ttCmd(appId)} country, so your times count on your country's records.` : null;
   await editOriginal(appId, token, {
-    content: [...resultLines(track, cc, timeMs, res, args.items, args.vehicle), ...(eventLine ? [eventLine] : []), ...(clipLine ? [clipLine] : []), ...(countryLine ? [countryLine] : []), ...(unlinked ? [LINK_LINE] : [])].join("\n"),
+    content: [...resultLines(track, cc, timeMs, res, args.items, args.vehicle), ...(vs && args.laps ? [`${splitTitle}:`, ...lapLines(args.laps, vs)] : []), ...(eventLine ? [eventLine] : []), ...(clipLine ? [clipLine] : []), ...(countryLine ? [countryLine] : []), ...(unlinked ? [LINK_LINE] : [])].join("\n"),
     components: [
       ...(events.length ? [row(...events.map((e) => btn(`Count it in ${e.title}`.slice(0, 80), `${TT_EVENT_PREFIX}${res.timeId}:${e.id}`, 1)))] : []),
       row(
@@ -258,6 +273,7 @@ async function saveAndAnswer(args: {
       ...(res.server ? [{ name: "This server", value: `${ordinal(res.server.place)} of ${res.server.total}`, inline: true }] : []),
       { name: "GameShuffle", value: `${ordinal(res.place)} of ${res.total}`, inline: true },
       ...(args.proof !== "none" ? [{ name: "Proof", value: args.proof === "video" ? "Video" : "Screenshot", inline: true }] : []),
+      ...(vs && args.laps ? [{ name: splitTitle!, value: lapLines(args.laps, vs).join("\n").slice(0, 1024), inline: false }] : []),
     ];
     await postFollowUp(appId, token, {
       embeds: [{
@@ -436,6 +452,9 @@ export async function handleGsTt(interaction: Record<string, unknown>): Promise<
         }
         const lines = board.rows.map((r) => `${r.rank}. ${flagged(r.country)}${r.name} · **${formatTime(r.timeMs)}**${r.video === "checked" ? " · ✓ Verified" : r.sheet ? " · Legacy" : r.vouches >= COMMUNITY_VOUCHES ? " · Community verified" : ""}${r.verifiedIn.length ? " · vouched for here" : ""}`);
         if (board.mine) lines.push(`…\n${board.mine.rank}. ${flagged(board.mine.country)}${board.mine.name} · **${formatTime(board.mine.timeMs)}**`);
+        // Splits (doc asks pick 4): the record's laps under the board, when it has them.
+        const rec = lines.length && !country ? await recordLaps({ game: track.game, track: track.id, cc, items, board: vehicle }).catch(() => null) : null;
+        if (rec) lines.push(`\nThe record's laps (${rec.name}, ${formatTime(rec.timeMs)}): ${rec.laps.map(formatLap).join(" · ")}`);
         await editOriginal(appId, token, {
           embeds: [{
             title: `${trackTitle(track)} · ${categoryText(track.game, cc, items, vehicle, TT_GAMES[track.game].classes.length > 1)}`,

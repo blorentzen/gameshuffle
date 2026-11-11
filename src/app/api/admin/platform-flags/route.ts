@@ -64,5 +64,7 @@ export async function PUT(req: NextRequest) {
   }
   // The Terms (§3.6) describe the Supporter level by this switch.
   if (body.key === "support_supporter_looks" || body.key === "support_international") revalidatePath("/terms");
+  // The speedrun overlay joins the menus and these guides (launch picks 2026-11-10).
+  if (body.key === "speedrun_listed") for (const p of ["/twitch-chat-games", "/for-streamers", "/for-streamers/current"]) revalidatePath(p);
   return NextResponse.json({ ok: true });
 }

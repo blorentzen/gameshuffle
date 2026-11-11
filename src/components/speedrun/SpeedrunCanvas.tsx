@@ -10,6 +10,7 @@
  * them in step 2; ahead, behind and gold never change. Used by the OBS page, the setup preview and the pitch.
  */
 
+import { shownState, type ShownSegment } from "@/lib/speedrun/splitGroups";
 import type { CSSProperties, ReactNode } from "react";
 import {
   IconArrowBackUp, IconCaretDownFilled, IconCaretUpFilled, IconCheck, IconConfetti, IconCrownFilled, IconRefresh, IconSparkles,
@@ -20,12 +21,14 @@ import { predictionWords } from "@/lib/speedrun/chat";
 import { mmrRubik } from "@/components/mmr/mmrFonts";
 import { GLYPHS } from "@/components/mmr/glyphs";
 import { gameEntry } from "@/lib/games/key";
+import { boxArt } from "@/data/game-catalog";
 import { clockParts, fmtClock, fmtDelta } from "@/lib/speedrun/time";
 import {
   COLUMN_ROWS, currentIndex, deltas, lastDelta, lastReached, pace, pbTime, prevSegment, segmentLengths, sumOfBest,
   ticks, timeBefore, visibleRows, type MomentKind,
 } from "@/lib/speedrun/rules";
 import type { RelayState, SpeedrunLook, SpeedrunPredictionView } from "@/lib/speedrun/types";
+import { speedrunClasses, speedrunFontSheet, speedrunVars } from "@/lib/speedrun/look";
 import { useRunMs } from "./useRunClock";
 
 export interface SpeedrunMoment {
@@ -104,6 +107,13 @@ function GameTile({ game }: { game: string | null | undefined }) {
 
 function BuiltBy() {
   return <span className="sr-gsb"><small>Built by</small><span className="sr-gsb__logo" role="img" aria-label="GameShuffle" /></span>;
+}
+
+/** Under the Column: a line of your own, else "Built by GameShuffle", the mark alone, or nothing (GS Pro or Supporter). */
+function Foot({ look }: { look: SpeedrunLook }) {
+  if (look.line) return <div className="sr-cl-foot"><span className="sr-cl-line">{look.line}</span></div>;
+  if (look.brand === "off") return null;
+  return <div className="sr-cl-foot">{look.brand === "mark" ? <span className="sr-gsb sr-gsb--mark" role="img" aria-label="GameShuffle" /> : <BuiltBy />}</div>;
 }
 
 const attemptText = (n: number) => n.toLocaleString("en-US");
@@ -205,7 +215,9 @@ function Column({ st, receivedAt, look, game, category, moment, still, predictio
 
   // The block over the clock: the split being run (or the gold one during its moment, or the last one at the end).
   const segIndex = gold != null ? gold : st.phase === "ended" ? count - 1 : cur ?? 0;
-  const segName = st.segments[segIndex]?.name ?? "Ready";
+  // The split's group (a cup) rides along over the clock; the rows are too narrow for it.
+  const segGroup = (st.segments[segIndex] as ShownSegment | undefined)?.group;
+  const segName = st.segments[segIndex] ? `${st.segments[segIndex].name}${segGroup ? ` · ${segGroup}` : ""}` : "Ready";
   let segValue: ReactNode;
   if (gold != null || st.phase === "ended") {
     const len = segmentLengths(st.splits)[segIndex];
@@ -262,7 +274,7 @@ function Column({ st, receivedAt, look, game, category, moment, still, predictio
         <div className="sr-cl-names"><div className="sr-cl-game">{n.name}</div>{n.cat && <div className="sr-cl-cat">{n.cat}</div>}</div>
       </div>
       <div className="sr-cl-rowswrap">
-        {count ? <ol className="sr-cl-rows">{rowEls}</ol> : <p className="sr-cl-empty">Connect LiveSplit One to show your splits</p>}
+        {count ? <ol className="sr-cl-rows">{rowEls}</ol> : <p className="sr-cl-empty">Connect your timer to show your splits</p>}
         {moment?.kind === "gold" && (
           <div className="sr-banner-at" style={{ "--sr-row": Math.max(0, goldVis) + 2 } as CSSProperties}>
             <ColumnBanner moment={moment} st={st} /><Sparks kind={moment.kind} id={moment.id} />
@@ -284,7 +296,7 @@ function Column({ st, receivedAt, look, game, category, moment, still, predictio
         </div>
       )}
       {prediction && <PredictionLine p={prediction} />}
-      <div className="sr-cl-foot">{look.line ? <span className="sr-cl-line">{look.line}</span> : <BuiltBy />}</div>
+      <Foot look={look} />
       {moment && moment.kind !== "gold" && (
         <div className="sr-banner-at sr-banner-at--mid"><ColumnBanner moment={moment} st={st} /><Sparks kind={moment.kind} id={moment.id} /></div>
       )}
@@ -334,8 +346,8 @@ function Strip({ st, receivedAt, look, game, category, moment, still, prediction
         <div className="sr-st-names"><b>{n.name}</b>{line && <small>{line}</small>}</div>
       </div>
       <div className="sr-st-split">
-        <span className="sr-eyebrow">{ended ? "Finished" : count ? `Split ${at + 1} of ${count}` : "Waiting for splits"}</span>
-        <b>{seg?.name ?? "LiveSplit One"}</b>
+        <span className="sr-eyebrow">{ended ? "Finished" : count ? `${(seg as ShownSegment | undefined)?.group ? `${(seg as ShownSegment).group} · ` : ""}Split ${at + 1} of ${count}` : "Waiting for splits"}</span>
+        <b>{seg?.name ?? "Your timer"}</b>
         {seg && <small>{ended ? `PB ${finish != null ? fmtClock(finish) : "-"}` : `PB here ${seg.pbMs != null ? fmtClock(seg.pbMs) : "-"}`}</small>}
       </div>
       <div className={`sr-st-delta${goldNow ? " is-gold" : ""}`}>
@@ -359,12 +371,18 @@ function Strip({ st, receivedAt, look, game, category, moment, still, prediction
 
 export function SpeedrunCanvas({ state, receivedAt, look, game, category, moment = null, still = false, backdrop = false, prediction = null }: CanvasProps) {
   // A reset shows the run as it stood, dimmed, until the moment is over.
-  const shown = moment?.kind === "reset" && moment.before ? moment.before : state;
-  const props = { st: shown, receivedAt, look, game, category, moment, still, prediction };
+  // Plain split names (LiveSplit's group marks read, each split keeping its group), the moment's too.
+  const shown = shownState(moment?.kind === "reset" && moment.before ? moment.before : state);
+  const m = moment?.before ? { ...moment, before: shownState(moment.before) } : moment;
+  const props = { st: shown, receivedAt, look, game, category, moment: m, still, prediction };
+  const sheet = speedrunFontSheet(look);
+  // Previews: the run's own game blurred behind the overlay (its box art), else a plain dark ground.
+  const art = backdrop ? boxArt(gameEntry(shown.game ?? game ?? null)) : null;
   return (
     <div className={`sr-stage ${mmrRubik.variable}${backdrop ? " sr-stage--backdrop" : ""}`}>
-      <div className={`sr-cv${look.theme ? ` sr-th-${look.theme}` : ""}`}>
-        {backdrop && <><div className="sr-game" /><div className={`sr-game-shade sr-game-shade--${look.layout}`} /></>}
+      {sheet && <link rel="stylesheet" href={sheet} precedence="sr-font" />}
+      <div className={`sr-cv ${speedrunClasses(look)}`} style={speedrunVars(look) as CSSProperties}>
+        {backdrop && <><div className="sr-game" style={art ? { backgroundImage: `url(${art})` } : undefined} /><div className={`sr-game-shade sr-game-shade--${look.layout}`} /></>}
         {look.layout === "strip" ? <Strip {...props} /> : <Column {...props} />}
       </div>
     </div>

@@ -10,6 +10,7 @@
  * Gabarito for the title + subtitle. No word repeats between those three lines, so the subtitle is picked against the
  * question (a question about chat drops "Chat Brain" from the subtitle).
  */
+import { symbolFonts } from "@/lib/og/symbolFonts";
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { ImageResponse } from "next/og";
@@ -84,7 +85,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
     {
       width: w,
       height: h,
-      fonts: [{ name: "Gabarito", data: await font, weight: 700, style: "normal" }],
+      fonts: [{ name: "Gabarito", data: await font, weight: 700, style: "normal" }, ...(await symbolFonts())],
       headers: { "Cache-Control": "public, max-age=3600, s-maxage=3600" },
     },
   );

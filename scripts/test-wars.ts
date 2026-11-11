@@ -14,11 +14,15 @@ import { readTyped, type TypedContext } from "../src/lib/wars/legacy";
 import { applyCards, fixesBetween, matchMkc, readRosterLines, teamAliases, unknownOnLinked, whoIs, type CardSet, type MkcPlayerLite } from "../src/lib/wars/cards";
 import { mkcIdFrom } from "../src/lib/wars/mkcTeams";
 import { cardLogo } from "../src/lib/wars/tables";
-import { parsePasted } from "../src/lib/wars/table";
+import { byScore, parsePasted, tagFromName } from "../src/lib/wars/table";
 import { readWarSlug, warPagePath, warShort } from "../src/lib/wars/page";
 import { headlineFor, leads, playerRows, tapGrid, waitingOn } from "../src/lib/wars/roomView";
 import { cleanTableLook, contrast, DEFAULT_TABLE_LOOK, freeTableLook, readableTeamColor, SURFACE, tableColors, tablePaidUsed } from "../src/lib/wars/tableLook";
 import { mainColor } from "../src/lib/wars/teamColor";
+import { formatLabel, formatProblem, placesCode, pointsTable, raceTotal, readPlaces, swingFor, teamScores } from "../src/lib/wars/format";
+import { carryBlock, carrySummary, carryTotals, readBlock, readCarry } from "../src/lib/wars/carry";
+import { embedText } from "../src/lib/timeTrials/quaxly";
+import { raceLine as raceLineOf, standing as standingOf } from "../src/lib/wars/rules";
 
 let pass = 0;
 let fail = 0;
@@ -158,6 +162,13 @@ Münch [inward] 94
   eq("a line with no score starts a team (tag clipped to 12)", m.teams[3]?.tag, "??? what is");
   const round = parseTable(formatTable(m));
   eq("format round trip", round.teams.map((t) => [t.tag, t.players.length, t.penalty]), m.teams.map((t) => [t.tag, t.players.length, t.penalty]));
+  // Players typed in any order are drawn best first (Umiko, 2026-11-10); ties keep the typed order, teams keep theirs.
+  const mixed = byScore(parseTable("KC\nZambo 39\nLarry 76\nCiel 75\nPyra 69\nVivlos 69\nNO\nB 10\nA 90"));
+  eq("players sorted by score in each team", mixed.teams.map((t) => t.players.map((p) => p.name).join(",")), ["Larry,Ciel,Pyra,Vivlos,Zambo", "A,B"]);
+  eq("a tie keeps the typed order", mixed.teams[0].players.slice(2, 4).map((p) => p.name), ["Pyra", "Vivlos"]);
+  const raw = parseTable("KC\nZambo 39\nLarry 76");
+  byScore(raw);
+  eq("the text's own order is untouched", raw.teams[0].players.map((p) => p.name), ["Zambo", "Larry"]);
   const tied = parseTable("A\nx 50\ny 40\nB\nz 50\nw 10");
   const places = placesOf(tied);
   eq("places share ties", tied.teams.flatMap((t) => t.players).map((p) => places.get(p)), [1, 3, 1, 4]);
@@ -435,6 +446,168 @@ Münch [inward] 94
   eq("they won", headlineFor("done", 12, 12, T("KC", 462), T("NOR", 522)), "NOR won 522 to 462");
   eq("tie", headlineFor("done", 12, 12, T("KC", 492), T("NOR", 492)), "A tie, 492 to 492");
   eq("ended early", headlineFor("ended", 7, 12, T("KC", 300), T("NOR", 274)), "Ended after race 7, 300 to 274");
+}
+
+// ── Formats (team sizes picks 2026-11-10) ─────────────────────────────────────────────────────
+{
+  const f = (size: number, teams: number) => ({ size, teams });
+  eq("12 players: 82 a race", raceTotal(pointsTable("mk8dx", 12)!), 82);
+  eq("8 players (Toad Bot's table)", pointsTable("mk8dx", 8), [10, 8, 6, 5, 4, 3, 2, 1]);
+  eq("4 players", raceTotal(pointsTable("mk8dx", 4)!), 11);
+  eq("Mario Kart World 24: 144 a race", raceTotal(pointsTable("mkworld", 24)!), 144);
+  eq("Mario Kart World under 12 isn't known", pointsTable("mkworld", 8), null);
+  eq("6v6 is fine", formatProblem("mk8dx", f(6, 2)), null);
+  eq("4v4 in MK8DX is fine", formatProblem("mk8dx", f(4, 2)), null);
+  eq("4v4 two teams in MK World waits", /haven't been checked/.test(formatProblem("mkworld", f(4, 2)) ?? ""), true);
+  eq("three teams of 4 fill 12", formatProblem("mk8dx", f(4, 3)), null);
+  eq("six teams of 2 fill 12", formatProblem("mkworld", f(2, 6)), null);
+  eq("three teams of 3 don't", formatProblem("mk8dx", f(3, 3)) !== null, true);
+  eq("12v12 is Mario Kart World", [formatProblem("mkworld", f(12, 2)), formatProblem("mk8dx", f(12, 2)) !== null], [null, true]);
+  eq("four teams of 6 in 24", formatProblem("mkworld", f(6, 4)), null);
+  eq("four teams of 6 in MK8DX don't", formatProblem("mk8dx", f(6, 4)) !== null, true);
+  eq("labels", [formatLabel(f(6, 2)), formatLabel(f(4, 3))], ["6v6", "4v4 · 3 teams"]);
+  eq("6v6 swing is 40", swingFor("mk8dx", f(6, 2)), 40);
+  eq("4v4 swing (8 players)", swingFor("mk8dx", f(4, 2)), (10 + 8 + 6 + 5) - (4 + 3 + 2 + 1));
+
+  const ok = (r: ReturnType<typeof readPlaces>) => (r.ok ? r.places : r.error);
+  eq("6v6 reads like before", ok(readPlaces("1-378", "mk8dx", f(6, 2))), [[1, 2, 3, 7, 8, 12], [4, 5, 6, 9, 10, 11]]);
+  eq("4v4: the other team has the rest of 8", ok(readPlaces("1258", "mk8dx", f(4, 2))), [[1, 2, 5, 8], [3, 4, 6, 7]]);
+  eq("4v4: 0 is 10th, too high for 8", readPlaces("1230", "mk8dx", f(4, 2)).ok, false);
+  eq("2v2 short places fill from the bottom", ok(readPlaces("1", "mk8dx", f(2, 2))), [[1, 4], [2, 3]]);
+  eq("three teams of 4 by spaces, last fills itself", ok(readPlaces("1269 347", "mk8dx", f(4, 3), ["KC", "NOR", "PBM"])), [[1, 2, 6, 9], [3, 4, 7, 12], [5, 8, 10, 11]]);
+  eq("all three typed", ok(readPlaces("1269 3478 5+0c", "mk8dx", f(4, 3))), [[1, 2, 6, 9], [3, 4, 7, 8], [5, 10, 11, 12]]);
+  eq("by slashes too", ok(readPlaces("1 2 6 9 / 3 4 7 8", "mk8dx", f(4, 3))), [[1, 2, 6, 9], [3, 4, 7, 8], [5, 10, 11, 12]]);
+  eq("a place in two teams", readPlaces("1269 2347", "mk8dx", f(4, 3)).ok, false);
+  eq("too few groups", readPlaces("1269", "mk8dx", f(4, 3)).ok, false);
+  eq("six teams of 2", ok(readPlaces("12 34 56 78 90", "mkworld", f(2, 6))), [[1, 2], [3, 4], [5, 6], [7, 8], [9, 10], [11, 12]]);
+  eq("12v12: places past 12 need spaces", readPlaces("1245891114151920", "mkworld", f(12, 2)).ok, false);
+  const p24 = readPlaces("1 2 4 5 8 9 11 14 15 19 20 23", "mkworld", f(12, 2));
+  eq("12v12 with spaces", p24.ok && p24.places[0].length === 12 && p24.places[1].includes(24), true);
+  eq("12v12 scores: 83 to 61", p24.ok ? teamScores({ spots: p24.places[0] }, "mkworld", f(12, 2)) : null, [83, 61]);
+  eq("four teams of 6 in 24 need slashes", readPlaces("1 2 3 4 5 6 7 8 9 10 11 12", "mkworld", f(6, 4)).ok, false);
+  eq("four teams of 6 with slashes", ok(readPlaces("1-6 / 7-12 / 13-18", "mkworld", f(6, 4))), [[1, 2, 3, 4, 5, 6], [7, 8, 9, 10, 11, 12], [13, 14, 15, 16, 17, 18], [19, 20, 21, 22, 23, 24]]);
+
+  const race = (n: number, spots: number[], places: number[][]) => ({ n, spots, places, track: null, by: { id: "x", name: "x" }, at: "" });
+  const three = [race(1, [1, 2, 6, 9], [[3, 4, 7, 12], [5, 8, 10, 11]]), race(2, [5, 8, 10, 11], [[1, 2, 6, 9], [3, 4, 7, 12]])];
+  eq("three teams' race points (82 a race)", teamScores(three[0], "mk8dx", f(4, 3)), [38, 26, 18]);
+  const st = standingOf(three, [], 12, "mk8dx", f(4, 3));
+  eq("totals", st.totals, [56, 64, 44]);
+  eq("behind the leader: them = the leader", [st.rival, st.us, st.them, st.rank], [1, 56, 64, 2]);
+  const lead = standingOf([three[0]], [], 12, "mk8dx", f(4, 3));
+  eq("leading: them = the team right behind", [lead.rival, lead.diff], [1, 12]);
+  const pen = standingOf([three[0]], [{ side: "them", team: 2, points: 10, reason: "", by: "x", at: "" }], 12, "mk8dx", f(4, 3));
+  eq("a penalty on the third team", pen.totals, [38, 26, 8]);
+  eq("a three-team race line", raceLineOf(three[0], "mk8dx", f(4, 3), ["KC", "NOR", "PBM"]), " 1: KC 38 · NOR 26 · PBM 18");
+  eq("a points-only race (carried over)", teamScores({ spots: [], scores: [46, 36] }, "mk8dx", f(6, 2)), [46, 36]);
+  eq("its line", raceLineOf({ n: 3, spots: [], scores: [46, 36], track: null, by: { id: "x", name: "x" }, at: "" }, "mk8dx"), " 3: +10 | 46 : 36");
+  eq("6v6 standing unchanged", standingOf([race(1, [1, 2, 3, 7, 8, 12], [])], [], 12).diff, raceScore([1, 2, 3, 7, 8, 12]).diff);
+  eq("places code: the team at each place", placesCode(three[0], f(4, 3)), "001120120221");
+}
+
+// ── Typed lines in other formats ──────────────────────────────────────────────────────────────
+{
+  const three: TypedContext = { game: "mk8dx", readsLike: "sokuji", us: { tag: "KC", name: "Kart Club" }, them: { tag: "NOR", name: "Night Owls" }, format: { size: 4, teams: 3 }, others: [{ tag: "PBM", name: "PARABELLUM" }] };
+  const race = (line: string, c = three) => { const t = readTyped(line, c, 2); return t.kind !== "race" ? t.kind : t.spots.ok ? [t.spots.spots, t.spots.others ?? null, t.track] : t.spots.error; };
+  eq("three teams typed", race("1269 347"), [[1, 2, 6, 9], [[3, 4, 7, 12], [5, 8, 10, 11]], null]);
+  eq("with slashes", race("1 2 6 9 / 3 4 7 8"), [[1, 2, 6, 9], [[3, 4, 7, 8], [5, 10, 11, 12]], null]);
+  eq("track then places", race("SSC 1269 347"), [[1, 2, 6, 9], [[3, 4, 7, 12], [5, 8, 10, 11]], "mushroom-sweet-sweet-canyon"]);
+  eq("one group in a three-team war asks for more", typeof race("1269") === "string" && /groups/.test(race("1269") as string), true);
+  const pen = readTyped("pen 15 PBM", three, 2);
+  eq("a penalty on the third team", pen.kind === "pen" ? [pen.team, pen.points] : pen.kind, [2, 15]);
+  const pen2 = readTyped("pen 10 NOR", three, 2);
+  eq("a penalty on the second team still by side", pen2.kind === "pen" ? [pen2.side, pen2.team ?? null] : pen2.kind, ["them", null]);
+  const fourV4: TypedContext = { ...three, format: { size: 4, teams: 2 }, others: [] };
+  eq("4v4 typed", race("1257", fourV4), [[1, 2, 5, 7], null, null]);
+  const twelve: TypedContext = { ...three, game: "mkworld", format: { size: 12, teams: 2 }, others: [] };
+  eq("12v12 typed with spaces", (race("1 2 4 5 8 9 11 14 15 19 20 23", twelve) as number[][])[0], [1, 2, 4, 5, 8, 9, 11, 14, 15, 19, 20, 23]);
+  eq("a slash in a 6v6 war is chat", readTyped("1/2", { game: "mk8dx", readsLike: "sokuji", us: { tag: "A", name: null }, them: { tag: "B", name: null } }, 0).kind, "none");
+}
+
+// ── Carrying a war over (team sizes picks 2026-11-10) ─────────────────────────────────────────
+{
+  const asText = (e: { title?: string; description?: string; fields?: { name: string; value: string }[] }) => embedText(e);
+  const quaxly = asText({ title: "Total Score after Race 5", fields: [
+    { name: "KC", value: "222" }, { name: "NOR", value: "188" }, { name: "Difference", value: "+34" },
+    { name: "Races", value: "```\n 1: +10 | 1,4,6,7,8,9     (Mario Kart Stadium)\n 2: +16 | 1,3,5,6,8,9     (Sweet Sweet Canyon)\n 3:  -4 | 1,5,6,9,10,11   (Toad Harbor)\n 4:  +6 | 1,5,6,7,8,10    \n 5:  +6 | 1,4,5,8,9,10    (Cloudtop Cruise)\n```" },
+  ] });
+  const q = readCarry(quaxly, "mk8dx");
+  eq("Quaxly reads", q.ok ? [q.war.from, q.war.tags, q.war.races.length, q.war.races[0].spots, q.war.races[0].track, q.war.races[3].track, q.notes] : q.error,
+    ["Quaxly", ["KC", "NOR"], 5, [1, 4, 6, 7, 8, 9], "mushroom-mario-kart-stadium", null, []]);
+  eq("Quaxly's totals check out", q.ok ? carryTotals(q.war) : null, [222, 188]);
+  const flipped = readCarry(quaxly, "mk8dx", "NOR");
+  eq("the channel's team goes first", flipped.ok ? [flipped.war.tags, flipped.war.races[0].spots, carryTotals(flipped.war)] : null, [["NOR", "KC"], [2, 3, 5, 10, 11, 12], [188, 222]]);
+
+  const toad = [
+    asText({ title: "Score for Race 3", fields: [{ name: "Spots", value: "1st, 2nd, 3rd, 7th, 8th, 12th" }, { name: "KC", value: "52" }, { name: "NOR", value: "30" }, { name: "Difference", value: "22" }] }),
+    asText({ title: "Total Score after Race 3", fields: [
+      { name: "KC", value: "132" }, { name: "NOR", value: "112" }, { name: "Difference", value: "20" },
+      { name: "Race Scores (first 12)", value: "``` 1 | 46 - 36 (+10) (MKS)\n 2 | 34 - 48 (-14) (SSC)\n 3 | 52 - 30 (+22)\n```" },
+      { name: "Penalties", value: "```Race 2: NOR -2\n```" },
+    ] }),
+  ].join("\n");
+  const t = readCarry(toad, "mk8dx");
+  eq("Toad Bot reads as points", t.ok ? [t.war.from, t.war.format.size, t.war.races.map((r) => r.scores), t.war.penalties, carryTotals(t.war), t.notes] : t.error,
+    ["Toad Bot", 6, [[46, 36], [34, 48], [52, 30]], [{ team: 1, points: 2 }], [132, 112], []]);
+  const toad4 = readCarry(asText({ title: "Total Score after Race 1", fields: [{ name: "A", value: "25" }, { name: "B", value: "14" }, { name: "Difference", value: "11" }, { name: "Race Scores (first 12)", value: "``` 1 | 25 - 14 (+11)\n```" }] }), "mk8dx");
+  eq("Toad Bot's 4v4 from its points", toad4.ok ? toad4.war.format : toad4.error, { size: 4, teams: 2 });
+  eq("Toad Bot without race scores", readCarry(asText({ title: "Total Score after Race 3", fields: [{ name: "KC", value: "132" }, { name: "NOR", value: "114" }, { name: "Difference", value: "18" }] }), "mk8dx").ok, false);
+
+  const kiwi = asText({ title: "KC vs NOR", description: "95 - 59 (+36)", fields: [
+    { name: "1 - 🔸 Peach Beach (GCN) - rPB", value: "46 : 36 (+10) | `1, 4, 6, 7, 8, 9`" },
+    { name: "2 - <:cc:123> Crown City - CC", value: "49 : 33 (+16) | `1, 2, 3, 7, 8, 12`" },
+    { name: "Penalties", value: "**NOR**: -10 punti" },
+    { name: "Stats", value: "W: **2**  L: **0**" },
+  ] });
+  const k = readCarry(kiwi, "mk8dx");
+  eq("Kiwi reads (always Mario Kart World)", k.ok ? [k.war.from, k.war.game, k.war.races.map((r) => r.track), k.war.penalties, carryTotals(k.war), k.notes] : k.error,
+    ["Kiwi", "mkworld", ["banana-peach-beach", "flower-crown-city"], [{ team: 1, points: 10 }], [95, 59], []]);
+
+  const sokuji6 = asText({ title: "Sokuji 6v6\nKC - NOR", description: "`95 : 69(+26)`  `@10`", fields: [
+    { name: "1  - <:mks:1> MKS", value: "`46 : 36(+10)` | `1,4,6,7,8,9`" },
+    { name: "2", value: "`49 : 33(+16)` | `1,2,3,7,8,12`" },
+  ] });
+  const s6 = readCarry(sokuji6, "mk8dx");
+  eq("Sokuji 6v6 reads", s6.ok ? [s6.war.from, s6.war.racesTotal, s6.war.races.map((r) => [r.spots.length, r.scores ?? null, r.track]), s6.notes] : s6.error,
+    ["Sokuji", 12, [[6, null, "mushroom-mario-kart-stadium"], [6, null, null]], []]);
+  const sokuji4 = asText({ title: "Sokuji 4v4\nKC - NOR - PBM", description: "`64 : 35(+29) : 60(+4)`  `@10`", fields: [
+    { name: "1  - MKS", value: "`38 : 26(+12) : 18(+20)` | `1,2,6,9`" },
+    { name: "2", value: "`26 : 14(+12) : 42(-16)` | `3,4,7,12`" },
+    { name: "Penalty", value: "`0 : -5 : 0`" },
+  ] });
+  const s4 = readCarry(sokuji4, "mk8dx");
+  eq("Sokuji three teams of 4: your places, everyone's points", s4.ok ? [s4.war.format, s4.war.tags, s4.war.races[1].spots, s4.war.races[1].scores, s4.war.penalties, carryTotals(s4.war), s4.notes] : s4.error,
+    [{ size: 4, teams: 3 }, ["KC", "NOR", "PBM"], [3, 4, 7, 12], [26, 14, 42], [{ team: 1, points: 5 }], [64, 35, 60], []]);
+
+  // The check's block reads back as the same war, and can be fixed by hand.
+  for (const [name, r] of [["Quaxly", q], ["Toad Bot", t], ["Kiwi", k], ["Sokuji 3 teams", s4]] as const) {
+    if (!r.ok) continue;
+    const back = readBlock(carryBlock(r.war));
+    eq(`${name}'s block reads back`, back.ok ? [back.war.races, back.war.penalties, back.war.format, back.war.tags, back.war.game] : back.error, [r.war.races, r.war.penalties, r.war.format, r.war.tags, r.war.game]);
+  }
+  if (q.ok) {
+    const block = carryBlock(q.war);
+    eq("the block", block.split("\n").slice(0, 3), ["From Quaxly · Mario Kart 8 Deluxe · 6v6 · 12 races", "Teams: KC · NOR", "Race 1: 1,4,6,7,8,9 (MKS)"]);
+    const fixed = readBlock(block.replace("Race 4: 1,5,6,7,8,10", "Race 4: 1,5,6,7,8,10 (bNYM)"));
+    eq("a track added by hand", fixed.ok ? fixed.war.races[3].track : fixed.error, "turnip-new-york-minute");
+    eq("a bad place is caught", readBlock(block.replace("Race 2: 1,3,5,6,8,9", "Race 2: 1,3,5,6,8,13")).ok, false);
+    eq("a missing race is caught", readBlock(block.replace(/Race 3: .*\n/, "")).ok, false);
+    eq("the summary", carrySummary(q.war), "Mario Kart 8 Deluxe · 6v6 · 12 races. 5 races with places, 4 with tracks; no penalties. Race 6 is next.");
+  }
+  eq("a table isn't a score", readCarry("KC\nSam 82\nRiley 70\nNOR\nJo 60", "mk8dx").ok, false);
+  eq("chat isn't a score", readCarry("gg everyone", "mk8dx").ok, false);
+}
+
+// ── Logos in a table's text (doc asks picks 1 and 2, 2026-11-10) ─────────────────────────────
+{
+  const m = parseTable("KC - Kart Club https://gs-ugc.empac.co/war-logos/1/table-ab.webp\nSam [us] 90\nhttps://cdn.discordapp.com/attachments/1/2/ak.png - Another Kart\nRiley 80\nhttps://mkcentral.com/img/x.png\nJo 70");
+  eq("a logo at the end of a team's line", [m.teams[0].tag, m.teams[0].name, m.teams[0].logo], ["KC", "Kart Club", "https://gs-ugc.empac.co/war-logos/1/table-ab.webp"]);
+  eq("Ice Mario's link in place of the tag: tag from the name", [m.teams[1].tag, m.teams[1].name, m.teams[1].logo], ["AK", "Another Kart", "https://cdn.discordapp.com/attachments/1/2/ak.png"]);
+  eq("a link alone has no tag yet", [m.teams[2].tag, m.teams[2].name], ["?", null]);
+  eq("players still read", m.teams.map((t) => t.players.length), [1, 1, 1]);
+  eq("written back with the logo at the end", formatTable(m).split("\n")[2], "AK - Another Kart https://cdn.discordapp.com/attachments/1/2/ak.png");
+  eq("reads back the same", parseTable(formatTable(m)).teams.map((t) => [t.tag, t.logo]), m.teams.map((t) => [t.tag, t.logo]));
+  eq("a color and a logo", parseTable("NOR - Night Owls #1f5f9a https://gs-ugc.empac.co/x.webp\nA 1").teams[0].color, "#1f5f9a");
+  eq("tags from names", [tagFromName("Night Owls"), tagFromName("PARABELLUM"), tagFromName(null)], ["NO", "PAR", "?"]);
 }
 
 // ── Table looks (table look picks 2026-11-09) ───────────────────────────────────────────────

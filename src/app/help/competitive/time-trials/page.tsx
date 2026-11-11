@@ -86,7 +86,9 @@ export default function Page() {
         use <code>/tt add</code>: pick the track and attach the result screenshot. Leave the time out and
         the bot reads it, then press <strong>Add it</strong>. Options set the speed class, mushrooms, the
         vehicle board and a clip link. A new best is posted in the channel with Verify, Vouch and Report
-        buttons.
+        buttons. When the screenshot shows your laps and the record has laps too, the reply and the post
+        put each lap beside the record&apos;s. <code>/tt track</code>{" "}shows a board and the record&apos;s
+        laps under it.
       </p>
       <p>
         Connect Discord in <strong>Account &rsaquo; Settings &rsaquo; Sign-in &amp; security</strong>{" "}and

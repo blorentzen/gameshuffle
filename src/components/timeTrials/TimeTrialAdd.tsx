@@ -28,6 +28,7 @@ import { cupLabel, lapsOf, TT_GAMES, TT_GAME_ORDER, ttCups, ttTrack, type TtClas
 import { categoryText, hasItems, isSavableVehicle, ITEMS, KAR_MACHINE_TYPES, savableVehicles, vehicleFor, vehicleRequired, type TtItems, type TtVehicle } from "@/lib/timeTrials/categories";
 import { countryCodes } from "@/lib/lounge/flags";
 import { countryName } from "@/lib/lounge/countries";
+import { fitPicture } from "@/lib/images/shrink";
 
 export interface AddedTime { timeId: string; best: boolean; previousMs: number | null; place: number; total: number; needsVideo?: boolean; videoAdded?: boolean; trusted?: boolean }
 
@@ -146,7 +147,8 @@ export function TimeTrialAdd({ game: startGame, track: startTrack, cc: startCc, 
   async function upload(file: File) {
     setBusy("read"); setError(null); setReadNote(null); setRead(null); setReadToken(null);
     const form = new FormData();
-    form.set("file", file);
+    // Vercel turns away requests over 4.5 MB: a phone photo of the screen is made smaller first.
+    form.set("file", await fitPicture(file));
     form.set("game", game);
     try {
       const res = await fetch("/api/time-trials/read", { method: "POST", body: form });

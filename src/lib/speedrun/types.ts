@@ -41,12 +41,42 @@ export interface RelayState {
   last: { kind: RelayLastKind; index: number | null; gold?: boolean; pb?: boolean } | null;
 }
 
-export type RelayEvent = "start" | "split" | "skip" | "undo" | "reset" | "finish" | "connect" | "disconnect";
+export type RelayEvent = "start" | "split" | "skip" | "undo" | "reset" | "finish" | "connect" | "disconnect" | "info";
+
+/**
+ * What GameShuffle for LiveSplit (the desktop add-on, picks 2026-11-10) says about the splits file. LiveSplit One
+ * sends nothing like it. game, category and attempts are null when the runner turned sharing off.
+ */
+export interface TimerInfo {
+  addon: string;
+  game: string | null;
+  category: string | null;
+  attempts: number | null;
+  runKey: string | null;
+  /** The phone remote may start, split and reset this timer. */
+  remote: boolean;
+}
 
 export interface RelayWebhookBody {
   relayId: string;
   event: RelayEvent;
   state: RelayState;
+  /** Only with "info". */
+  timer?: TimerInfo;
+}
+
+/** Which timer the setup page leads with (LiveSplit on Windows first, LiveSplit One for any browser). */
+export type TimerChoice = "livesplit" | "lso";
+
+/** Where game, category and attempts came from (the add-on's pick 2: LiveSplit fills them; typed values win). */
+export interface SpeedrunTimerSettings {
+  choice: TimerChoice;
+  /** Game and category came from LiveSplit, not typed, so LiveSplit may change them. */
+  auto: { game: boolean; category: boolean };
+  /** The runner typed an attempt count: LiveSplit's never replaces it until they ask for it back. */
+  typedAttempts: boolean;
+  /** What LiveSplit last said (sharing on), for the setup page's "From LiveSplit" lines. */
+  from: { game: string | null; category: string | null; attempts: number | null; at: string } | null;
 }
 
 export type SpeedrunLayout = "column" | "strip";
@@ -61,14 +91,34 @@ export interface SpeedrunStats {
   pace: boolean;
 }
 
+export type SpeedrunSurface = "dark" | "light" | "glass";
+/** Behind the panel: glyphs (the glow and GameShuffle's glyph field, the default), the glow alone, flat, or a pattern. */
+export type SpeedrunFill = "glyphs" | "glow" | "solid" | "stripes" | "dots";
+export type SpeedrunFont = "rubik" | "gabarito" | "kanit" | "exo" | "titan" | "mplus" | "russo" | "lilita" | "bungee" | "bebas" | "chakra" | "fredoka" | "grotesk";
+/** The GameShuffle line under the Column: "Built by GameShuffle", the mark alone, or nothing. */
+export type SpeedrunBrand = "inside" | "mark" | "off";
+
+/**
+ * How the overlay looks (launch picks 2026-11-10, the MMR card's split). Free: layout, where the Strip sits, the
+ * numbers, the surface, GameShuffle blue or one color of your own, glyphs, glow or solid, Rubik or GameShuffle's font,
+ * the Built by line or the mark. GS Pro or Supporter looks: brand themes, two colors of your own, stripes and dots,
+ * the other fonts, a two-color border, hiding the GameShuffle line or a line of your own (src/lib/speedrun/look.ts).
+ */
 export interface SpeedrunLook {
   layout: SpeedrunLayout;
   /** Where the Strip sits. */
   position: SpeedrunPosition;
   stats: SpeedrunStats;
-  /** GS Pro brand theme (step 2); null = GameShuffle blue. */
-  theme: string | null;
-  /** GS Pro's own line in place of "Built by GameShuffle" (step 2). */
+  surface: SpeedrunSurface;
+  /** "gs" (GameShuffle blue), "accent" (one color of your own), a brand theme id, or "custom" (two colors). */
+  colors: string;
+  accent: string;
+  custom: [string, string];
+  fill: SpeedrunFill;
+  font: SpeedrunFont;
+  border: "none" | "two";
+  brand: SpeedrunBrand;
+  /** A line of your own in place of the GameShuffle line (GS Pro or Supporter looks). */
   line: string | null;
 }
 
@@ -83,6 +133,7 @@ export interface SpeedrunSettings {
   commands: { pb: boolean; pace: boolean; splits: boolean };
   /** Seconds chat replies, prediction lines and the live page wait (the stream delay). */
   replyDelay: number;
+  timer: SpeedrunTimerSettings;
 }
 
 /** The "PB this run" prediction as the overlay, the phone remote and the live page show it. */
@@ -125,6 +176,8 @@ export interface SpeedrunSetupView {
   splitsTimed: boolean;
   /** GS Pro (the prediction is GS Pro). */
   isPro: boolean;
+  /** GS Pro or Supporter looks: the overlay draws the look's paid choices (otherwise their free versions). */
+  looks: boolean;
   /** Twitch is connected (chat commands and bets need the bot in chat). */
   twitch: boolean;
 }
@@ -142,4 +195,8 @@ export interface SpeedrunStatus {
   last: RelayLastKind | null;
   lastAgoMs: number | null;
   splits: number;
+  /** Which timer is connected: the desktop add-on or LiveSplit One (null when none). */
+  timer: TimerChoice | null;
+  /** Game, category and attempts as saved now, and where they came from: LiveSplit fills them while the page is open. */
+  fill: { game: string; category: string; attempts: number; timer: SpeedrunTimerSettings } | null;
 }
