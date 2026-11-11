@@ -23,6 +23,7 @@ import { AiPackModal } from "@/components/ai/AiPackModal";
 import {
   DndContext,
   DragOverlay,
+  MeasuringStrategy,
   MouseSensor,
   TouchSensor,
   closestCenter,
@@ -58,6 +59,12 @@ interface Item {
 
 const UNRANKED = "unranked";
 const STORAGE_KEY = "gs-tierlist";
+/**
+ * Rows are measured all through a drag, as dnd-kit's own multi-row example does. With the default (measure when asked)
+ * an item crossing rows re-queued the rows' measuring in a loop and crashed the page ("Maximum update depth exceeded",
+ * Sentry GAMESHUFFLE-69 and -75, 2026-11). Kept outside the component so its identity never changes.
+ */
+const MEASURING = { droppable: { strategy: MeasuringStrategy.Always } };
 const NEW_TIER_COLORS = ["#b45cb1", "#8b969c", "#c99b2b", "#4ca9cd", "#65b16a", "#e2453f"];
 const IMG_URL_RE = /^https?:\/\/.+\.(png|jpe?g|gif|webp|svg)(\?.*)?$/i;
 
@@ -410,6 +417,7 @@ export function TierListTool({
 
       <DndContext
         sensors={sensors}
+        measuring={MEASURING}
         collisionDetection={collision}
         onDragStart={(e) => { setSelectedId(null); setDragId(String(e.active.id)); lastOverId.current = null; recentlyMoved.current = false; }}
         onDragOver={onDragOver}
