@@ -1,0 +1,479 @@
+/* Shuffle Kart (/kart): the roll card page and the full-screen race. Root font size is 10px: size type with tokens. */
+
+.kart-main {
+  padding: 32px 0 56px;
+}
+
+.kart-page {
+  max-width: 880px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.kart-page__head {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.kart-page__title {
+  font-size: var(--font-size-32);
+  line-height: 1.15;
+  margin: 0;
+}
+
+.kart-page__lede {
+  font-size: var(--font-size-16);
+  color: var(--text-secondary);
+  margin: 0;
+  max-width: 60ch;
+}
+
+.kart-page__note {
+  font-size: var(--font-size-14);
+  color: var(--text-secondary);
+  margin: 0;
+}
+
+.kart-page__credit {
+  font-size: var(--font-size-14);
+  color: var(--text-secondary);
+  margin: 0;
+}
+
+/* The roll card */
+.kart-roll__title {
+  font-size: var(--font-size-20);
+  margin: 0 0 16px;
+}
+
+.kart-roll__grid {
+  display: grid;
+  gap: 20px;
+}
+
+@media (min-width: 760px) {
+  .kart-roll__grid {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr);
+    align-items: center;
+  }
+}
+
+.kart-roll__show {
+  display: flex;
+  justify-content: center;
+  border-radius: 14px;
+  background: radial-gradient(ellipse at 50% 85%, #e6f1df 0%, #cfe3c6 55%, #b6d3aa 100%);
+  padding: 8px;
+}
+
+.kart-preview {
+  width: 100%;
+  max-width: 320px;
+  aspect-ratio: 320 / 220;
+  height: auto;
+  display: block;
+}
+
+.kart-roll__rows {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.kart-roll__row {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  padding: 12px 0;
+  border-top: 1px solid var(--border-subtle);
+}
+
+.kart-roll__row:first-child {
+  border-top: 0;
+  padding-top: 0;
+}
+
+.kart-roll__row > div {
+  min-width: 0;
+}
+
+.kart-roll__label {
+  font-size: var(--font-size-12);
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+  margin: 0;
+}
+
+.kart-roll__name {
+  font-size: var(--font-size-18);
+  font-weight: 700;
+  margin: 0;
+}
+
+.kart-roll__line {
+  font-size: var(--font-size-14);
+  color: var(--text-secondary);
+  margin: 0;
+}
+
+.kart-roll__best {
+  font-size: var(--font-size-16);
+  margin: 20px 0 0;
+  padding-top: 16px;
+  border-top: 1px solid var(--border-subtle);
+}
+
+.kart-roll__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.kart-face {
+  display: inline-flex;
+  flex: none;
+  border-radius: 50%;
+  overflow: hidden;
+  box-shadow: var(--tile-shadow);
+}
+
+.kart-face svg,
+.kart-face img {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
+}
+
+.kart-help__list {
+  margin: 0;
+  padding-left: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: var(--font-size-16);
+}
+
+/* The race: full screen over the page, above the nav. */
+.kart-race {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  background: #b9d8f2;
+  overflow: hidden;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+  color: #ffffff;
+  outline: none;
+}
+
+.kart-race__view {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.kart-race__halves {
+  position: absolute;
+  inset: 0;
+}
+
+.kart-hud {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  padding: max(12px, env(safe-area-inset-top)) max(12px, env(safe-area-inset-right)) max(12px, env(safe-area-inset-bottom)) max(12px, env(safe-area-inset-left));
+}
+
+.kart-hud button {
+  pointer-events: auto;
+}
+
+.kart-hud__times {
+  position: absolute;
+  top: max(12px, env(safe-area-inset-top));
+  left: max(12px, env(safe-area-inset-left));
+  background: rgba(14, 20, 44, 0.72);
+  border-radius: 12px;
+  padding: 8px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.kart-hud__times p {
+  margin: 0;
+}
+
+.kart-hud__lap {
+  font-size: var(--font-size-14);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.kart-hud__total {
+  font-size: var(--font-size-28);
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.1;
+}
+
+.kart-hud__small {
+  font-size: var(--font-size-14);
+  font-variant-numeric: tabular-nums;
+  opacity: 0.92;
+}
+
+.kart-hud__side {
+  position: absolute;
+  top: max(12px, env(safe-area-inset-top));
+  right: max(12px, env(safe-area-inset-right));
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
+}
+
+.kart-hud__buttons {
+  display: flex;
+  gap: 8px;
+}
+
+.kart-hud__map {
+  width: 96px;
+  height: 96px;
+  background: rgba(14, 20, 44, 0.45);
+  border-radius: 12px;
+}
+
+.kart-hud__count {
+  position: absolute;
+  left: 50%;
+  top: 34%;
+  transform: translate(-50%, -50%);
+  margin: 0;
+  font-size: var(--font-size-64);
+  font-weight: 900;
+  text-shadow: 0 4px 0 #15182a, 0 0 18px rgba(0, 0, 0, 0.4);
+  -webkit-text-stroke: 2px #15182a;
+}
+
+.kart-hud__count--go {
+  color: #ffd23e;
+}
+
+.kart-hud__banner {
+  position: absolute;
+  left: 50%;
+  top: max(14px, env(safe-area-inset-top));
+  transform: translateX(-50%);
+  margin: 0;
+  padding: 6px 14px;
+  border-radius: 999px;
+  font-size: var(--font-size-16);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.kart-hud__banner--warn {
+  top: 26%;
+  background: #b42318;
+  font-size: var(--font-size-20);
+}
+
+.kart-hud__banner--ahead {
+  background: #1d7a3a;
+}
+
+.kart-hud__banner--behind {
+  background: #b4421d;
+}
+
+.kart-hud__hint {
+  position: absolute;
+  left: 50%;
+  bottom: max(96px, calc(env(safe-area-inset-bottom) + 96px));
+  transform: translateX(-50%);
+  width: min(560px, calc(100% - 24px));
+  background: rgba(14, 20, 44, 0.78);
+  border-radius: 12px;
+  padding: 10px 14px;
+  text-align: center;
+}
+
+/* Portrait phones: the hint spans the screen, so it sits above the Drift buttons (96px tall) instead of under them. */
+@media (orientation: portrait) {
+  .kart-hud__hint {
+    bottom: calc(max(16px, env(safe-area-inset-bottom)) + 108px);
+  }
+}
+
+.kart-hud__hint p {
+  margin: 0;
+  font-size: var(--font-size-14);
+}
+
+.kart-hud__hint p + p {
+  margin-top: 4px;
+  font-weight: 700;
+}
+
+.kart-hud__debug {
+  position: absolute;
+  left: max(12px, env(safe-area-inset-left));
+  bottom: max(12px, env(safe-area-inset-bottom));
+  margin: 0;
+  padding: 4px 8px;
+  background: rgba(0, 0, 0, 0.6);
+  border-radius: 6px;
+  font: 600 var(--font-size-12) / 1.4 ui-monospace, monospace;
+}
+
+.kart-race--touch .kart-hud__debug {
+  bottom: 120px;
+}
+
+/* Touch: a Drift button in each bottom corner (drift with whichever thumb isn't steering). */
+.kart-race .kart-drift {
+  position: absolute;
+  bottom: max(16px, env(safe-area-inset-bottom));
+  width: 96px;
+  height: 96px;
+  border-radius: 50%;
+  padding: 0;
+  font-size: var(--font-size-16);
+  font-weight: 800;
+  background: rgba(14, 20, 44, 0.6);
+  color: #ffffff;
+  border: 3px solid rgba(255, 255, 255, 0.85);
+  touch-action: none;
+}
+
+.kart-race .kart-drift:active {
+  background: rgba(255, 154, 46, 0.85);
+}
+
+.kart-drift--left {
+  left: max(16px, env(safe-area-inset-left));
+}
+
+.kart-drift--right {
+  right: max(16px, env(safe-area-inset-right));
+}
+
+.kart-race__cover {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  background: rgba(10, 14, 30, 0.45);
+  overflow-y: auto;
+}
+
+.kart-race__loading {
+  font-size: var(--font-size-18);
+  font-weight: 700;
+  margin: 0;
+}
+
+.kart-card {
+  width: min(420px, 100%);
+  color: var(--text-primary);
+}
+
+.kart-card__title {
+  font-size: var(--font-size-24);
+  margin: 0;
+}
+
+.kart-card__line {
+  font-size: var(--font-size-16);
+  color: var(--text-secondary);
+  margin: 8px 0 0;
+}
+
+.kart-card__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 20px;
+}
+
+.kart-card__actions--stack {
+  flex-direction: column;
+}
+
+.kart-results__head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.kart-results__head h2:focus {
+  outline: none;
+}
+
+.kart-results__time {
+  font-size: var(--font-size-48);
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  margin: 8px 0 0;
+  line-height: 1.1;
+}
+
+.kart-results__laps {
+  list-style: none;
+  margin: 16px 0 0;
+  padding: 0;
+  border-top: 1px solid var(--border-subtle);
+}
+
+.kart-results__laps li {
+  display: flex;
+  justify-content: space-between;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--border-subtle);
+  font-size: var(--font-size-16);
+  font-variant-numeric: tabular-nums;
+}
+
+.kart-results__lap--best {
+  font-weight: 700;
+}
+
+@media (max-height: 460px) {
+  .kart-hud__total {
+    font-size: var(--font-size-24);
+  }
+  .kart-hud__map {
+    width: 80px;
+    height: 80px;
+  }
+  .kart-race .kart-drift {
+    width: 84px;
+    height: 84px;
+  }
+  .kart-results__time {
+    font-size: var(--font-size-32);
+  }
+  .kart-hud__hint {
+    bottom: max(16px, env(safe-area-inset-bottom));
+    width: min(420px, calc(100% - 240px));
+  }
+}

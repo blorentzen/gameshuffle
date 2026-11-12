@@ -1,0 +1,841 @@
+/* Airtime (/airtime): the start page and the full-screen run. Root font size is 10px: size type with tokens. */
+
+.airtime-main {
+  padding: 32px 0 56px;
+}
+
+.airtime-page {
+  max-width: 880px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.airtime-page__head {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.airtime-page__title {
+  font-size: var(--font-size-32);
+  line-height: 1.15;
+  margin: 0;
+}
+
+.airtime-page__lede {
+  font-size: var(--font-size-16);
+  color: var(--text-secondary);
+  margin: 0;
+  max-width: 60ch;
+}
+
+.airtime-page__note,
+.airtime-page__credit {
+  font-size: var(--font-size-14);
+  color: var(--text-secondary);
+  margin: 0;
+}
+
+/* The start card: the drawing, then the course, your best and Play. */
+.airtime-start__art {
+  border-radius: 14px;
+  overflow: hidden;
+  line-height: 0;
+  background: #86aef0;
+}
+
+.airtime-art {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+.airtime-start__body {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 20px;
+}
+
+.airtime-start__title {
+  font-size: var(--font-size-20);
+  margin: 0;
+}
+
+.airtime-start__line {
+  font-size: var(--font-size-16);
+  color: var(--text-secondary);
+  margin: 0;
+}
+
+.airtime-start__best {
+  font-size: var(--font-size-16);
+  margin: 8px 0 0;
+  padding-top: 16px;
+  border-top: 1px solid var(--border-subtle);
+}
+
+.airtime-start__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.airtime-help__list {
+  margin: 0;
+  padding-left: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: var(--font-size-16);
+}
+
+/* The run: full screen over the page, above the nav. */
+.airtime-run {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  background: #f4c9a4;
+  overflow: hidden;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+  color: #ffffff;
+  outline: none;
+}
+
+.airtime-run__view {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+/* The control layer (under the HUD, whose buttons sit on top): the left half flies, the right half is the fire stick; a mouse aims and fires. */
+.airtime-run__press {
+  position: absolute;
+  inset: 0;
+  touch-action: none;
+}
+
+.airtime-run__press--mouse {
+  cursor: none;
+}
+
+/*
+ * Game controls (no CascadeDS counterpart): a Fly button bottom left and a fire stick bottom right.
+ * They only mark the spots; the halves of the screen under them take the touches.
+ */
+.airtime-controls {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.airtime-fly {
+  position: absolute;
+  left: max(20px, env(safe-area-inset-left));
+  bottom: max(20px, env(safe-area-inset-bottom));
+  width: 96px;
+  height: 96px;
+  border-radius: 50%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  background: rgba(14, 20, 44, 0.55);
+  border: 3px solid rgba(255, 255, 255, 0.85);
+  color: #ffffff;
+  font-size: var(--font-size-14);
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  box-shadow: 0 4px 14px rgba(10, 14, 30, 0.25);
+  transition: transform 0.08s ease-out, background-color 0.08s ease-out;
+}
+
+.airtime-fly--on {
+  background: rgba(255, 154, 46, 0.88);
+  transform: scale(0.94);
+}
+
+.airtime-stick {
+  position: absolute;
+  right: max(20px, env(safe-area-inset-right));
+  bottom: max(20px, env(safe-area-inset-bottom));
+  width: 128px;
+  height: 128px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(14, 20, 44, 0.35);
+  border: 3px solid rgba(255, 255, 255, 0.7);
+  box-shadow: 0 4px 14px rgba(10, 14, 30, 0.2);
+}
+
+/* While a thumb is on it, the ring sits where the thumb landed. */
+.airtime-stick--float {
+  right: auto;
+  bottom: auto;
+  transform: translate(-50%, -50%);
+}
+
+.airtime-stick--on {
+  background: rgba(14, 20, 44, 0.5);
+  border-color: #ffffff;
+}
+
+.airtime-stick__knob {
+  width: 58px;
+  height: 58px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #0e142c;
+  background: #7fe8ff;
+  border: 3px solid #ffffff;
+  box-shadow: 0 2px 8px rgba(10, 14, 30, 0.35);
+}
+
+.airtime-stick__knob--spread {
+  background: #c49bff;
+}
+
+.airtime-stick__knob--rapid {
+  background: #ffe066;
+}
+
+.airtime-stick__label {
+  position: absolute;
+  top: -6px;
+  left: 50%;
+  transform: translate(-50%, -100%);
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: rgba(14, 20, 44, 0.62);
+  color: #ffffff;
+  font-size: var(--font-size-12);
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.airtime-stick--float .airtime-stick__label {
+  display: none;
+}
+
+/* The mouse's crosshair (the system pointer is hidden over the game). */
+.airtime-cross {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 36px;
+  height: 36px;
+  margin: -18px 0 0 -18px;
+  border-radius: 50%;
+  border: 3px solid #7fe8ff;
+  box-shadow: 0 0 0 2px rgba(14, 20, 44, 0.7), inset 0 0 0 2px rgba(14, 20, 44, 0.7);
+  pointer-events: none;
+  opacity: 0;
+}
+
+.airtime-cross::before,
+.airtime-cross::after {
+  content: "";
+  position: absolute;
+  background: #ffffff;
+  box-shadow: 0 0 0 1px rgba(14, 20, 44, 0.7);
+}
+
+.airtime-cross::before {
+  left: 50%;
+  top: 50%;
+  width: 6px;
+  height: 6px;
+  margin: -3px 0 0 -3px;
+  border-radius: 50%;
+}
+
+.airtime-cross::after {
+  left: -10px;
+  right: -10px;
+  top: 50%;
+  height: 2px;
+  margin-top: -1px;
+  background: transparent;
+  box-shadow: none;
+  border-left: 8px solid #ffffff;
+  border-right: 8px solid #ffffff;
+}
+
+.airtime-cross--on {
+  opacity: 1;
+}
+
+.airtime-cross--spread {
+  border-color: #c49bff;
+}
+
+.airtime-cross--rapid {
+  border-color: #ffe066;
+}
+
+.airtime-hud {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.airtime-hud button {
+  pointer-events: auto;
+}
+
+.airtime-hud p {
+  margin: 0;
+}
+
+.airtime-hud__left {
+  position: absolute;
+  top: max(12px, env(safe-area-inset-top));
+  left: max(12px, env(safe-area-inset-left));
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.airtime-hud__hearts {
+  display: flex;
+  gap: 4px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: rgba(14, 20, 44, 0.62);
+}
+
+.airtime-heart {
+  color: #ff4d6d;
+  filter: drop-shadow(0 1px 0 rgba(0, 0, 0, 0.35));
+}
+
+.airtime-heart--empty {
+  color: rgba(255, 255, 255, 0.45);
+}
+
+.airtime-hud__weapon {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px 4px 8px;
+  border-radius: 999px;
+  background: rgba(14, 20, 44, 0.62);
+  font-size: var(--font-size-14);
+  font-weight: 700;
+}
+
+.airtime-hud__weapon--blaster svg {
+  color: #7fe8ff;
+}
+
+.airtime-hud__weapon--spread {
+  background: rgba(91, 52, 196, 0.85);
+}
+
+.airtime-hud__weapon--rapid {
+  background: rgba(10, 112, 128, 0.88);
+}
+
+.airtime-hud__secs {
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  opacity: 0.92;
+}
+
+.airtime-hud__mid {
+  position: absolute;
+  top: max(12px, env(safe-area-inset-top));
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(300px, 34vw);
+  padding: 6px 12px 8px;
+  border-radius: 12px;
+  background: rgba(14, 20, 44, 0.55);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.airtime-hud__level {
+  font-size: var(--font-size-12);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.airtime-hud__bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.airtime-hud__flag {
+  flex: none;
+  color: #ffd23e;
+}
+
+.airtime-progress .empac-progress {
+  height: 8px;
+  background-color: rgba(255, 255, 255, 0.25);
+}
+
+.airtime-progress .empac-progress__bar {
+  background-color: #ffd23e;
+  transition: width 0.25s linear;
+}
+
+.airtime-progress .empac-progress__label {
+  display: none;
+}
+
+.airtime-hud__right {
+  position: absolute;
+  top: max(12px, env(safe-area-inset-top));
+  right: max(12px, env(safe-area-inset-right));
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.airtime-hud__score {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  padding: 4px 12px 6px;
+  border-radius: 12px;
+  background: rgba(14, 20, 44, 0.62);
+}
+
+.airtime-hud__points {
+  font-size: var(--font-size-24);
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.15;
+}
+
+.airtime-hud__best {
+  font-size: var(--font-size-12);
+  font-weight: 600;
+  opacity: 0.9;
+  font-variant-numeric: tabular-nums;
+}
+
+.airtime-hud__buttons {
+  display: flex;
+  gap: 8px;
+}
+
+/* A big line in the middle for a moment: the level, a weapon, a heart. */
+.airtime-banner {
+  position: absolute;
+  left: 50%;
+  top: 34%;
+  transform: translate(-50%, -50%);
+  margin: 0;
+  padding: 8px 22px;
+  border-radius: 999px;
+  font-size: var(--font-size-32);
+  font-weight: 900;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  background: rgba(14, 20, 44, 0.7);
+  text-shadow: 0 2px 0 rgba(0, 0, 0, 0.35);
+  animation: airtime-banner 1.5s ease-out both;
+}
+
+.airtime-banner--weapon {
+  background: rgba(91, 52, 196, 0.88);
+}
+
+.airtime-banner--heart {
+  background: rgba(214, 40, 80, 0.88);
+}
+
+@keyframes airtime-banner {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.8);
+  }
+  12% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1.06);
+  }
+  22% {
+    transform: translate(-50%, -50%) scale(1);
+  }
+  80% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+/* Tips at the bottom: between the Fly button and the fire stick on a wide screen, above them on a tall one. */
+.airtime-hud__tips {
+  position: absolute;
+  left: 50%;
+  bottom: max(16px, env(safe-area-inset-bottom));
+  transform: translateX(-50%);
+  width: min(560px, calc(100% - 24px));
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: center;
+}
+
+.airtime-hud__hint {
+  background: rgba(14, 20, 44, 0.78);
+  border-radius: 12px;
+  padding: 10px 14px;
+  text-align: center;
+  font-size: var(--font-size-14);
+  text-wrap: balance;
+}
+
+.airtime-hud__hint--turn {
+  font-weight: 700;
+}
+
+.airtime-run--touch .airtime-hud__tips {
+  width: min(480px, calc(100% - 300px));
+}
+
+.airtime-run--touch .airtime-hud__debug {
+  bottom: calc(max(20px, env(safe-area-inset-bottom)) + 140px);
+}
+
+.airtime-run--touch.airtime-run--portrait .airtime-hud__tips {
+  width: calc(100% - 24px);
+  bottom: calc(max(20px, env(safe-area-inset-bottom)) + 168px);
+}
+
+.airtime-hud__debug {
+  position: absolute;
+  left: max(12px, env(safe-area-inset-left));
+  bottom: max(12px, env(safe-area-inset-bottom));
+  padding: 4px 8px;
+  background: rgba(0, 0, 0, 0.6);
+  border-radius: 6px;
+  font: 600 var(--font-size-12) / 1.4 ui-monospace, monospace;
+}
+
+/* "+100" over what you hit. */
+.airtime-pops {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.airtime-pop {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  font-size: var(--font-size-18);
+  font-weight: 900;
+  color: #ffffff;
+  text-shadow: 0 2px 0 rgba(20, 16, 40, 0.75), 0 0 8px rgba(20, 16, 40, 0.4);
+  opacity: 0;
+  white-space: nowrap;
+}
+
+.airtime-pop--on {
+  animation: airtime-pop 0.8s ease-out both;
+}
+
+.airtime-pop--star {
+  font-size: var(--font-size-14);
+  color: #ffe58a;
+}
+
+@keyframes airtime-pop {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -30%) scale(0.7);
+  }
+  12% {
+    opacity: 1;
+    transform: translate(-50%, -60%) scale(1.1);
+  }
+  65% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -190%) scale(1);
+  }
+}
+
+/* A red flash at the edges when you're hit. */
+.airtime-flash {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  box-shadow: inset 0 0 0 6px rgba(255, 60, 90, 0.85), inset 0 0 90px rgba(255, 40, 70, 0.55);
+  animation: airtime-flash 0.45s ease-out both;
+}
+
+@keyframes airtime-flash {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .airtime-banner,
+  .airtime-pop--on {
+    animation-duration: 1.2s;
+    animation-name: airtime-fade;
+  }
+  .airtime-flash {
+    animation-duration: 0.6s;
+  }
+}
+
+@keyframes airtime-fade {
+  0%,
+  80% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+.airtime-run__cover {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: max(16px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right)) max(16px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
+  background: rgba(10, 14, 30, 0.5);
+  overflow-y: auto;
+}
+
+/* Long cards on short screens scroll from their top instead of being cut. */
+.airtime-run__cover > * {
+  margin: auto;
+}
+
+.airtime-run__loading {
+  font-size: var(--font-size-18);
+  font-weight: 700;
+  margin: 0;
+}
+
+.airtime-card {
+  width: min(440px, 100%);
+  color: var(--text-primary);
+}
+
+.airtime-card__title {
+  font-size: var(--font-size-24);
+  margin: 0;
+}
+
+.airtime-card__title:focus {
+  outline: none;
+}
+
+.airtime-card__line {
+  font-size: var(--font-size-16);
+  color: var(--text-secondary);
+  margin: 8px 0 0;
+}
+
+.airtime-card__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 20px;
+}
+
+.airtime-card__actions--stack {
+  flex-direction: column;
+}
+
+/* Level cleared: the numbers in a grid, then the score. */
+.airtime-stats {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px 20px;
+  margin: 16px 0 0;
+  padding: 16px 0 0;
+  border-top: 1px solid var(--border-subtle);
+}
+
+.airtime-stats div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.airtime-stats dt {
+  font-size: var(--font-size-12);
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+}
+
+.airtime-stats dd {
+  margin: 0;
+  font-size: var(--font-size-18);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.airtime-cleared__side {
+  margin-top: 16px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border-subtle);
+}
+
+.airtime-cleared__score {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin: 0;
+  font-size: var(--font-size-32);
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
+.airtime-cleared__level {
+  margin: 2px 0 0;
+  font-size: var(--font-size-14);
+  font-weight: 700;
+  color: var(--success-ink, #1d7a3a);
+  text-align: right;
+}
+
+.airtime-cleared__score span {
+  font-size: var(--font-size-14);
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+}
+
+.airtime-ended__head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.airtime-ended__score {
+  font-size: var(--font-size-48);
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  margin: 8px 0 0;
+  line-height: 1.1;
+}
+
+/* Narrow screens (portrait phones): the level bar takes its own row under the hearts and score. */
+@media (max-width: 640px) {
+  .airtime-hud__mid {
+    top: calc(max(12px, env(safe-area-inset-top)) + 112px);
+    left: max(12px, env(safe-area-inset-left));
+    right: max(12px, env(safe-area-inset-right));
+    width: auto;
+    transform: none;
+  }
+  .airtime-hud__right {
+    flex-direction: column-reverse;
+    align-items: flex-end;
+    gap: 8px;
+  }
+  .airtime-banner {
+    font-size: var(--font-size-24);
+  }
+}
+
+/* Short screens (landscape phones): smaller score, tighter cards. */
+@media (max-height: 460px) {
+  .airtime-hud__points {
+    font-size: var(--font-size-20);
+  }
+  .airtime-ended__score {
+    font-size: var(--font-size-32);
+  }
+  .airtime-cleared__score {
+    font-size: var(--font-size-24);
+  }
+  .airtime-stats {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px 16px;
+    margin-top: 12px;
+    padding-top: 12px;
+  }
+  .airtime-stats dd {
+    font-size: var(--font-size-16);
+  }
+  .airtime-run .airtime-card.empac-card--padding-large {
+    padding: var(--spacing-20) var(--spacing-24);
+  }
+  /* Level cleared side by side: the numbers, then the score and the buttons. */
+  .airtime-cleared {
+    width: min(760px, 100%);
+  }
+  .airtime-run .airtime-cleared.empac-card {
+    flex-direction: row;
+    gap: 24px;
+  }
+  .airtime-cleared__main {
+    flex: 1.5;
+    min-width: 0;
+  }
+  .airtime-cleared__side {
+    flex: 1;
+    min-width: 0;
+    margin: 0;
+    padding: 0 0 0 24px;
+    border-top: 0;
+    border-left: 1px solid var(--border-subtle);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+  .airtime-cleared__side .airtime-card__actions {
+    flex-direction: column;
+    margin-top: 12px;
+  }
+  .airtime-card__line {
+    font-size: var(--font-size-14);
+  }
+  .airtime-fly {
+    width: 84px;
+    height: 84px;
+  }
+  .airtime-stick {
+    width: 112px;
+    height: 112px;
+  }
+  .airtime-stick__knob {
+    width: 52px;
+    height: 52px;
+  }
+  .airtime-banner {
+    font-size: var(--font-size-24);
+  }
+}
