@@ -32,6 +32,7 @@ const ACTION_TOAST: Record<string, string> = {
   suspend: "Account suspended for 7 days",
   ban: "Account banned",
   unban: "Account restored",
+  remove_level: "Level taken down",
 };
 
 // Plain words for the server's refusals.
@@ -60,6 +61,7 @@ const TARGET_LABEL: Record<string, string> = {
   chat_message: "A chat message",
   post: "A post",
   comment: "A comment",
+  level: "A level",
 };
 const STANDING_LABEL: Record<string, string> = {
   warned: "Warned",
@@ -307,6 +309,8 @@ export function PlatformModerationTab() {
                             { label: "Clear bio", disabled, onClick: () => void act(r, "clear_bio", { title: `Clear ${name}'s bio?`, body: "The bio is deleted and can't be brought back. This report is closed.", confirmLabel: "Clear bio" }) },
                             { label: "Remove banner", disabled, onClick: () => void act(r, "clear_banner", { title: `Remove ${name}'s banner?`, body: "The picture is deleted for good. This report is closed.", confirmLabel: "Remove banner" }) },
                             { label: "Limit what they can do…", disabled, onClick: () => openRestrict(r) },
+                            // A reported level (three reports hide it): Dismiss puts it back; this takes it off its board.
+                            ...(r.targetType === "level" ? [{ label: "Take the level down", danger: true, disabled, onClick: () => void act(r, "remove_level", { title: "Take this level down?", body: "It comes off its board for good, and every report on it is closed.", confirmLabel: "Take it down" }) }] : []),
                             ...(isAdmin ? [
                               { type: "divider" as const },
                               { label: "Ban for good", danger: true, disabled, onClick: () => void act(r, "ban", { title: `Ban ${name} for good?`, body: "Their profile is hidden and they can't take part. It lasts until an admin grants an appeal.", confirmLabel: "Ban" }) },

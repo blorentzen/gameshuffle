@@ -233,6 +233,22 @@ export const DEFAULT_LINEUP: BreakGameId[] = [
   "fact-or-fiction", "roster-rush", "know-the-channel", "closest-guess", "high-roller", "roll-call", "next-build", "handicap-vote", "chat-bounty",
 ];
 
+/**
+ * Ready-made lineups a streamer can start from (Streaming ▸ Live games ▸ Break
+ * mode). "All together" is chat on one side the whole break: the co-op games
+ * (the same four players get free in a Discord call and at live nights, see
+ * src/lib/coop/rules.ts), Roster Rush, then a bounty for the first game back.
+ */
+export const LINEUP_PRESETS: { id: "together" | "usual"; name: string; blurb: string; games: BreakGameId[] }[] = [
+  {
+    id: "together",
+    name: "All together",
+    blurb: "Chat plays on one side: a boss to take down, a word to find, GameShuffle at Four in a Row, the house at Shuffle Dice and a roster to name, then a bounty for your next game.",
+    games: ["boss-fight", "five-letters", "four-in-a-row", "shuffle-dice", "roster-rush", "chat-bounty"],
+  },
+  { id: "usual", name: "the usual mix", blurb: "Every kind of game, from quick questions to chat's picks for your next game.", games: DEFAULT_LINEUP },
+];
+
 export function isBreakGameId(v: unknown): v is BreakGameId {
   return typeof v === "string" && v in BREAK_GAMES;
 }

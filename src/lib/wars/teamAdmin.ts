@@ -12,15 +12,14 @@ import "server-only";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/admin";
 import { compAppLive } from "@/lib/discord/appIds";
-import { ttTracks } from "@/lib/timeTrials/tracks";
-import { trackCode } from "@/lib/timeTrials/codes";
 import { warsReady } from "./store";
 import { logoManager, type LogoManager } from "./logoAdmin";
 import { cardsReady, linksReady, listTeams, listTrackNames, playerCardsById, readsLikeFor, type TeamCardRow } from "./cardStore";
 import { matchMkc, teamCardFor, type PlayerCard } from "./cards";
 import { flagsFor } from "./flags";
 import { mkcIdFrom, mkcTeam, rosterFor, searchMkcTeams, type MkcTeam } from "./mkcTeams";
-import { warTrack, type WarGame } from "./rules";
+import { isWarGame, WAR_GAMES, warTrack, type WarGame } from "./rules";
+import { nickTrack, warTracks, wiiCodes } from "./tracks";
 import { tagKey } from "./tags";
 import { playedTeams, registryTeam } from "./teams";
 import { listLogos } from "./logos";
@@ -62,20 +61,21 @@ export async function serverGames(guildId: string): Promise<WarGame[]> {
   ]);
   const count = new Map<WarGame, number>();
   for (const r of [...((ch.data ?? []) as { game: WarGame | null }[]), ...((wars.data ?? []) as { game: WarGame | null }[])]) {
-    if (r.game === "mk8dx" || r.game === "mkworld") count.set(r.game, (count.get(r.game) ?? 0) + 1);
+    if (isWarGame(r.game)) count.set(r.game, (count.get(r.game) ?? 0) + 1);
   }
   const games = [...count.entries()].sort((a, b) => b[1] - a[1]).map(([g]) => g);
   return games.length ? games : ["mk8dx"];
 }
 
 const trackList = (game: WarGame): TrackOption[] =>
-  ttTracks(game).map((t) => ({ id: t.id, code: trackCode(t) ?? "", name: t.name })).filter((t) => t.code);
+  warTracks(game).map((t) => ({ id: t.id, code: t.code ?? "", name: t.name, ...(game === "mkwii" ? { also: wiiCodes(t.id).slice(1) } : {}) })).filter((t) => t.code);
 
-/** A nickname's track as "SGB · Shy Guy Bazaar", looked up in the server's games first. */
+/** A nickname's track as "SGB · Shy Guy Bazaar", looked up in the server's games first (a Wii nickname is "mkwii:<id>"). */
 function nickLabel(track: string, games: WarGame[]): string {
-  for (const g of [...games, "mk8dx" as const, "mkworld" as const]) {
-    const t = warTrack(g, track);
-    if (t) { const code = trackCode(t); return code ? `${code} · ${t.name}` : t.name; }
+  for (const g of [...games, ...WAR_GAMES]) {
+    const id = nickTrack(g, track);
+    const t = id ? warTrack(g, id) : null;
+    if (t) return t.code ? `${t.code} · ${t.name}` : t.name;
   }
   return track;
 }
@@ -261,7 +261,7 @@ export async function teamsView(guildId: string): Promise<TeamsView | null> {
     played: played.filter((p) => !teamCardFor(teams, p.tag, p.name)).slice(0, 8).map((p) => ({ tag: p.tag, name: p.name })),
     readsLike,
     games,
-    tracks: { mk8dx: trackList("mk8dx"), mkworld: trackList("mkworld") },
+    tracks: { mk8dx: trackList("mk8dx"), mkworld: trackList("mkworld"), mkwii: trackList("mkwii") },
     nicks: await trackNickViews(guildId, games),
     linksReady: links,
   };

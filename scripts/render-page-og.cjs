@@ -87,6 +87,7 @@ function specsFor(titles) {
   add("/twitch-chat-games", "Chat Games", "How your viewers play along", G("broadcast", "message-circle", "trophy", "dice-5", "users-group"));
   add("/speedrun", "Speedrun Overlay", "Every split on stream, live", G("stopwatch", "flag", "trophy", "bolt", "device-gamepad-2"));
   add("/name-every-pokemon", "Name Them All", "How many can you remember?", G("list-numbers", "pokeball", "stopwatch", "brain", "trophy"));
+  add("/pokemon-champions-team-builder", "Champions Team Builder", "Pick six, see every weak spot", G("pokeball", "shield-half", "swords", "users-group", "list-check"));
   // The free bracket tools (search pages round, 2026-10-20).
   add("/bracket-generator", "Bracket Maker", "Single or double elimination", G("tournament", "trophy", "users", "crown", "flag"));
   add("/round-robin-generator", "Round Robin", "A schedule with live standings", G("layout-grid", "refresh", "users", "list-numbers", "trophy"));
@@ -104,6 +105,8 @@ function specsFor(titles) {
   add("/for-organizers", "For Organizers", "Run your events in one place", A(TOUR));
   add("/tcg-companion", "TCG Companion", "Pokémon game-night kit", A(CARDS));
   add("/pokemon-tcg/decks", "Deck Lists", "Pokémon TCG Standard 2026", A(CARDS));
+  // The TCG hub, on the family's look (2026-11-12, Britton: our design system in place of the Midjourney card fan).
+  add("/pokemon-tcg", "Pokémon TCG", "Singles, decks and a free companion", A(CARDS));
   add("/sms", "Text Messages", "Alerts on your phone", G("message", "device-mobile", "bell", "checks", "message-circle"));
   add("/ideas", "Idea Board", "Vote on what we build next", G("bulb", "thumb-up", "sparkles", "message-circle", "rocket"));
   // Competitive Mario Kart (SEO pass, 2026-10-30): the hub, time trials, lounge stats, MMR card, randomizers, checklists.

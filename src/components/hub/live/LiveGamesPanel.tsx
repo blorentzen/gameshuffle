@@ -1,8 +1,8 @@
 "use client";
 
 /**
- * The stream page's Live games tab: polls, Stream Bingo, Chat Draft and
- * Chat Brain in one place, so running one never means leaving the stream.
+ * The stream page's Live games tab: polls, Stream Bingo, Chat Draft,
+ * Chat Brain, break mode and the level queue in one place, so running one never means leaving the stream.
  * The same screens as Streaming ▸ Live games (they work between streams
  * there). The inner view follows `?view=`, so the control room's cards open
  * the right one; a game that's running carries a Live badge.
@@ -15,9 +15,10 @@ import { StreamBingoTab } from "@/components/account/StreamBingoTab";
 import { ChatDraftTab } from "@/components/account/ChatDraftTab";
 import { ChatBrainStreamTab } from "@/components/account/ChatBrainStreamTab";
 import { BreakModeTab } from "@/components/account/BreakModeTab";
+import { LevelQueueTab } from "@/components/levels/LevelQueueTab";
 import { useHubLive } from "./HubLiveProvider";
 
-const VIEWS = ["polls", "bingo", "draft", "chat-brain", "break"] as const;
+const VIEWS = ["polls", "bingo", "draft", "chat-brain", "break", "levels"] as const;
 type View = (typeof VIEWS)[number];
 
 export function LiveGamesPanel() {
@@ -48,6 +49,7 @@ export function LiveGamesPanel() {
           { id: "draft", label: "Chat Draft", badge: live(!!data?.draft), content: <div className="account-card"><ChatDraftTab /></div> },
           { id: "chat-brain", label: "Chat Brain", badge: live(!!data?.brain), content: <div className="account-card"><ChatBrainStreamTab /></div> },
           { id: "break", label: "Break mode", badge: live(!!data?.breakMode), content: <div className="account-card"><BreakModeTab /></div> },
+          { id: "levels", label: "Level queue", badge: live(!!data?.levels?.open), content: <LevelQueueTab /> },
         ]}
       />
     </div>
@@ -61,5 +63,6 @@ function firstRunning(data: ReturnType<typeof useHubLive>["data"]): View | null 
   if (data.draft) return "draft";
   if (data.brain) return "chat-brain";
   if (data.breakMode) return "break";
+  if (data.levels?.open || data.levels?.now) return "levels";
   return null;
 }

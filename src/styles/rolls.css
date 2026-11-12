@@ -50,6 +50,10 @@
 
 /* The Rolls tab's Roll for me. */
 .space-roll__full { font-size: var(--font-size-14); }
+/* A space with more than one game (Retro Mario Kart): which game the roll is for, as chips over the roll. */
+.space-roll__games { display: flex; flex-wrap: wrap; align-items: center; gap: var(--spacing-8); }
+.space-roll__games-label { font-size: var(--font-size-14); font-weight: 700; color: var(--text-secondary); margin-right: var(--spacing-4); }
+.space-roll__games .empac-chip { min-height: 3.2rem; }
 /* A roll keeps a reading width on wide screens: its part rows don't run across the whole page. */
 .space-roll .roll-card, .post-card__roll .roll-card { max-width: 64rem; }
 

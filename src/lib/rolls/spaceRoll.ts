@@ -11,11 +11,27 @@ import { createHmac, timingSafeEqual } from "node:crypto";
 import { getChatGame } from "@/lib/twitch/chatGames";
 import { CHAT_SETUPS } from "@/lib/twitch/chatSetups";
 import type { ChatRoll, RollSlot } from "@/lib/twitch/chatRoll";
-import type { GameSpace } from "@/lib/games/spaces";
+import type { GameSpace, SpaceRollGame } from "@/lib/games/spaces";
 
-/** The randomizer a space rolls from: its main game's chat roll, if that game has one. */
-export function spaceRoller(s: GameSpace) {
-  return getChatGame(s.primary);
+/** A game's chat roll when it can be a space roll. A roll only the streamer gets (Pokémon Champions' team, Stadium's
+ *  rentals) isn't one: no Rolls tab, and the header keeps the space's own main button. */
+function roller(slug: string) {
+  const game = getChatGame(slug);
+  return game && !game.streamerOnly ? game : null;
+}
+
+/** The games a space's Rolls can switch between (Retro Mario Kart: Double Dash, Mario Kart DS and Mario Kart 64), only those with a
+ *  roll right now (a hidden game's chat roll is off in production). Empty for a one-game space. */
+export function spaceRollGames(s: GameSpace): SpaceRollGame[] {
+  return (s.rollGames ?? []).filter((g) => s.games.includes(g.game) && !!roller(g.game));
+}
+
+/** The randomizer a space rolls from: the game asked for when the space can switch to it, else its first game with a
+ *  roll, else its main game's chat roll. */
+export function spaceRoller(s: GameSpace, game?: string | null) {
+  const games = spaceRollGames(s);
+  const pick = (game && games.find((g) => g.game === game)) || games[0];
+  return pick ? roller(pick.game) : roller(s.primary);
 }
 
 function key(): string {
@@ -42,25 +58,33 @@ export function rollSigned(roll: ChatRoll, sig: string): boolean {
  *  board, turns, rules and Bonus Stars, with your character second (other spaces pass, 2026-11-06). */
 const SETUP_FIRST = new Set(["mario-party"]);
 
-function makeRoll(s: GameSpace): ChatRoll | null {
-  const game = spaceRoller(s);
+/** Spaces whose roll adds the night's parts after your pick, as `!gs setup` words: "Roll a challenge" in Super Mario
+ *  Bros. Wonder gives your character and badge, then a level and a challenge rule (game space picks 2026-11-11). */
+const SETUP_AFTER: Record<string, string[]> = { "super-mario-bros-wonder": ["", "rule"] };
+
+function makeRoll(s: GameSpace, which?: string | null): ChatRoll | null {
+  const game = spaceRoller(s, which);
   if (!game || game.streamerOnly) return null;
   const pick = game.roll({ owned: null, arg: "", taken: [] });
+  // The night's extra parts are the main game's (a space that switches games has none).
+  if (game.slug !== s.primary) return pick;
+  const after = (SETUP_AFTER[s.id] ?? []).map((arg) => CHAT_SETUPS[s.primary]?.roll({ arg, players: 4 })).filter((x): x is ChatRoll => !!x?.slots.length);
+  if (after.length) return { ...pick, slots: [...pick.slots, ...after.flatMap((x) => x.slots)], text: [pick.text, ...after.map((x) => x.text)].join(" · ") };
   const setup = SETUP_FIRST.has(s.id) ? CHAT_SETUPS[s.primary]?.roll({ arg: "", players: 4 }) : null;
   return setup && setup.slots.length && pick.slots.length
     ? { ...setup, slots: [setup.slots[0], ...pick.slots, ...setup.slots.slice(1)], text: `${setup.text} · ${pick.slots.map((x) => x.name).join(", ")}` }
     : pick;
 }
 
-/** One roll for the space's main game, signed, with what its reel spins through first: for each part, up to 8 other
- *  picks of the same kind from more rolls of the same randomizer (never the result). Null when the game has no
- *  randomizer. */
-export function rollForSpace(s: GameSpace): { roll: ChatRoll; sig: string; reel: RollSlot[][] } | null {
-  const roll = makeRoll(s);
+/** One roll for the space's main game (or the game picked on its switch), signed, with what its reel spins through
+ *  first: for each part, up to 8 other picks of the same kind from more rolls of the same randomizer (never the
+ *  result). Null when the game has no randomizer. */
+export function rollForSpace(s: GameSpace, which?: string | null): { roll: ChatRoll; sig: string; reel: RollSlot[][] } | null {
+  const roll = makeRoll(s, which);
   if (!roll) return null;
   const pools = new Map<string, Map<string, RollSlot>>(roll.slots.map((x) => [x.label, new Map()]));
   for (let i = 0; i < 14; i++) {
-    for (const x of makeRoll(s)?.slots ?? []) {
+    for (const x of makeRoll(s, which)?.slots ?? []) {
       const pool = pools.get(x.label);
       if (pool && pool.size < 8) pool.set(x.name, x);
     }

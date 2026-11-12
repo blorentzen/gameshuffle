@@ -34,7 +34,7 @@ export default function Page() {
       <ul>
         <li><code>vs</code>{" "}(required): the other team&apos;s tag. It suggests this server&apos;s team cards, then teams it has played, then teams from MKCentral.</li>
         <li><code>us</code>: your team&apos;s tag. The channel remembers it after the first war.</li>
-        <li><code>game</code>: Mario Kart 8 Deluxe or Mario Kart World.</li>
+        <li><code>game</code>: Mario Kart 8 Deluxe, Mario Kart World or Mario Kart Wii.</li>
         <li><code>entry</code>: one person adds each race, or everyone taps the place they finished.</li>
         <li><code>format</code>: players a team, 6v6 to 2v2, or 12v12 in Mario Kart World. See Other team sizes below.</li>
         <li><code>others</code>: more teams in the same room, their tags with spaces between, like <code>others: PBM</code>.</li>
@@ -54,6 +54,10 @@ export default function Page() {
         its six places, and the other team gets the rest.
       </p>
       <p>
+        Mario Kart Wii scores its 12-player rooms 15, 12, 10, 8, 7, 6, 5, 4, 3, 2, 1 and 0, so a race is
+        worth 73 points and one race can move a 6v6 lead by 43 at most.
+      </p>
+      <p>
         The card shows each race and the lead. In a 6v6, one race can move the lead by 40 points at most,
         so once a lead is bigger than that times the races left, the card says the war can&apos;t be
         caught. The war ends on its own after its last race.
@@ -65,13 +69,13 @@ export default function Page() {
           <strong>Two teams of 2 to 5</strong>{" "}race in a room of just them: a 4v4 is an 8-player room.
           Mario Kart 8 Deluxe rooms use Toad Bot&apos;s points: 4 players 5, 3, 2, 1; 6 players 7, 5, 4,
           3, 2, 1; 8 players 10, 8, 6, 5, 4, 3, 2, 1; 10 players 12, 10, 8, 7, 6, 5, 4, 3, 2, 1. Mario
-          Kart World&apos;s points for rooms under 12 aren&apos;t written down anywhere we could check, so
-          those formats aren&apos;t on yet.
+          Kart World&apos;s points for rooms under 12 aren&apos;t written down anywhere we could check,
+          and Mario Kart Wii&apos;s only in one place, so those formats aren&apos;t on yet.
         </li>
         <li>
           <strong>Several teams in one 12-player room:</strong> three teams of 4, four teams of 3 or six
           teams of 2. Name the extra teams in <code>others</code>; the team size follows from how many
-          teams there are. Points are the usual 15 to 1.
+          teams there are. Points are the game&apos;s usual 12-player ones.
         </li>
         <li>
           <strong>Mario Kart World&apos;s 24-player rooms:</strong> 12v12, or several teams of 6, 4, 3 or
@@ -88,7 +92,8 @@ export default function Page() {
       <h3>One person adds each race</h3>
       <p>
         After each race, press <strong>Add race</strong>, type your team&apos;s places and, if you like,
-        the track&apos;s code (SSC, rMMM or bNYM in Mario Kart 8 Deluxe). You can add the track later. If
+        the track&apos;s code (SSC, rMMM or bNYM in Mario Kart 8 Deluxe; LC, rBC3 or DKS in Mario Kart
+        Wii). You can add the track later. If
         someone else put the same race in first with other places, you can pick{" "}
         <strong>Use mine instead</strong>{" "}or keep theirs.
       </p>

@@ -49,6 +49,7 @@ export const ALLOWED_REDIRECT_PREFIXES = [
   "/pokemon-trainers",
   "/mmr-card",
   "/speedrun",          // the speedrun overlay's setup
+  "/races/",            // a speedrun race's page (join after signing in)
   "/war-overlay/",      // a war overlay's setup page: sign up to keep its looks
   "/lounge",
   "/ranked",           // a lounge's staff page (sign in with Discord, the bot checks your roles)

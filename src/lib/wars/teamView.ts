@@ -99,7 +99,8 @@ export function ownLogo(tags: string[], logos: { tag: string; url: string }[]): 
   return null;
 }
 
-export interface TrackOption { id: string; code: string; name: string }
+/** A track for the nickname form: its shown code, and (Mario Kart Wii) the other codes it answers to. */
+export interface TrackOption { id: string; code: string; name: string; also?: string[] }
 export interface TrackNickView { nick: string; track: string; label: string }
 
 export interface TeamsView {
@@ -127,7 +128,7 @@ export interface MkcHitView {
   players: number | null;
 }
 
-export const GAME_LABELS: Record<WarGame, string> = { mk8dx: "Mario Kart 8 Deluxe", mkworld: "Mario Kart World" };
+export const GAME_LABELS: Record<WarGame, string> = { mk8dx: "Mario Kart 8 Deluxe", mkworld: "Mario Kart World", mkwii: "Mario Kart Wii" };
 
 /** A typed flag code as the database keeps it ("[US]" → us), or null when it isn't one. */
 export function cleanFlagText(v: string): string | null {

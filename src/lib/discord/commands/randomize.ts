@@ -90,6 +90,8 @@ interface ResolvedGame {
 
 /** Pokémon Stadium 2 rides on the Stadium randomizer page. */
 const PAGE_FOR: Record<string, string> = { "pokemon-stadium-2": "pokemon-stadium" };
+/** Games whose page isn't a randomizer: Pokémon Champions' team roll links its team builder. */
+const URL_FOR: Record<string, string> = { "pokemon-champions": "/pokemon-champions-team-builder" };
 
 function resolveGame(slug: string): ResolvedGame | null {
   const kart = GAMES[slug];
@@ -99,7 +101,7 @@ function resolveGame(slug: string): ResolvedGame | null {
   return {
     slug,
     title: `${chat.title} Randomizer`,
-    url: `${SITE_URL}/randomizers/${PAGE_FOR[slug] ?? slug}`,
+    url: URL_FOR[slug] ? `${SITE_URL}${URL_FOR[slug]}` : `${SITE_URL}/randomizers/${PAGE_FOR[slug] ?? slug}`,
     maxPlayers: Math.min(9, chat.lobbyCap),
     kart: null,
     chat,

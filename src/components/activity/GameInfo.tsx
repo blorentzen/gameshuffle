@@ -180,6 +180,15 @@ export const GAME_INFO: Record<GameInfoId, GameInfo> = {
     ],
     meta: ["Any group size", "1, 2 or 3 rosters", "60 to 100 seconds each"],
   },
+  "quickfire-coop": {
+    name: QUICKFIRE_SETS.coop.name,
+    lines: [
+      "Everyone in the call plays on the same side. Each game lasts a few rounds and ends as a win or a loss for all of you.",
+      "Boss Fight: everyone hits once a round, take it down in five. Five Letters: the most popular guess is played, six tries to find the word. Four in a Row: vote a column, then GameShuffle moves. Shuffle Dice: vote to roll again or bank, first to 25 beats the house.",
+      "A round ends early once everyone has answered.",
+    ],
+    meta: ["Any group size", "1 to 4 games", "A few minutes a game"],
+  },
   roll: {
     name: "Roll for the call",
     lines: [

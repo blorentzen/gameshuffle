@@ -14,8 +14,8 @@ import type { StreamGameView } from "@/lib/chatbrain/streamGame";
 const secsUntil = (iso: string) => Math.max(0, Math.ceil((Date.parse(iso) - Date.now()) / 1000));
 
 export interface StreamerHit { id: string; name: string; username: string | null; twitch: string | null; avatar: string | null }
-export interface CostreamLobby { gameId: string; guest: { name: string; state: "invited" | "joined" | "declined" | "left" } | null; rounds: number; seconds: number }
-export interface CostreamInvite { gameId: string; host: string; rounds: number; seconds: number; invitedAt: string }
+export interface CostreamLobby { gameId: string; guest: { name: string; state: "invited" | "joined" | "declined" | "left" } | null; rounds: number; seconds: number; style?: "versus" | "together" }
+export interface CostreamInvite { gameId: string; host: string; rounds: number; seconds: number; invitedAt: string; style?: "versus" | "together" }
 export interface CostreamState { lobby: CostreamLobby | null; invites: CostreamInvite[]; guest: StreamGameView | null }
 
 /** Search GameShuffle streamers (Twitch connected) and pick one to invite. */
@@ -67,16 +67,17 @@ export function CostreamGuestPicker({ value, onChange }: { value: StreamerHit | 
 export function CostreamLobbyCard({ lobby, busy, onStart, onCancel }: { lobby: CostreamLobby; busy: boolean; onStart: () => void; onCancel: () => void }) {
   const g = lobby.guest;
   const state = g?.state ?? "invited";
+  const together = lobby.style === "together";
   return (
     <div className="account-card">
       <div className="poll-head">
-        <h2 className="account-card__title">Co-stream with {g?.name ?? "your guest"}</h2>
+        <h2 className="account-card__title">{together ? "Co-stream together" : "Co-stream"} with {g?.name ?? "your guest"}</h2>
         <Badge variant={state === "joined" ? "success" : state === "declined" ? "default" : "warning"} size="small">
           {state === "joined" ? "Ready" : state === "declined" ? "Turned down" : "Invite sent"}
         </Badge>
       </div>
       <p className="dbot-muted">
-        {state === "joined" ? `${g?.name} joined. ${lobby.rounds} rounds, ${lobby.seconds} seconds an answer. Start when you're both live and ready.`
+        {state === "joined" ? `${g?.name} joined. ${together ? `${lobby.rounds} board${lobby.rounds === 1 ? "" : "s"}, both chats on one team` : `${lobby.rounds} rounds`}, ${lobby.seconds} seconds an answer. Start when you're both live and ready.`
           : state === "declined" ? `${g?.name} can't play this time. Cancel this one to invite someone else.`
           : `Waiting for ${g?.name ?? "them"} to accept on their Chat Brain tab. They got a notification.`}
       </p>
@@ -104,10 +105,17 @@ export function CostreamInvites({ invites, busy, respond }: { invites: CostreamI
       <h2 className="account-card__title">Co-stream invite{invites.length === 1 ? "" : "s"}</h2>
       {invites.map((i) => (
         <div key={i.gameId} className="cb-costream__invite">
-          <p>
-            <strong>{i.host}</strong> wants your chat to play theirs in Chat Brain: {i.rounds} rounds, {i.seconds} seconds an answer.
-            Your chat answers with <code>!a</code>{" "}in your channel; {i.host} runs the game.
-          </p>
+          {i.style === "together" ? (
+            <p>
+              <strong>{i.host}</strong> wants your chat and theirs on one team in Chat Brain: {i.rounds} board{i.rounds === 1 ? "" : "s"}, {i.seconds} seconds a guess.
+              Your chat answers with <code>!a</code>{" "}in your channel and what most of both chats say counts; {i.host} runs the game.
+            </p>
+          ) : (
+            <p>
+              <strong>{i.host}</strong> wants your chat to play theirs in Chat Brain: {i.rounds} rounds, {i.seconds} seconds an answer.
+              Your chat answers with <code>!a</code>{" "}in your channel; {i.host} runs the game.
+            </p>
+          )}
           <div className="party-row">
             <Button variant="primary" size="small" disabled={busy} onClick={() => respond(i.gameId, true)}>Accept</Button>
             <Button variant="ghost" size="small" disabled={busy} onClick={() => respond(i.gameId, false)}>Decline</Button>
@@ -123,6 +131,7 @@ export type CostreamAction = "lock" | "next" | "end" | "control" | "leave";
 
 /** The running co-stream: the host steers it; the guest sees the same board and can leave. */
 export function CostreamConsole({ game, busy, act, guest = false }: { game: StreamGameView; busy: boolean; act: (action: CostreamAction, extra?: Record<string, unknown>) => void; guest?: boolean }) {
+  if (game.together) return <TogetherConsole game={game} busy={busy} act={act} guest={guest} />;
   const v = game.versus;
   if (!v) return null;
   const t = v.turn;
@@ -193,6 +202,61 @@ export function CostreamConsole({ game, busy, act, guest = false }: { game: Stre
           {t?.state === "open" && <Button variant="secondary" size="small" disabled={busy} onClick={() => act("lock")}>Close this answer now</Button>}
           <Button variant={v.phase === "round_done" ? "primary" : "secondary"} size="small" disabled={busy} onClick={() => act("next")}>
             {v.phase === "round_done" ? (v.round + 1 >= v.rounds ? "Finish the game" : "Next round") : "Skip this round"}
+          </Button>
+          <Button variant="ghost" size="small" disabled={busy} onClick={() => act("end")}>End the co-stream</Button>
+        </div>
+      )}
+      {playing && guest && (
+        <div className="party-row">
+          <span className="dbot-muted">The host runs the game. Your chat answers with !a in your channel.</span>
+          <Button variant="ghost" size="small" disabled={busy} onClick={() => act("leave")}>Leave the co-stream</Button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/** A co-stream where both chats are one team: one board, one score, shared strikes, what both chats are leaning toward. */
+function TogetherConsole({ game, busy, act, guest }: { game: StreamGameView; busy: boolean; act: (action: CostreamAction, extra?: Record<string, unknown>) => void; guest: boolean }) {
+  const chats = game.together?.chats ?? [];
+  const names = chats.map((c) => `${c.name}'s chat`).join(" and ");
+  const playing = game.status === "playing";
+  const w = game.window;
+  const timing = !playing ? `Final score: ${game.score} points together.`
+    : game.phase === "guessing" && w ? `Guess open, ${secsUntil(w.closesAt)}s left: ${chats.map((c) => `${c.guesses} from ${c.name}'s chat`).join(", ")}.`
+    : (game.phase === "starting" || game.phase === "pause") && w ? `Next guess in ${secsUntil(w.opensAt)}s.`
+    : game.phase === "board_done" ? "Board over." : "";
+  return (
+    <div className="account-card">
+      <div className="poll-head">
+        <h2 className="account-card__title">Co-stream together · {game.boardCount > 1 ? `Board ${game.boardIndex + 1} of ${game.boardCount}` : "The board"}</h2>
+        <Badge variant={playing ? "success" : "default"} size="small">{playing ? "Live" : "Game over"}</Badge>
+      </div>
+      <p className="dbot-muted">{names} are one team: what most of both chats say is the answer.</p>
+      <p className="cb-stream__q">{game.question}</p>
+      <ol className="cb-stream__board">
+        {game.slots.map((s) => (
+          <li key={s.rank} className={s.label ? (s.found ? "is-found" : "is-revealed") : ""}>
+            <span className="cb-stream__rank">{s.rank}</span>
+            <span className="cb-stream__label">{s.label ?? "Hidden"}</span>
+            <span className="cb-stream__pts">{s.points ?? ""}</span>
+          </li>
+        ))}
+      </ol>
+      <p className="cb-stream__meta"><strong>{game.score} points</strong> · {game.strikes} of 3 strikes · {timing}</p>
+      {game.phase === "guessing" && game.leaning.length > 0 && <p className="dbot-muted">Both chats are leaning: {game.leaning.map((l) => `${l.label} (${Math.round(l.share * 100)}%)`).join(", ")}</p>}
+      {game.last && (
+        <p className="dbot-muted">
+          Last guess: {game.last.result === "hit" ? `${game.last.label}, #${game.last.rank} on the board` : game.last.result === "empty" ? "neither chat answered" : `${game.last.label}${game.last.already ? " (already up)" : ", not on the board"}`}
+        </p>
+      )}
+      {game.playalong.length > 0 && <p className="dbot-muted">Top brains in both chats: {game.playalong.map((p) => `${p.name} ${p.points}`).join(", ")}</p>}
+      {game.prize > 0 && playing && <p className="dbot-muted">Prize: {game.prize} tokens for the top brains when the game ends.</p>}
+      {playing && !guest && (
+        <div className="party-row">
+          {game.phase === "guessing" && <Button variant="secondary" size="small" disabled={busy} onClick={() => act("lock")}>Close this guess now</Button>}
+          <Button variant={game.phase === "board_done" ? "primary" : "secondary"} size="small" disabled={busy} onClick={() => act("next")}>
+            {game.boardIndex + 1 >= game.boardCount ? (game.phase === "board_done" ? "Finish the game" : "End this board") : game.phase === "board_done" ? "Next board" : "Skip to the next board"}
           </Button>
           <Button variant="ghost" size="small" disabled={busy} onClick={() => act("end")}>End the co-stream</Button>
         </div>

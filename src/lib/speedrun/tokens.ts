@@ -4,13 +4,14 @@
  *
  *   timer   (pasted into LiveSplit One)  t1.<relayId>.<timerVersion>.<sig>
  *   overlay (the OBS link, view only)    o1.<relayId>.<overlayVersion>.<sig>
+ *   room    (watching a race room)       r1.<roomId>.1.<sig>  (rooms share the relay id's shape)
  *   sig = base64url(HMAC-SHA256(secret, "<kind>:<relayId>:<version>")) cut to 22 characters
  *   webhook header x-relay-signature = hex(HMAC-SHA256(secret, raw body))
  *
  * Both test suites check the contract's vectors (scripts/test-speedrun.ts here). Pure; works in Node and browsers.
  */
 
-export type TokenKind = "timer" | "overlay";
+export type TokenKind = "timer" | "overlay" | "room";
 
 export interface TokenParts {
   kind: TokenKind;
@@ -18,8 +19,8 @@ export interface TokenParts {
   version: number;
 }
 
-const PREFIX: Record<TokenKind, string> = { timer: "t1", overlay: "o1" };
-const KIND_OF: Record<string, TokenKind> = { t1: "timer", o1: "overlay" };
+const PREFIX: Record<TokenKind, string> = { timer: "t1", overlay: "o1", room: "r1" };
+const KIND_OF: Record<string, TokenKind> = { t1: "timer", o1: "overlay", r1: "room" };
 const RELAY_ID = /^[A-Za-z0-9]{16}$/;
 const SIG = /^[A-Za-z0-9_-]{22}$/;
 const ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";

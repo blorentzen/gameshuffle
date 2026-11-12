@@ -24,6 +24,8 @@ import {
   type BoardGame, type BoardLevers, type BoardPeriod, type PlayerKind,
 } from "@/lib/daily/boardRules";
 import type { BoardRow, BoardView, ScoreResult, SolveTimes } from "@/lib/daily/boardTypes";
+import { raceTotals, type PlaceTotal } from "@/lib/daily/placeRace";
+import { readAllPages } from "@/lib/supabase/pages";
 
 export type { BoardRow, BoardView, ScoreResult };
 
@@ -292,7 +294,8 @@ async function boardRows(game: BoardGame, period: BoardPeriod, from: string, to:
 }
 
 /** A board: today, this week or this month for a game, with the viewer's own row. `fresh` skips the few seconds of sharing (a player who just finished). */
-export async function boardView(args: { game: BoardGame; period: BoardPeriod; day?: string; me?: string | null; limit?: number; shared?: string | null; fresh?: boolean }): Promise<BoardView> {
+/** `race`: the day board adds each place's points today (the leaderboard pages ask for it; the pulse and share cards don't). */
+export async function boardView(args: { game: BoardGame; period: BoardPeriod; day?: string; me?: string | null; limit?: number; shared?: string | null; fresh?: boolean; race?: boolean }): Promise<BoardView> {
   const day = args.day ?? gsDay();
   const { from, to } = periodRange(args.period, day);
   const empty: BoardView = { ready: false, game: args.game, period: args.period, from, to, rows: [], you: null, total: 0, settles: args.period === "day" ? null : settlesOn(args.period, from) };
@@ -332,7 +335,25 @@ export async function boardView(args: { game: BoardGame; period: BoardPeriod; da
     rows: rows.slice(0, limit),
     you: rows.find((r) => r.you) ?? null,
     total: raw.length ? Number(raw[0].total_players) : 0,
+    race: args.race && args.period === "day" && raw.length ? await placeRace(args.game, day).catch(() => null) : null,
   };
+}
+
+const raceCache = new Map<string, { at: number; value: PlaceTotal[] }>();
+
+/** Today's race between the places people play: each place's points on this day board (kept a minute on this server). */
+export async function placeRace(game: BoardGame, day: string): Promise<PlaceTotal[]> {
+  const key = `${game}:${day}`;
+  const hit = raceCache.get(key);
+  if (hit && Date.now() - hit.at < 60_000) return hit.value;
+  const svc = createServiceClient();
+  const { data, error } = await readAllPages<{ player: string; points: number }>((a, b) =>
+    svc.from("daily_scores").select("player, points").eq("game", game).eq("day", day).order("player").range(a, b), 50_000);
+  if (error) return [];
+  const value = raceTotals(data);
+  raceCache.set(key, { at: Date.now(), value });
+  if (raceCache.size > 50) raceCache.delete(raceCache.keys().next().value!);
+  return value;
 }
 
 /** Takes a player off the boards (their own choice, or staff), or puts them back. */

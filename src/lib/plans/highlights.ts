@@ -38,7 +38,7 @@ export const FREE_HIGHLIGHTS: HighlightGroup[] = [
   {
     group: "Organize",
     items: [
-      { label: "Tournaments", detail: "Brackets, Heat → Mains, random-character rounds and live updates for your entrants." },
+      { label: "Tournaments", detail: "Brackets, Heat → Mains, live updates for your entrants, and random-character rounds rolled for every game we have. Revealing rounds live to everyone is GS Circuit." },
       { label: "AI to try", detail: "Plain-language randomizer setup, the night planner and the tournament helper, a few times a day." },
       { label: "TCG Companion and My Cards", detail: "Counters, coin and dice for Pokémon TCG, plus your collection." },
     ],
@@ -50,7 +50,7 @@ export const PRO_HIGHLIGHTS: HighlightGroup[] = [
   {
     group: "On stream",
     items: [
-      { label: "OBS overlay", detail: "Rolls, wheels, polls, bingo, drafts, timers and tier lists render straight into your scene as one browser source." },
+      { label: "The GameShuffle overlay", detail: "Rolls, wheels, polls, bingo, drafts, raffles, timers and tier lists in your scene as one browser source. The MMR card, war, speedrun and timer overlays are free on their own." },
       { label: "Chat rolls for every game", detail: "!gs-shuffle gives each viewer a pick from the game you're streaming, with official art on the overlay." },
       { label: "Match rolls and viewer battles", detail: "!gs setup rolls the tracks, stage, board or map; !gs battle rolls the whole lobby at once." },
       { label: "Channel point rewards", detail: "Viewers spend points to reroll your pick. The reward is created and refunded for you." },
@@ -64,6 +64,10 @@ export const PRO_HIGHLIGHTS: HighlightGroup[] = [
       { label: "Stream Bingo", detail: "Viewers grab a card on your live page; claims are checked and winners paid in tokens." },
       { label: "Chat Draft", detail: "Chat drafts your team one pick at a time, or captains pick players into teams." },
       { label: "Who Said It? and Chat Brain", detail: "Guess the quote, and ask chat your own survey questions." },
+      { label: "Trivia and live nights on stream", detail: "Chat answers your trivia night with !a and viewers play on your live page; on a live night, chat votes who gets the next Chance card." },
+      { label: "Level queue", detail: "Viewers send Mario Maker 2, Fortnite and Fall Guys levels with !add, and you play them in order." },
+      { label: "Speedrun predictions and pace alerts", detail: "Chat calls whether this run is a PB, and your Discord hears when you're on PB pace." },
+      { label: "Your war on the overlay", detail: "A clan war's score on the GameShuffle overlay beside your other pieces." },
       { label: "Token economy and predictions", detail: "A closed-loop currency viewers earn and spend on markets, bounties and awards. Never bought, never cashed out." },
     ],
   },
@@ -81,6 +85,8 @@ export const PRO_HIGHLIGHTS: HighlightGroup[] = [
       { label: "Discord bot", detail: "Up to 5 servers, each with its own announcements, routing, roles and AutoMod, plus slash commands." },
       { label: "Your live page", detail: "A public /live page viewers land on: the lobby, polls, bingo, drafts and markets in one view." },
       { label: "No limits", detail: "Unlimited saved setups and active tournaments instead of the free tier's caps." },
+      { label: "Game nights that update live", detail: "Your game night's attendee list updates as people RSVP, and its TV board keeps itself in sync." },
+      { label: "Play together in the TCG Companion", detail: "Host one Pokémon TCG board on two phones, at the table or on a call. Your opponent joins free." },
     ],
   },
 ];
@@ -91,7 +97,7 @@ export const CIRCUIT_HIGHLIGHTS: HighlightGroup[] = [
     items: [
       { label: "Multi-lobby fields", detail: "Go past a single game lobby: 64 or 256 players across as many lobbies as it takes." },
       { label: "Championship series", detail: "A season of Heat → Mains events with carry-over standings and season points computed for you." },
-      { label: "Every game we roll", detail: "Random-character rounds for Smash, Mario Party, Splatoon, Kirby, Street Fighter 6 and Tekken 8, alongside Mario Kart." },
+      { label: "Unlimited active tournaments", detail: "Run as many tournaments at once as you like. Free accounts keep one going at a time." },
       { label: "Co-organizers", detail: "Share the manage page so you are not the only person who can run the bracket." },
       { label: "Custom seeding and redraw", detail: "Seed the field yourself, or redraw a round when someone no-shows." },
     ],
@@ -121,9 +127,10 @@ const cap = (n: number): string => (n === Infinity ? "Unlimited" : n === 0 ? "No
 
 export const FREE_VS_PRO: LimitRow[] = [
   { label: "Saved setups", free: cap(CONFIG_LIMITS.free), pro: cap(CONFIG_LIMITS.pro) },
-  { label: "Active tournaments", free: cap(TOURNAMENT_LIMITS.free), pro: cap(TOURNAMENT_LIMITS.pro) },
+  { label: "Active tournaments", free: cap(TOURNAMENT_LIMITS.free), pro: `${cap(TOURNAMENT_LIMITS.pro)} (GS Circuit too)` },
   { label: "Twitch integration", free: "Not included", pro: "Included" },
-  { label: "OBS overlay", free: "Not included", pro: "Included" },
+  { label: "MMR card, war, speedrun and timer overlays", free: "Included", pro: "Included" },
+  { label: "The GameShuffle overlay (every tool in one source)", free: "Not included", pro: "Included" },
 ];
 
 /** Platform fee in basis points rendered the way an organizer reads it. */

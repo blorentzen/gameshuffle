@@ -84,6 +84,7 @@ export function LiveChatBrainCard({ communityId }: { communityId: string | null;
   const help = mode === "survey" ? "Say the first thing that comes to mind. One answer each; answer again to change it."
     : mode === "speed" ? "First to type a hidden answer reveals it and takes its points."
     : mode === "host" ? "What most of chat says is chat's answer. Your own guess scores too if it's on the board."
+    : mode === "costream" && g?.together ? "Both chats are one team: what most of both chats say is the answer. Your own guess scores too if it's on the board."
     : mode === "costream" ? "Your answer counts for your streamer's chat. Your own guess scores too if it's on the board."
     : "Play along: your guess scores if it's on the board.";
 

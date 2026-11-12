@@ -3703,6 +3703,10 @@ html.dark .gs-platform-icon {
 .dbot-part > .account-card > :is(button, .empac-button) { align-self: flex-start; }
 .dbot-part .dbot-muted { margin: 0; }
 .dbot-part > .account-card h2.account-card__title { margin: 0; }
+/* Daily and weekly posts: a switch per post, its line under it (free opt-ins, 2026-11-11). */
+.dbot-optins { display: flex; flex-direction: column; gap: var(--spacing-16); }
+.dbot-optin { display: flex; flex-direction: column; gap: var(--spacing-4); }
+.dbot-optin .dbot-muted { margin: 0; }
 /* The connected server: picture, name, default channel, slot count. */
 .dbot-server { display: flex; flex-wrap: wrap; align-items: center; gap: var(--spacing-12) var(--spacing-16); }
 .dbot-server__text { flex: 1 1 22rem; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
@@ -3923,6 +3927,9 @@ html.dark .gs-platform-icon {
 .break-tab__start > :first-child { flex: 0 1 320px; min-width: 220px; }
 .break-tab__note { margin: var(--spacing-8) 0 0; font-size: var(--font-size-14); color: var(--text-secondary); }
 .break-tab__games { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 28rem), 1fr)); gap: var(--spacing-12); }
+.break-tab__presets { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 28rem), 1fr)); gap: var(--spacing-16); margin-bottom: var(--spacing-20); padding-bottom: var(--spacing-20); border-bottom: 1px solid var(--border-default); }
+.break-tab__preset { display: grid; gap: var(--spacing-8); align-content: start; justify-items: start; }
+.break-tab__preset .break-tab__note { margin: 0; }
 .break-tab__live { display: flex; flex-direction: column; gap: var(--spacing-12); }
 .break-tab__prompt { margin: 0; font-size: var(--font-size-18); font-weight: 700; }
 .break-tab__reveal { margin: 0; font-size: var(--font-size-14); color: var(--text-secondary); }

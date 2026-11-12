@@ -5,6 +5,8 @@
  */
 
 import { ULTIMATE } from "@/data/smash/ultimate";
+import { MELEE } from "@/data/smash/melee";
+import { costumeLabel } from "@/lib/smash/roll";
 import { JAMBOREE } from "@/data/party/jamboree";
 import { SUPERSTARS } from "@/data/party/superstars";
 import { PARTY_GAMES } from "@/data/party";
@@ -33,6 +35,9 @@ function rosterFor(slug: string): Roster | null {
     case "super-smash-bros-ultimate":
       // Mii Fighters need a Mii made first, so they're left out.
       return { names: ULTIMATE.fighters.filter((f) => !f.mii).map((f) => f.name) };
+    case "super-smash-bros-melee":
+      // Sheik on her own; each pick comes with one of that fighter's costumes.
+      return { names: MELEE.fighters.map((f) => f.name), detail: (n) => { const f = MELEE.fighters.find((x) => x.name === n); return f?.costumes ? costumeLabel(f, 1 + getRandomNumber(f.costumes.length)) : undefined; } };
     case "super-mario-party-jamboree":
       return { names: JAMBOREE.characters.map((c) => c.name), unique: true };
     case "mario-party-superstars":

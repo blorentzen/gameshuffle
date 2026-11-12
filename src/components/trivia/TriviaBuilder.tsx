@@ -16,6 +16,7 @@ import { SortableList } from "@/components/ui/SortableList";
 import { IconAction } from "@/components/actions/IconAction";
 import { IconTrash } from "@tabler/icons-react";
 import { TriviaStudio } from "./TriviaStudio";
+import { ProTrialPrompt } from "@/components/billing/ProTrialPrompt";
 import { SECONDS, STYLE_LABEL, TEMPLATES, roundTarget, type RoundStyle, type TriviaQuestion, type TriviaRound } from "@/lib/trivia/rules";
 
 export interface BuilderGame { id: string; title: string; code: string; status: string; template: string | null; rounds: TriviaRound[] }
@@ -113,6 +114,12 @@ export function TriviaBuilder({ game, onLive }: { game: BuilderGame; onLive: () 
           <Button variant="primary" disabled={saving} onClick={() => void openRoom()}>{onStream ? "Start on stream" : "Open the room"}</Button>
         </div>
         <Switch label="Play it on my stream: chat answers with !a, viewers on my live page too (GS Pro)" checked={onStream} onChange={(e) => setOnStream(e.target.checked)} />
+        {/* The wall at the moment of want: shows only to accounts without GS Pro (the prompt hides itself for Pro). */}
+        {onStream && (
+          <ProTrialPrompt compact title="Trivia on your stream is part of GS Pro" from="trivia-stream" headingLevel={2}>
+            <p>Your chat answers with !a and viewers play on your live page. Turn the switch off to run it with phones and a TV, free.</p>
+          </ProTrialPrompt>
+        )}
       </div>
 
       {rounds.map((r, i) => {

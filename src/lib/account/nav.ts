@@ -173,6 +173,7 @@ export const ACCOUNT_SECTIONS: AccountNavSection[] = [
         { id: "draft", label: "Chat Draft" },
         { id: "chat-brain", label: "Chat Brain" },
         { id: "break-mode", label: "Break mode" },
+        { id: "level-queue", label: "Level queue" },
       ] },
       { id: "engagement", label: "Viewers", iconName: "users", proOnly: true, tabs: [
         { id: "engagement", label: "Engagement" },

@@ -17,15 +17,13 @@ import { SITE_URL } from "@/lib/seo";
 import { describePlayers } from "@/lib/daily/boards";
 import { gsMonthStart } from "@/lib/time/gsClock";
 import { panelFacts, serverName, type ServerTime } from "@/lib/timeTrials/server";
-import { categoryText } from "@/lib/timeTrials/categories";
-import { formatTime } from "@/lib/timeTrials/rules";
-import { serverPath, ttTrack, TT_GAMES, TT_GAME_ORDER, type TtGame } from "@/lib/timeTrials/tracks";
-import { trackCode } from "@/lib/timeTrials/codes";
+import { serverPath, TT_GAMES, TT_GAME_ORDER, type TtGame } from "@/lib/timeTrials/tracks";
 import { botTokenFor } from "./apps";
 import { compRest } from "./compRest";
 import { getAppGuild, patchAppGuildSettings } from "./appGuilds";
+import { ICE, panelCard, TT_PANEL_PREFIX, V2, type PanelGame } from "./ttCards";
 
-export type PanelGame = TtGame | "both";
+export type { PanelGame };
 export const PANEL_GAMES: PanelGame[] = ["mk8dx", "mkworld", "both"];
 export const isPanelGame = (v: unknown): v is PanelGame => v === "mk8dx" || v === "mkworld" || v === "both";
 export const panelGameLabel = (g: PanelGame) => (g === "both" ? "Both games" : TT_GAMES[g].label);
@@ -34,10 +32,10 @@ export interface PanelRef { channel: string; message: string; refreshedAt?: stri
 type Panels = Partial<Record<PanelGame, PanelRef>>;
 
 /** Buttons on the panel: ttp:add:<game>, ttp:top:<game>, ttp:me:<game>. */
-export const TT_PANEL_PREFIX = "ttp:";
+export { TT_PANEL_PREFIX };
 /** The competitive app's accent: the Master division's ice (its icon and banner are black and ice, 2026-10-31). */
-export const COMP_COLOR = 0xcfe2ee;
-const COMPONENTS_V2 = 1 << 15;
+export const COMP_COLOR = ICE;
+const COMPONENTS_V2 = V2;
 const REFRESH_MS = 60_000;
 /** The sweep also refreshes a panel this old, for times added on the site by the server's players. */
 const STALE_MS = 15 * 60_000;
@@ -48,9 +46,7 @@ const rest = compRest;
 const panelsOf = (settings: Record<string, unknown>): Panels => ((settings.ttPanels ?? {}) as Panels);
 const withPanels = (settings: Record<string, unknown>, panels: Panels) => ({ ...settings, ttPanels: panels });
 
-const plural = (n: number, one: string, many: string) => `${n.toLocaleString("en-US")} ${n === 1 ? one : many}`;
-
-/** The panel message's components (Components V2: one container). */
+/** The panel message's components (one card: ttCards.ts panelCard). */
 export async function panelComponents(guildId: string, game: PanelGame, name?: string | null): Promise<unknown[]> {
   const games: TtGame[] = game === "both" ? TT_GAME_ORDER : [game];
   const [facts, serverTitle] = await Promise.all([
@@ -62,35 +58,12 @@ export async function panelComponents(guildId: string, game: PanelGame, name?: s
   const records: (ServerTime & { game: TtGame })[] = facts.flatMap(({ g, f }) => f.records.map((r) => ({ ...r, game: g })))
     .sort((a, b) => b.at.localeCompare(a.at)).slice(0, 3);
   const names = await describePlayers([...new Set(records.map((r) => r.player))]);
-
-  const gameLine = games.map((g) => TT_GAMES[g].label).join(" and ");
-  const head = [
-    `### Time trials in ${serverTitle || "this server"}`,
-    `${gameLine} · ${monthTimes ? `${plural(monthTimes, "time", "times")} from ${plural(monthPlayers, "player", "players")} this month` : "no times yet this month"}`,
-  ].join("\n");
-  const recordLines = records.map((r) => {
-    const t = ttTrack(r.game, r.track)!;
-    const cat = categoryText(r.game, r.cc, r.items, "any", TT_GAMES[r.game].classes.length > 1);
-    return `\`${trackCode(t) ?? t.name}\` **${formatTime(r.timeMs)}** · ${names.get(r.player)?.name ?? "A player"} · ${cat}${game === "both" ? ` · ${TT_GAMES[r.game].short}` : ""}`;
-  });
-  const recordsText = records.length ? `**Newest server records**\n${recordLines.join("\n")}` : "**Newest server records**\nNone yet. Add the first time.";
   const boardGame = game === "both" ? (facts.find(({ f }) => f.records.length)?.g ?? TT_GAME_ORDER[0]) : game;
-  return [{
-    type: 17,
-    accent_color: COMP_COLOR,
-    components: [
-      { type: 10, content: head },
-      { type: 14, divider: true, spacing: 1 },
-      { type: 10, content: recordsText },
-      { type: 14, divider: true, spacing: 1 },
-      { type: 1, components: [
-        { type: 2, style: 3, label: "Add a time", custom_id: `${TT_PANEL_PREFIX}add:${game}` },
-        { type: 2, style: 2, label: "Top ten", custom_id: `${TT_PANEL_PREFIX}top:${game}` },
-        { type: 2, style: 2, label: "My times", custom_id: `${TT_PANEL_PREFIX}me:${game}` },
-        { type: 2, style: 5, label: "Server board", url: `${SITE_URL}${serverPath(guildId, boardGame)}` },
-      ] },
-    ],
-  }];
+  return panelCard({
+    serverTitle, games, game, monthTimes, monthPlayers,
+    records: records.map((r) => ({ game: r.game, track: r.track, cc: r.cc, items: r.items, timeMs: r.timeMs, at: r.at, name: names.get(r.player)?.name ?? "A player" })),
+    boardUrl: `${SITE_URL}${serverPath(guildId, boardGame)}`,
+  });
 }
 
 async function pin(channelId: string, messageId: string): Promise<boolean> {

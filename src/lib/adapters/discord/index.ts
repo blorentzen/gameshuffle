@@ -67,7 +67,9 @@ type DiscordEventKey =
   | "round_close"
   | "recap"
   | "qotd"
-  | "lounge";
+  | "lounge"
+  | "weekly"
+  | "chatbrain";
 
 /**
  * Per-key subscription default, used when the streamer's flags column has
@@ -87,7 +89,15 @@ const SUB_DEFAULTS: Record<DiscordEventKey, boolean> = {
   qotd: false,
   // Lounge rank-ups (src/lib/lounge/discord.ts): opt-in, like QOTD.
   lounge: false,
+  // The Monday Weekly card and the daily Chat Brain question: opt-in and free
+  // (picks 2026-11-11). On = the server's default channel, or its route (GS
+  // Pro). See optInChannel.
+  weekly: false,
+  chatbrain: false,
 };
+
+/** Opt-in posts any server can turn on in Channels and posts (free). */
+const FREE_OPT_IN: ReadonlySet<string> = new Set(["weekly", "chatbrain"]);
 
 type DiscordEventFlags = Partial<Record<DiscordEventKey, boolean>>;
 
@@ -199,6 +209,18 @@ function channelFor(routing: StreamerDiscordRouting, category: string): string |
   return routing.routes[category] ?? routing.defaultChannelId;
 }
 
+/** Opt-in posts (`requireRoute`). Most need the category's own route (GS Pro).
+ *  The free ones (the Weekly card, the Chat Brain question) follow the server's
+ *  switch on Channels and posts: on = the route if there is one, else the default
+ *  channel. A route with the switch never touched counts as on (how routing
+ *  opted in before the switch). Null = this server skips it. */
+function optInChannel(routing: StreamerDiscordRouting, category: string): string | null {
+  const route = routing.routes[category] ?? null;
+  if (!FREE_OPT_IN.has(category)) return route;
+  const on = routing.subscriptions[category as DiscordEventKey] ?? !!route;
+  return on ? route ?? routing.defaultChannelId : null;
+}
+
 /**
  * Post a standalone announcement to the streamer's channel for a category
  * (session-less — used by the announce API + the scheduled-posts cron). Resolves
@@ -210,7 +232,7 @@ export async function postAnnouncementToCategory(args: {
   title: string;
   body: string;
   url?: string | null;
-  /** Opt-in posts: only send if this category has its own route (no fallback to the default channel). */
+  /** Opt-in posts: only send if this category has its own route, or (the free ones) the server turned it on. */
   requireRoute?: boolean;
   /** One server; omitted = every server that posts. */
   guildId?: string | null;
@@ -220,7 +242,7 @@ export async function postAnnouncementToCategory(args: {
   let sent = 0;
   let firstError: string | null = null;
   for (const routing of routings) {
-    const channelId = args.requireRoute ? routing.routes[args.category] ?? null : channelFor(routing, args.category);
+    const channelId = args.requireRoute ? optInChannel(routing, args.category) : channelFor(routing, args.category);
     if (!channelId) continue;
     const result = await postEmbed({
       channelId,
@@ -256,7 +278,7 @@ export async function postComponentsToCategory(args: {
   const posts: { messageId: string; channelId: string; guildId: string }[] = [];
   let firstError: string | null = null;
   for (const routing of routings) {
-    const channelId = args.requireRoute ? routing.routes[args.category] ?? null : channelFor(routing, args.category);
+    const channelId = args.requireRoute ? optInChannel(routing, args.category) : channelFor(routing, args.category);
     if (!channelId) continue;
     const result = await postComponentsMessage({ channelId, embeds: [args.embed], components: args.components });
     if (result.ok) posts.push({ messageId: result.messageId, channelId, guildId: routing.guildId });

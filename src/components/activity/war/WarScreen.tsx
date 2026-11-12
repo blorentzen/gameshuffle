@@ -14,6 +14,7 @@ import { IconArrowBackUp, IconFlag, IconMap2, IconPlayerStop } from "@tabler/ico
 import { useConfirm } from "@/components/confirm/ConfirmProvider";
 import type { RoomTrack, WarRoomView } from "@/lib/wars/roomView";
 import type { WarGame } from "@/lib/wars/rules";
+import { CODE_EXAMPLE } from "@/lib/wars/codeExamples";
 import { Face, PlaceGrid, TeamMark, placeName } from "./bits";
 import { openLink } from "./sdk";
 
@@ -185,15 +186,16 @@ function TrackPicker({ game, played, current, onPick }: { game: WarGame; played:
   const list = useTracks(game);
   const [q, setQ] = useState("");
   const term = q.trim().toLowerCase();
-  const matches = (t: RoomTrack) => !term || (t.code ?? "").toLowerCase().startsWith(term) || t.name.toLowerCase().includes(term);
+  const codes = (t: RoomTrack) => [t.code ?? "", ...(t.also ?? [])].map((c) => c.toLowerCase());
+  const matches = (t: RoomTrack) => !term || codes(t).some((c) => c.startsWith(term)) || t.name.toLowerCase().includes(term);
   const shown = (list ?? []).filter(matches);
-  const exact = (list ?? []).filter((t) => (t.code ?? "").toLowerCase() === term);
+  const exact = (list ?? []).filter((t) => codes(t).includes(term));
   const cups = [...new Set(shown.map((t) => t.cup))];
   const only = exact.length === 1 ? exact[0] : shown.length === 1 ? shown[0] : null;
   return (
     <div className="wr-picker">
       <label htmlFor="wr-code" className="wr-label">Track code or name</label>
-      <Input id="wr-code" value={q} onChange={(e) => setQ(e.target.value)} placeholder={game === "mk8dx" ? "SSC, rMMM, bNYM" : "MBC, DKS, rDH"} fullWidth autoComplete="off" autoFocus
+      <Input id="wr-code" value={q} onChange={(e) => setQ(e.target.value)} placeholder={CODE_EXAMPLE[game].few} fullWidth autoComplete="off" autoFocus
         onKeyDown={(e) => { if (e.key === "Enter" && only) { e.preventDefault(); onPick(only.id); } }} />
       <p className="wr-help" aria-live="polite">{!list ? "Loading the courses…" : only ? `Enter picks ${only.code ? `${only.code} · ` : ""}${only.name}.` : `${shown.length} courses`}</p>
       {cups.map((cup) => (

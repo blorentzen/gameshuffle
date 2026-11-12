@@ -18,7 +18,8 @@ export interface MkcTeam { id: number; name: string; tag: string; logo: string |
 export interface MkcHit { id: number; name: string; tag: string; logo: string | null; game: string | null; players: number | null }
 
 const logoUrl = (v: unknown) => (typeof v === "string" && v ? `${MKC}${v.startsWith("/") ? "" : "/"}${v}` : null);
-const mkcGame = (g: WarGame) => (g === "mk8dx" ? "mk8dx" : "mkworld");
+/** MKCentral's code for the game's rosters ("mkw" is Mario Kart Wii there; World is "mkworld"). */
+export const mkcGame = (g: WarGame): string => (g === "mk8dx" ? "mk8dx" : g === "mkwii" ? "mkw" : "mkworld");
 
 type RawPlayer = { player_id?: number; name?: string; country_code?: string | null; discord?: { discord_id?: string } | null };
 type RawRoster = { game?: string; mode?: string; tag?: string; name?: string; is_active?: boolean; players?: RawPlayer[] };

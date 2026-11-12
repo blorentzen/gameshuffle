@@ -1,0 +1,103 @@
+/* Pokémon Champions: the team builder (/pokemon-champions-team-builder) and tournament team lists.
+   Token sizes: the root is 10px. One surface per moment: the team's cards, the framed list and the framed table carry
+   their own frames; the weak spots sit flat under a line. */
+
+.champ-builder { display: grid; gap: var(--spacing-24); width: 100%; text-align: left; }
+.champ-builder h2 { margin: 0; font-family: var(--font-display, inherit); font-size: var(--font-size-20); font-weight: 800; line-height: 1.2; }
+.champ-head { display: flex; align-items: baseline; justify-content: space-between; gap: var(--spacing-12); }
+.champ-count { font-size: var(--font-size-14); color: var(--text-secondary); font-variant-numeric: tabular-nums; }
+.champ-muted { margin: 0; font-size: var(--font-size-14); color: var(--text-secondary); line-height: 1.5; }
+
+.champ-team, .champ-weak, .champ-pick, .champ-types { display: grid; gap: var(--spacing-12); align-content: start; min-width: 0; }
+.free-tool .champ-builder .tool-panel { max-width: none; }
+
+/* Wide screens: the team and its weak spots on the left, the list beside them, the type table across the bottom. */
+@media (min-width: 64em) {
+  .champ-builder--page {
+    grid-template-columns: minmax(0, 1.45fr) minmax(0, 1fr);
+    grid-template-areas: "team pick" "weak pick" "types types";
+    /* The list spans the first two rows; the weak spots row takes what's left, so no gap opens under the team. */
+    grid-template-rows: auto 1fr auto;
+    column-gap: var(--spacing-32);
+    align-items: start;
+  }
+  .champ-builder--page .champ-team { grid-area: team; }
+  .champ-builder--page .champ-weak { grid-area: weak; }
+  .champ-builder--page .champ-pick { grid-area: pick; position: sticky; top: calc(var(--gs-nav-offset, 0px) + var(--spacing-16)); transition: top var(--gs-nav-slide, 0.2s ease); }
+  .champ-builder--page .champ-types { grid-area: types; }
+}
+
+/* The six */
+.champ-slots { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--spacing-12); grid-template-columns: repeat(2, minmax(0, 1fr)); }
+@media (min-width: 40em) { .champ-slots { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+.champ-slot { position: relative; display: grid; min-width: 0; }
+.champ-slot .type-card { min-height: 13rem; }
+.champ-slot__acts { position: absolute; top: var(--spacing-8); right: var(--spacing-8); z-index: 3; display: flex; gap: var(--spacing-4); }
+.champ-slot__acts button { box-shadow: 0 1px 4px rgba(0, 0, 0, 0.25); }
+/* The number sits under the buttons' row, so the name starts clear of them. */
+.champ-slot .type-card__top { min-height: 3.2rem; align-items: flex-start; }
+.champ-slot__empty { min-height: 13rem; align-content: center; border: 1px dashed var(--border-default); border-radius: 14px; padding: var(--spacing-12) 0; }
+.champ-slot__empty .pokeball-slot__tile { width: 7.2rem; height: 7.2rem; }
+.champ-slot__empty .pokeball-slot__ball { width: 5.2rem; height: 5.2rem; }
+
+.champ-status { margin: 0; display: flex; align-items: flex-start; gap: var(--spacing-8); font-size: var(--font-size-16); line-height: 1.45; color: var(--success-ink, var(--success-700)); }
+.champ-status svg { flex: none; margin-top: 2px; }
+.champ-status--empty { color: var(--text-secondary); }
+.champ-status--bad { color: var(--error-ink, var(--error-700)); font-weight: 600; }
+.champ-note { margin: 0; font-size: var(--font-size-14); color: var(--text-secondary); }
+.champ-actions { display: flex; flex-wrap: wrap; gap: var(--spacing-12); align-items: center; }
+.champ-switches { display: flex; flex-wrap: wrap; gap: var(--spacing-8) var(--spacing-24); }
+
+/* Weak spots: flat, under a line. */
+.champ-weak { padding-top: var(--spacing-24); border-top: 1px solid var(--border-subtle, var(--border-default)); }
+.champ-spots { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--spacing-12); }
+.champ-spots li { display: flex; align-items: flex-start; gap: var(--spacing-12); font-size: var(--font-size-16); line-height: 1.45; }
+.champ-spots .type-tile { margin-top: 1px; }
+
+/* The list to pick from: one framed, scrolling list. */
+.champ-filters { display: grid; gap: var(--spacing-12); }
+@media (min-width: 30em) { .champ-filters { grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); align-items: end; } }
+.champ-list { max-height: 56rem; overflow-y: auto; border: 1px solid var(--border-default); border-radius: 12px; background: var(--surface-default, var(--background-primary)); }
+.champ-list:focus-visible { outline: 2px solid var(--focus-ring, var(--primary-500)); outline-offset: 2px; }
+.champ-list__items { list-style: none; margin: 0; padding: 0; }
+.champ-row { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: var(--spacing-12); padding: var(--spacing-8) var(--spacing-12); border-bottom: 1px solid var(--border-subtle, var(--border-default)); }
+.champ-row:last-child { border-bottom: 0; }
+.champ-row__who { display: grid; gap: 2px; min-width: 0; font-size: var(--font-size-16); }
+.champ-row__who b { overflow-wrap: anywhere; }
+.champ-row__line { font-size: var(--font-size-14); color: var(--text-secondary); font-weight: 400; }
+.champ-row--off .champ-row__who b { color: var(--text-secondary); }
+
+/* Every type: the table keeps its frame. */
+.champ-types { padding-top: var(--spacing-24); border-top: 1px solid var(--border-subtle, var(--border-default)); }
+.champ-types .table-scroll { border: 1px solid var(--border-default); border-radius: 12px; }
+.champ-types__type { display: inline-flex; align-items: center; gap: var(--spacing-8); font-weight: 600; white-space: nowrap; }
+.champ-types__names { color: var(--text-secondary); font-size: var(--font-size-14); }
+.champ-types__row--spot td { background: color-mix(in srgb, var(--error-500, #d92d20) 8%, transparent); }
+
+/* In a window (a tournament's team list): one column, a shorter list. */
+.champ-builder--pick .champ-list { max-height: 36rem; }
+.champ-builder--pick .champ-weak { padding-top: var(--spacing-16); }
+
+/* A team as a short list (tournament team lists). */
+.champ-teamlist { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--spacing-8); grid-template-columns: repeat(auto-fill, minmax(min(100%, 20rem), 1fr)); }
+.champ-teamlist li { display: flex; align-items: center; gap: var(--spacing-8); font-size: var(--font-size-16); min-width: 0; }
+.champ-teamlist__who { display: grid; gap: 2px; min-width: 0; overflow-wrap: anywhere; }
+.tteam-window { display: grid; gap: var(--spacing-16); }
+.champ-teamlist__off b { text-decoration: line-through; color: var(--text-secondary); }
+.tteam-problems { margin: 0; padding-left: var(--spacing-20); display: grid; gap: var(--spacing-4); font-size: var(--font-size-14); color: var(--error-ink, var(--error-700)); }
+.tteam-link { display: grid; gap: var(--spacing-8); }
+@media (min-width: 40em) { .tteam-link { grid-template-columns: minmax(0, 1fr) auto; align-items: end; } }
+.tteam-pub__title { display: inline-flex; flex-wrap: wrap; gap: var(--spacing-8); align-items: baseline; }
+
+/* The page around the builder. */
+.champ-page-copy { display: grid; gap: var(--spacing-32); margin-top: var(--spacing-40); text-align: left; }
+.champ-page-copy h2 { margin: 0 0 var(--spacing-12); font-family: var(--font-display, inherit); font-size: var(--font-size-24); font-weight: 800; }
+.champ-page-copy p { margin: 0; font-size: var(--font-size-16); line-height: 1.6; max-width: 70ch; }
+.champ-season { font-size: var(--font-size-14); color: var(--text-secondary); }
+.champ-steps { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--spacing-16); counter-reset: champ-step; }
+@media (min-width: 900px) { .champ-steps { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+.champ-steps li { display: grid; gap: var(--spacing-4); }
+.champ-steps strong { font-size: var(--font-size-16); }
+.champ-steps span { color: var(--text-secondary); font-size: var(--font-size-14); line-height: 1.5; }
+.champ-sources { list-style: none; margin: var(--spacing-12) 0 0; padding: 0; display: grid; gap: var(--spacing-8); font-size: var(--font-size-14); }
+.champ-nowrap { white-space: nowrap; }

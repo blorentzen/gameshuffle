@@ -10,7 +10,7 @@
  *   POST { survey: { question? | category?, seconds?, style? } } → open a survey round; games take { fromSurvey: true } to start on its board
  *   PATCH survey_hide { key, hide } · survey_merge { keys } · survey_close (no game needed)
  *   Co-stream: GET ?search=<name> → streamers on GameShuffle with Twitch connected; POST { mode: "costream", guest, rounds?,
- *   seconds?, familySafe?, prize? } invites one (the game waits in the lobby); GET adds costream = { lobby, invites, guest };
+ *   seconds?, familySafe?, prize?, style?: "versus" | "together" } invites one ("together": both chats on one team) (the game waits in the lobby); GET adds costream = { lobby, invites, guest };
  *   PATCH costream_start · costream_cancel (host) · costream_respond { gameId, accept } · costream_leave { gameId } (either streamer)
  * Chat has the same controls (!cb start / next / lock / accept / reject / end, and !cb play / trust / control / undo).
  */
@@ -123,7 +123,7 @@ export async function POST(request: Request) {
   if (!broadcasterId) return NextResponse.json({ ok: false, error: "no_twitch" }, { status: 400 });
   const body = (await request.json().catch(() => null)) as {
     boards?: number; seconds?: number; familySafe?: boolean; mode?: string; rounds?: number; speed?: boolean; prize?: number;
-    sides?: { name?: unknown; members?: unknown }[]; chatAdvisor?: boolean; chatLastSteal?: boolean; fromSurvey?: boolean; guest?: unknown;
+    sides?: { name?: unknown; members?: unknown }[]; chatAdvisor?: boolean; chatLastSteal?: boolean; fromSurvey?: boolean; guest?: unknown; style?: unknown;
     survey?: { question?: unknown; category?: unknown; seconds?: unknown; style?: unknown };
   } | null;
   if (body?.survey) {
@@ -149,6 +149,7 @@ export async function POST(request: Request) {
     const c = await inviteCostream({
       communityId: ctx.communityId, hostUserId: ctx.userId, broadcasterId, guestUserId: guest,
       rounds: Number(body.rounds) || undefined, seconds: Number(body.seconds) || undefined, familySafe: body.familySafe !== false, prize: Number(body.prize) || 0, first,
+      style: body.style === "together" ? "together" : "versus",
     });
     if (!c.ok) return NextResponse.json({ ok: false, error: c.error }, { status: c.error === "not_ready" ? 503 : 400 });
     return NextResponse.json({ ok: true, costream: await costreamState(ctx.communityId, ctx.userId) });

@@ -2724,7 +2724,7 @@ html.dark .brain-ask__cat { background: rgba(39, 102, 236, 0.18); color: #a9c3ff
 .live-break__boss.is-down .live-break__boss-glyph { filter: grayscale(1); opacity: 0.6; }
 .live-break__boss-info { flex: 1; min-width: 0; display: grid; gap: var(--spacing-4, 4px); }
 .live-break__boss-info b { font-size: var(--font-size-16); overflow-wrap: anywhere; }
-.live-break__boss-info small { font-size: var(--font-size-12); color: var(--text-secondary); font-variant-numeric: tabular-nums; }
+.live-break__boss-info small { font-size: var(--font-size-14); color: var(--text-secondary); font-variant-numeric: tabular-nums; }
 .live-break__boss-hp { display: block; height: 1.2rem; border-radius: 99px; background: var(--border-default); overflow: hidden; }
 .live-break__boss-hp i { display: block; height: 100%; border-radius: 99px; background: linear-gradient(90deg, #e5486b, #f08c00); transition: width 900ms ease; }
 .live-break__letters-grid { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.4rem; }
@@ -2747,4 +2747,23 @@ html.dark .brain-ask__cat { background: rgba(39, 102, 236, 0.18); color: #a9c3ff
 .live-break__derby-place { font-style: normal; font-weight: 800; margin-right: 0.4rem; }
 .live-break__derby-lanes li.is-hot .live-break__derby-road { box-shadow: inset -3px 0 0 var(--text-primary), 0 0 0 2px var(--lane); }
 .live-break__derby-events { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.2rem; font-size: var(--font-size-14); color: var(--text-secondary); }
+/* Shuffle Dice's table (DiceTable base="live-break"): white dice in light and dark. */
+.live-break__table { display: grid; gap: var(--spacing-8, 8px); padding: var(--spacing-12, 12px); border-radius: var(--radius-12, 12px); background: var(--background-secondary); border: 1px solid var(--border-default); }
+.live-break__table-row { display: grid; grid-template-columns: 7.2rem minmax(0, 1fr) auto; align-items: center; gap: var(--spacing-8, 8px); font-size: var(--font-size-12); font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; color: var(--text-secondary); }
+.live-break__faces { display: flex; flex-wrap: wrap; gap: var(--spacing-6, 6px); }
+.live-break__face { width: 4rem; height: 4rem; border-radius: var(--radius-8, 8px); display: grid; place-items: center; background: #fff; border: 1px solid var(--border-default); color: #10133a; }
+.live-break__faces.is-small .live-break__face { width: 2.8rem; height: 2.8rem; }
+.live-break__faces.is-small .live-break__face svg { width: 1.8rem; height: 1.8rem; }
+.live-break__face.is-star { color: #9a6700; }
+.live-break__face.is-coin { color: #806000; }
+.live-break__face.is-mushroom { color: #c42b41; }
+.live-break__face.is-shell { color: #1a7a43; }
+.live-break__face.is-bomb { background: #2a2d3e; border-color: #2a2d3e; color: #ff8a8a; }
+.live-break__none { font-size: var(--font-size-14); font-weight: 600; letter-spacing: 0; text-transform: none; }
+.live-break__bombs { display: flex; gap: 0.6rem; }
+.live-break__bombs i { width: 1.4rem; height: 1.4rem; border-radius: 50%; border: 2px solid var(--text-secondary); }
+.live-break__bombs i.on { background: #c42b41; border-color: #c42b41; }
+.live-break__riding { font-size: var(--font-size-14); letter-spacing: 0; text-transform: none; color: var(--text-primary); }
+.live-break__score { display: flex; flex-wrap: wrap; gap: var(--spacing-16, 16px); font-size: var(--font-size-14); color: var(--text-secondary); }
+.live-break__score b { font-size: var(--font-size-18); color: var(--text-primary); font-variant-numeric: tabular-nums; }
 @media (prefers-reduced-motion: reduce) { .live-break__boss-hp i, .live-break__derby-kart { transition: none; } }

@@ -1,9 +1,9 @@
 /**
  * GET /api/cron/chat-brain-discord — daily, 16:00 UTC.
  *
- * Posts one open Chat Brain question, with an Answer button, to every
- * streamer's Discord that routes the "Chat Brain" category. Opt-in: no route,
- * no post. The question is the open one furthest from its answer target,
+ * Posts one open Chat Brain question, with an Answer button, to every Discord
+ * server that turned it on in Channels and posts (free, the default channel) or
+ * routed the "Chat Brain" category (GS Pro). Opt-in: neither, no post. The question is the open one furthest from its answer target,
  * skipping anything posted in the last 7 days. The day is claimed first (a
  * brain_discord_posts row) so a retried run can't post twice.
  *
@@ -13,6 +13,7 @@
 import { NextResponse } from "next/server";
 import { createServiceClient } from "@/lib/supabase/admin";
 import { postComponentsToCategory } from "@/lib/adapters/discord";
+import { optInOwners } from "@/lib/discord/optInPosts";
 import { ChatBrainNotReady, promptNeedingAnswers } from "@/lib/chatbrain/store";
 import { brainQuestionMessage } from "@/lib/discord/commands/chatbrain";
 import { promptTopic, recordPromptPost } from "@/lib/discord/promptPosts";
@@ -53,10 +54,9 @@ export async function GET(request: Request) {
 
     const message = brainQuestionMessage(prompt, { title: HEADER });
     const topic = await promptTopic(prompt.id);
-    const { data: routes } = await admin.from("discord_channel_routes").select("user_id").eq("category", "chatbrain").limit(5000);
     let posted = 0;
-    // Routes are one row per server: post once per owner (postComponentsToCategory covers each of their servers).
-    const owners = [...new Set(((routes ?? []) as { user_id: string }[]).map((r) => r.user_id))];
+    // Owners who routed it (GS Pro) or turned it on for a server (free, default channel): once per owner.
+    const owners = await optInOwners("chatbrain");
     for (const ownerUserId of owners) {
       const res = await postComponentsToCategory({
         ownerUserId, category: "chatbrain", requireRoute: true,

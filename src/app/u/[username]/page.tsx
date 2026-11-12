@@ -61,9 +61,12 @@ import { trackPath as ttPath, ttTrack, TT_GAMES } from "@/lib/timeTrials/tracks"
 import "@/styles/mmr-card.css";
 import { RoadTrainerCard } from "@/components/originals/duel/road/RoadCard";
 import { roadProgressView } from "@/lib/originals/duel/roadProgress";
+import { makerSummary } from "@/lib/levels/curation";
+import { LEVEL_GAMES } from "@/lib/levels/games";
 import { roadShown } from "@/lib/games-visibility";
 import "@/styles/road-card.css";
 import "@/styles/time-trials.css";
+import "@/styles/levels.css";
 import { dailiesShown, DAILIES } from "@/lib/originals/dailies";
 import { playRecords } from "@/lib/profile/playRecords";
 import { PlayRecords } from "@/components/profile/PlayRecords";
@@ -367,13 +370,15 @@ export default async function PublicProfilePage({
   const thisSeason = currentSeasonKey();
   const seasonHistory = await ownerHasPro(profile.id as string);
   const season = isSeasonKey(sp.season) && seasonHistory && recentSeasonKeys().includes(sp.season) ? sp.season : thisSeason;
-  const [enrichment, seasonData, rivals, mmr, road, ttBests] = await Promise.all([
+  const [enrichment, seasonData, rivals, mmr, road, ttBests, makerLevels] = await Promise.all([
     getProfileEnrichment(profile.id as string),
     userSeason(profile.id as string, season).catch(() => null),
     rivalsFor(profile.id as string).catch(() => []),
     profileMmr(profile.id as string).catch(() => null),
     roadShown() ? roadProgressView(profile.id as string).catch(() => null) : Promise.resolve(null),
     playerBests(`u:${profile.id as string}`).then((bs) => bs.filter((b) => b.items === "shrooms" && b.vehicle === "any")).catch(() => []),
+    // Levels they shared (curation picks 8A): null before supabase/levels-m2.sql, or when they haven't shared any.
+    makerSummary(profile.id as string, viewer?.id ?? null).catch(() => null),
   ]);
   let authorPosts = COMMUNITY_PUBLICLY_ENABLED
     ? await getPostsByAuthor(profile.id as string, viewer?.id ?? "")
@@ -561,6 +566,27 @@ export default async function PublicProfilePage({
     </div>
   ) : null;
 
+  // Levels they shared on the game spaces' boards (curation picks 8A): the newest, with likes and clears in all.
+  const levelsWidget = makerLevels ? (
+    <div className="pcard profile-levels" id="levels">
+      <h2 className="pcard__title">Levels</h2>
+      <p className="profile-tt__sum">
+        {makerLevels.total} shared · {makerLevels.likes.toLocaleString("en-US")} {makerLevels.likes === 1 ? "like" : "likes"} · {makerLevels.clears.toLocaleString("en-US")} {makerLevels.clears === 1 ? "clear" : "clears"}
+        {makerLevels.makerId ? <> · Mario Maker 2 maker ID <span className="lvl-row__maker">{makerLevels.makerId}</span></> : null}
+      </p>
+      <ul className="profile-tt__list">
+        {makerLevels.levels.map((l) => (
+          <li key={l.id}>
+            <Link href={`/games/${LEVEL_GAMES[l.game].space}?tab=${LEVEL_GAMES[l.game].kind === "seed" ? "seeds" : "levels"}`}>{l.title}</Link>
+            <span className="profile-tt__meta">{LEVEL_GAMES[l.game].short}</span>
+            <b className="lvl-row__maker">{l.code}</b>
+            <span className="profile-tt__meta">{l.curation?.clears ?? `${(l.curation?.likes ?? 0).toLocaleString("en-US")} ${(l.curation?.likes ?? 0) === 1 ? "like" : "likes"}`}</span>
+          </li>
+        ))}
+      </ul>
+    </div>
+  ) : null;
+
   const topFriendsWidget = topFriends.length > 0 && (
     <div className="pcard">
       <h2 className="pcard__title">Top Friends</h2>
@@ -622,6 +648,7 @@ export default async function PublicProfilePage({
     mmr: mmrWidget,
     timeTrials: timeTrialsWidget,
     road: roadWidget,
+    levels: levelsWidget,
     topFriends: topFriendsWidget,
     communities: communitiesWidget,
   };

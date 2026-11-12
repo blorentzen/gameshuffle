@@ -10,7 +10,7 @@ import "server-only";
 
 import { z } from "zod";
 import { draftStructured, type AiResult } from "@/lib/ai/claude";
-import { NIGHT_GAMES, nightGame } from "@/lib/nights/games";
+import { nightGame, openNightGames } from "@/lib/nights/games";
 import { JACKBOX_GAMES } from "@/data/jackbox";
 
 export interface PlanStep { slug: string; label: string; length: number; unit: string; why: string }
@@ -31,7 +31,8 @@ const SYSTEM = `You plan game nights for GameShuffle. Pick only from the lists y
 
 export async function planNight(args: { players: number; minutes: number; own: string[]; vibe: string }): Promise<AiResult<NightPlan>> {
   const ownSet = new Set(args.own);
-  const allowed = NIGHT_GAMES.filter((g) => g.kind === "activity" ? args.players >= 3 : ownSet.has(g.slug));
+  // Gated games (Chat Brain at the table before launch) are never suggested.
+  const allowed = openNightGames().filter((g) => g.kind === "activity" ? args.players >= 3 : ownSet.has(g.slug));
   if (!allowed.length) return { ok: false, error: "failed" };
   const jackbox = JACKBOX_GAMES.filter((g) => args.players >= g.minPlayers && args.players <= g.maxPlayers && !g.adultsOnly);
   const prompt = [

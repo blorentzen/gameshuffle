@@ -1,6 +1,7 @@
 "use client";
 
 import { DailiesAfter } from "@/components/originals/DailiesAfter";
+import { DailiesGroups } from "@/components/originals/DailiesGroups";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Accordion, Alert, Badge, Button, Switch, Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@empac/cascadeds";
 import { useToast } from "@/components/toast/ToastProvider";
@@ -379,6 +380,7 @@ export function DailyDex() {
             <DailiesNextButton current="dex" onPick={activity?.pickDaily} />
           </div>
           <DailiesYours current="dex" only />
+          <DailiesGroups current="dex" />
           <DailiesAfter current="dex" />
           {!activity && answerDex > 0 && <DexCardOfDay dex={answerDex} signedIn={!!account?.signedIn} credits={false} onCard={setCardShown} />}
           <DailiesInvite current="dex" nudge={false} />

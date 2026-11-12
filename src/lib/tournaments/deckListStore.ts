@@ -205,5 +205,5 @@ export async function publicDeckLists(id: string): Promise<Result<{ lists: Publi
     out.push({ placement, player: names.get(row.participant_id) ?? "Player", deck: await listView(row, settings) });
   }
   out.sort((a, b) => a.placement - b.placement);
-  return { ok: true, value: { lists: out, scope: settings.after } };
+  return { ok: true, value: { lists: out, scope: settings.after === "top_cut" ? "top_cut" : "all" } };
 }

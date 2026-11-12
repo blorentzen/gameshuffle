@@ -3,7 +3,7 @@
  *
  * Manually-runnable from the repo root:
  *
- *   npx tsx scripts/test-economy-m1.ts
+ *   npx tsx -r ./scripts/server-only-shim.cjs scripts/test-economy-m1.ts
  *
  * Hits four invariants the spec calls out as acceptance criteria.
  * Each assertion prints PASS/FAIL with a short reason so a run is
@@ -22,9 +22,19 @@
  *      market in the same stream; stream_end refunds everything.
  *
  * Requires SUPABASE_SERVICE_ROLE_KEY + NEXT_PUBLIC_SUPABASE_URL in
- * the environment (load via `.env.local`). The script writes into the
- * configured DB and cleans up after itself, so point it at a test
- * project, not prod.
+ * the environment (load via `.env.local`). Point it at the dev project,
+ * never prod (it refuses the production project).
+ *
+ * Writes: throwaway chat identities, communities and streams it makes
+ * itself; game sessions owned by the dev persona `novastreams`
+ * (status cancelled, so they never count as a live stream); a link
+ * from a throwaway identity to the dev persona `quiet_quinn`; and the
+ * DK compliance rule when the database doesn't have it (dev isn't
+ * seeded with `gs_compliance_rules`). Every row it makes is deleted at
+ * the end, even after a failure, and the cleanup is checked like any
+ * other result.
+ *
+ *   npx tsx -r ./scripts/server-only-shim.cjs scripts/test-economy-m1.ts
  */
 
 import { config } from "dotenv";
@@ -36,11 +46,20 @@ if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_
   console.error("Missing NEXT_PUBLIC_SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY in env.");
   process.exit(1);
 }
+// Production's project: this script writes, so never there.
+if (process.env.NEXT_PUBLIC_SUPABASE_URL.includes("hzmmmuzuioybydejdmhg")) {
+  console.error("Refusing to run against the production database.");
+  process.exit(1);
+}
 
 import { createServiceClient } from "../src/lib/supabase/admin";
 import { resolveIdentity, upgradeIdentityToAccount } from "../src/lib/economy/identity";
 import { ensureCommunity } from "../src/lib/economy/community";
-import { ensureActiveStream, finalizeStreamEnd } from "../src/lib/economy/streams";
+import {
+  ensureActiveStream,
+  finalizeStreamEnd,
+  markStreamEnding,
+} from "../src/lib/economy/streams";
 import {
   credit,
   getBalance,
@@ -60,7 +79,11 @@ import {
   openBounty,
   settleBounty,
 } from "../src/lib/economy/bounties";
-import { checkCompliance } from "../src/lib/economy/compliance/gate";
+import {
+  checkCompliance,
+  invalidateComplianceCache,
+} from "../src/lib/economy/compliance/gate";
+import { gsMonthStart } from "../src/lib/time/gsClock";
 
 interface TestResult {
   name: string;
@@ -81,25 +104,86 @@ function randStr() {
   return Math.random().toString(36).slice(2, 12);
 }
 
+// Everything the run creates, so cleanup() can remove exactly that.
+const made = {
+  identities: new Set<string>(),
+  communities: new Set<string>(),
+  streams: new Set<string>(),
+  sessions: new Set<string>(),
+  complianceRules: new Set<number>(),
+};
+
+/** A dev persona's account id, looked up by username. */
+async function persona(username: string): Promise<string> {
+  const { data, error } = await createServiceClient()
+    .from("users")
+    .select("id")
+    .eq("username", username)
+    .maybeSingle();
+  const id = (data as { id: string } | null)?.id;
+  if (error || !id) {
+    throw new Error(`dev persona "${username}" not found (run scripts/seed-dev.ts on dev): ${error?.message ?? "no row"}`);
+  }
+  return id;
+}
+
+/** A brand-new chat identity (random platform id, so always new). */
+async function newIdentity(prefix: string, displayName: string) {
+  const resolved = await resolveIdentity({
+    platform: "twitch",
+    platformId: `${prefix}_${randStr()}`,
+    displayName,
+  });
+  if (!resolved.isNew) {
+    throw new Error(`identity ${prefix} already existed; refusing to use (or delete) it`);
+  }
+  made.identities.add(resolved.identityId);
+  return resolved;
+}
+
+/** A game session owned by the dev persona `novastreams`. Markets key
+ *  off the session id only; the session is `cancelled` so it can't
+ *  clash with the persona's one active session or show as live. */
+async function newSession(label: string): Promise<string | null> {
+  const ownerId = await persona("novastreams");
+  const { data, error } = await createServiceClient()
+    .from("gs_sessions")
+    .insert({
+      owner_user_id: ownerId,
+      name: `Economy test ${label} (removed after the run)`,
+      slug: `test-economy-${label}-${randStr()}`,
+      status: "cancelled",
+      configured_games: ["mario-kart-8-deluxe"],
+    })
+    .select("id")
+    .single();
+  if (error || !data) {
+    console.log(`  (session ${label} not created: ${error?.message ?? "no row"})`);
+    return null;
+  }
+  const id = (data as { id: string }).id;
+  made.sessions.add(id);
+  return id;
+}
+
 async function setupCommunityWithBroadcaster() {
   const id = randStr();
-  const broadcasterTwitchId = `bc_${id}`;
-  const broadcasterResolved = await resolveIdentity({
-    platform: "twitch",
-    platformId: broadcasterTwitchId,
-    displayName: `Broadcaster ${id}`,
-  });
+  const broadcaster = await newIdentity("bc", `Broadcaster ${id}`);
   const community = await ensureCommunity({
-    ownerIdentityId: broadcasterResolved.identityId,
+    ownerIdentityId: broadcaster.identityId,
     slug: `test_${id}`,
     displayName: `Test ${id}`,
   });
+  if (community.owner_identity_id !== broadcaster.identityId) {
+    throw new Error(`community slug test_${id} belongs to someone else`);
+  }
+  made.communities.add(community.id);
   const stream = await ensureActiveStream({ communityId: community.id });
+  made.streams.add(stream.id);
   return {
-    broadcasterIdentityId: broadcasterResolved.identityId,
+    broadcasterIdentityId: broadcaster.identityId,
     communityId: community.id,
     streamId: stream.id,
-    broadcasterTwitchId,
   };
 }
 
@@ -107,12 +191,7 @@ async function setupCommunityWithBroadcaster() {
 
 async function testConcurrentSpend() {
   console.log("\n1. Concurrent spend serialization");
-  const platformId = `viewer_${randStr()}`;
-  const resolved = await resolveIdentity({
-    platform: "twitch",
-    platformId,
-    displayName: "Concurrent Viewer",
-  });
+  const resolved = await newIdentity("viewer", "Concurrent Viewer");
   const identityId = resolved.identityId;
 
   // Set balance to exactly 100 by topping up via credit() then noting
@@ -168,32 +247,19 @@ async function testConcurrentSpend() {
 async function testUpgradePreservesBalance() {
   console.log("\n2. Tier 0 → Tier 1 LINK preserves balance");
 
-  const platformId = `upgrade_${randStr()}`;
-  const resolved = await resolveIdentity({
-    platform: "twitch",
-    platformId,
-    displayName: "Upgrade Viewer",
-  });
+  const resolved = await newIdentity("upgrade", "Upgrade Viewer");
   const identityIdBefore = resolved.identityId;
   const balanceBefore = await getBalance(identityIdBefore);
 
-  // Create a synthetic GS account row — minimal shape. Use an auth-
-  // free approach: write a uuid into auth.users to satisfy the FK.
-  // The real OAuth callback would do this; for this test we just
-  // need the FK target to exist.
+  // Link the throwaway identity to the dev persona quiet_quinn's real
+  // account (an account can hold any number of identities). The
+  // identity, and with it the link, is deleted in cleanup().
   const admin = createServiceClient();
-  const { data: authRow, error: authErr } = await admin.auth.admin.createUser({
-    email: `test+${randStr()}@gameshuffle.invalid`,
-    email_confirm: true,
-  });
-  if (authErr || !authRow.user) {
-    record("auth user created for upgrade test", false, authErr?.message ?? "no user");
-    return;
-  }
+  const accountId = await persona("quiet_quinn");
 
   const upgradeResult = await upgradeIdentityToAccount({
     identityId: identityIdBefore,
-    gsAccountId: authRow.user.id,
+    gsAccountId: accountId,
   });
   record("upgrade returned ok", upgradeResult.ok === true, upgradeResult.reason);
 
@@ -210,7 +276,7 @@ async function testUpgradePreservesBalance() {
   );
   record(
     "gs_account_id stamped",
-    rowAfter?.gs_account_id === authRow.user.id,
+    rowAfter?.gs_account_id === accountId,
     `after.gs_account_id=${rowAfter?.gs_account_id}`,
   );
   record(
@@ -225,10 +291,6 @@ async function testUpgradePreservesBalance() {
     balanceAfter === balanceBefore,
     `before=${balanceBefore} after=${balanceAfter}`,
   );
-
-  // Cleanup: delete the auth user. The CASCADE on gs_identities
-  // detaches gs_account_id to null automatically per the FK rule.
-  await admin.auth.admin.deleteUser(authRow.user.id);
 }
 
 // 3. Parimutuel sum ----------------------------------------------------------
@@ -237,26 +299,12 @@ async function testParimutuelSum() {
   console.log("\n3. Parimutuel payouts sum to pool total");
 
   const setup = await setupCommunityWithBroadcaster();
-  const admin = createServiceClient();
 
-  // Create a fake session row to satisfy the market FK.
-  const { data: session, error: sessionErr } = await admin
-    .from("gs_sessions")
-    .insert({
-      owner_user_id: "00000000-0000-0000-0000-000000000000", // placeholder; bypass FK with service role
-      name: "test parimutuel",
-      slug: `test-pm-${randStr()}`,
-      status: "active",
-      configured_games: ["mario-kart-8-deluxe"],
-      activated_at: new Date().toISOString(),
-    })
-    .select("id")
-    .single();
-  if (sessionErr || !session) {
-    record("test session created", false, sessionErr?.message ?? "no session");
+  const sessionId = await newSession("pm");
+  if (!sessionId) {
+    record("test session created", false, "could not insert the session");
     return;
   }
-  const sessionId = session.id;
 
   // Open a market (assumes seed template for mario-kart-8-deluxe is
   // enabled — see supabase/command-suite-economy-m1.sql).
@@ -281,10 +329,10 @@ async function testParimutuelSum() {
   // Three bettors stake 100/50/30 on the top-line outcome ("win" for
   // placement). One on the runner-up. Total pool = 300.
   const bettors = await Promise.all([
-    resolveIdentity({ platform: "twitch", platformId: `pm_a_${randStr()}`, displayName: "A" }),
-    resolveIdentity({ platform: "twitch", platformId: `pm_b_${randStr()}`, displayName: "B" }),
-    resolveIdentity({ platform: "twitch", platformId: `pm_c_${randStr()}`, displayName: "C" }),
-    resolveIdentity({ platform: "twitch", platformId: `pm_d_${randStr()}`, displayName: "D" }),
+    newIdentity("pm_a", "A"),
+    newIdentity("pm_b", "B"),
+    newIdentity("pm_c", "C"),
+    newIdentity("pm_d", "D"),
   ]);
   // Top up each bettor to a known balance.
   for (const r of bettors) {
@@ -326,32 +374,8 @@ async function testRefundScopes() {
   const admin = createServiceClient();
 
   // Two sessions, both bound to the same stream.
-  const sessionRowA = await admin
-    .from("gs_sessions")
-    .insert({
-      owner_user_id: "00000000-0000-0000-0000-000000000000",
-      name: "test refund A",
-      slug: `test-refund-a-${randStr()}`,
-      status: "active",
-      configured_games: ["mario-kart-8-deluxe"],
-      activated_at: new Date().toISOString(),
-    })
-    .select("id")
-    .single();
-  const sessionRowB = await admin
-    .from("gs_sessions")
-    .insert({
-      owner_user_id: "00000000-0000-0000-0000-000000000000",
-      name: "test refund B",
-      slug: `test-refund-b-${randStr()}`,
-      status: "active",
-      configured_games: ["mario-kart-8-deluxe"],
-      activated_at: new Date().toISOString(),
-    })
-    .select("id")
-    .single();
-  const sessionA = sessionRowA.data?.id;
-  const sessionB = sessionRowB.data?.id;
+  const sessionA = await newSession("refund-a");
+  const sessionB = await newSession("refund-b");
   if (!sessionA || !sessionB) {
     record("two test sessions created", false, "could not insert sessions");
     return;
@@ -414,8 +438,11 @@ async function testRefundScopes() {
     `B.status=${marketBAfter?.status}`,
   );
 
-  // refundStreamMarkets should now cancel B too.
-  await finalizeStreamEnd({ streamId: setup.streamId });
+  // refundStreamMarkets should now cancel B too. The stream goes
+  // open → ending (stream.offline) → ended (grace expired), as live.
+  await markStreamEnding({ streamId: setup.streamId });
+  const ended = await finalizeStreamEnd({ streamId: setup.streamId });
+  record("stream reached ended", ended?.status === "ended", `status=${ended?.status}`);
   const streamRefund = await refundStreamMarkets({ streamId: setup.streamId });
   // After finalize the stream is `ended` so getActiveStream returns
   // nothing; refundStreamMarkets queries by stream_id, so it still
@@ -445,18 +472,15 @@ async function testAllowanceCeiling() {
     .upsert(
       {
         community_id: setup.communityId,
-        period_month: new Date().toISOString().slice(0, 7) + "-01",
+        // Pacific month, as gs_award_mint keys it.
+        period_month: gsMonthStart(),
         ceiling: 200,
         consumed: 0,
       },
       { onConflict: "community_id,period_month" },
     );
 
-  const recipient = await resolveIdentity({
-    platform: "twitch",
-    platformId: `award_${randStr()}`,
-    displayName: "Award Recipient",
-  });
+  const recipient = await newIdentity("award", "Award Recipient");
 
   const first = await awardMint({
     communityId: setup.communityId,
@@ -502,7 +526,8 @@ async function testBountyRoundTrip() {
     .upsert(
       {
         community_id: setup.communityId,
-        period_month: new Date().toISOString().slice(0, 7) + "-01",
+        // Pacific month, as gs_award_mint keys it.
+        period_month: gsMonthStart(),
         ceiling: 1000,
         consumed: 0,
       },
@@ -535,11 +560,7 @@ async function testBountyRoundTrip() {
   );
 
   // Award to a viewer.
-  const winner = await resolveIdentity({
-    platform: "twitch",
-    platformId: `winner_${randStr()}`,
-    displayName: "Bounty Winner",
-  });
+  const winner = await newIdentity("winner", "Bounty Winner");
   const winnerBalanceBefore = await getBalance(winner.identityId);
 
   const settled = await settleBounty({
@@ -612,6 +633,40 @@ async function testComplianceGate() {
     `decision=${JSON.stringify(fullUS)}`,
   );
 
+  // Production seeds ten restricted regions (command-suite-compliance-
+  // m1-5.sql); dev isn't seeded, so add DK for this run when it's
+  // missing (cleanup removes only a row this run added).
+  const admin = createServiceClient();
+  const { data: dkRow, error: dkErr } = await admin
+    .from("gs_compliance_rules")
+    .select("id, behavior")
+    .eq("region_code", "DK")
+    .eq("compliance_class", "prediction_pool")
+    .is("genre", null)
+    .maybeSingle();
+  if (dkErr) {
+    record("read the DK compliance rule", false, dkErr.message);
+  } else if (!dkRow) {
+    const { data: added, error: addErr } = await admin
+      .from("gs_compliance_rules")
+      .insert({
+        region_code: "DK",
+        compliance_class: "prediction_pool",
+        genre: null,
+        behavior: "spectator",
+        note: "Denmark (added by test-economy-m1, removed after the run)",
+      })
+      .select("id")
+      .single();
+    if (addErr || !added) {
+      record("seed the DK compliance rule for this run", false, addErr?.message ?? "no row");
+    } else {
+      made.complianceRules.add((added as { id: number }).id);
+      console.log("  (dev has no DK rule: added one for this run)");
+    }
+  }
+  invalidateComplianceCache();
+
   const spectatorDK = await checkCompliance({
     region: "DK",
     complianceClass: "prediction_pool",
@@ -621,6 +676,19 @@ async function testComplianceGate() {
     spectatorDK.behavior === "spectator",
     `decision=${JSON.stringify(spectatorDK)}`,
   );
+
+  // A sub-region with no rule of its own falls back to its country's.
+  if (made.complianceRules.size > 0 || dkRow) {
+    const subRegion = await checkCompliance({
+      region: "DK-84",
+      complianceClass: "prediction_pool",
+    });
+    record(
+      "DK-84 prediction_pool → spectator (falls back to DK)",
+      subRegion.behavior === "spectator",
+      `decision=${JSON.stringify(subRegion)}`,
+    );
+  }
 
   const unknownPool = await checkCompliance({
     region: null,
@@ -653,8 +721,93 @@ async function testComplianceGate() {
   );
 }
 
+// Cleanup -------------------------------------------------------------------
+
+/** Delete every row this run made, children first (the ledger and
+ *  communities don't cascade from identities), then check none is left. */
+async function cleanup() {
+  console.log("\nCleanup");
+  const admin = createServiceClient();
+  const identities = [...made.identities];
+  const communities = [...made.communities];
+  const streams = [...made.streams];
+  const sessions = [...made.sessions];
+  const rules = [...made.complianceRules];
+  const problems: string[] = [];
+  const del = async (label: string, run: () => PromiseLike<{ error: { message: string } | null }>) => {
+    const { error } = await run();
+    if (error) problems.push(`${label}: ${error.message}`);
+  };
+
+  if (communities.length) {
+    // Markets cascade to their outcomes, bets and spectator picks.
+    await del("gs_markets", () => admin.from("gs_markets").delete().in("community_id", communities));
+    await del("gs_bounties", () => admin.from("gs_bounties").delete().in("community_id", communities));
+  }
+  if (sessions.length) {
+    await del("gs_markets (by session)", () => admin.from("gs_markets").delete().in("session_id", sessions));
+  }
+  if (identities.length) {
+    await del("token_events (by identity)", () => admin.from("token_events").delete().in("identity_id", identities));
+  }
+  if (communities.length) {
+    await del("token_events (by community)", () => admin.from("token_events").delete().in("community_id", communities));
+    await del("gs_streamer_allowance", () => admin.from("gs_streamer_allowance").delete().in("community_id", communities));
+  }
+  if (sessions.length) {
+    await del("gs_sessions", () => admin.from("gs_sessions").delete().in("id", sessions));
+  }
+  if (streams.length) {
+    await del("gs_streams", () => admin.from("gs_streams").delete().in("id", streams));
+  }
+  if (communities.length) {
+    // Seeded commands and module rows cascade with the community.
+    await del("gs_communities", () => admin.from("gs_communities").delete().in("id", communities));
+  }
+  if (identities.length) {
+    await del("gs_identities", () => admin.from("gs_identities").delete().in("id", identities));
+  }
+  if (rules.length) {
+    await del("gs_compliance_rules", () => admin.from("gs_compliance_rules").delete().in("id", rules));
+    invalidateComplianceCache();
+  }
+
+  // Check nothing is left behind.
+  const left = async (table: string, column: string, ids: Array<string | number>) => {
+    if (!ids.length) return 0;
+    const { count, error } = await admin
+      .from(table)
+      .select(column, { count: "exact", head: true })
+      .in(column, ids);
+    if (error) problems.push(`count ${table}: ${error.message}`);
+    return count ?? 0;
+  };
+  const remaining = {
+    gs_identities: await left("gs_identities", "id", identities),
+    token_events: (await left("token_events", "identity_id", identities)) + (await left("token_events", "community_id", communities)),
+    gs_communities: await left("gs_communities", "id", communities),
+    gs_streams: await left("gs_streams", "id", streams),
+    gs_sessions: await left("gs_sessions", "id", sessions),
+    gs_markets: (await left("gs_markets", "community_id", communities)) + (await left("gs_markets", "session_id", sessions)),
+    gs_bounties: await left("gs_bounties", "community_id", communities),
+    gs_streamer_allowance: await left("gs_streamer_allowance", "community_id", communities),
+    gs_compliance_rules: await left("gs_compliance_rules", "id", rules),
+  };
+  const leftovers = Object.entries(remaining).filter(([, n]) => n > 0);
+  record(
+    "cleanup removed every row the run made",
+    problems.length === 0 && leftovers.length === 0,
+    [
+      `made ${identities.length} identities, ${communities.length} communities, ${streams.length} streams, ${sessions.length} sessions, ${rules.length} compliance rules`,
+      ...leftovers.map(([t, n]) => `${n} left in ${t}`),
+      ...problems,
+    ].join("; "),
+  );
+}
+
 async function main() {
   console.log("=== Economy smoke test (M1 + M1.5 + Spec 04 Phase 2) ===");
+  let errored = false;
   try {
     await testConcurrentSpend();
     await testUpgradePreservesBalance();
@@ -665,13 +818,15 @@ async function main() {
     await testComplianceGate();
   } catch (err) {
     console.error("Suite errored:", err);
-    process.exit(2);
+    errored = true;
+  } finally {
+    await cleanup();
   }
 
   const passed = results.filter((r) => r.ok).length;
   const total = results.length;
   console.log(`\n=== ${passed}/${total} checks passed ===`);
-  process.exit(passed === total ? 0 : 1);
+  process.exit(errored ? 2 : passed === total ? 0 : 1);
 }
 
 void main();

@@ -19,7 +19,7 @@ import { useToast } from "@/components/toast/ToastProvider";
  * second choice (Britton's pick, 2026-10-19), and links to what's included.
  * Renders nothing for Pro accounts.
  */
-export function ProTrialPrompt({ title, children, from, compact = false }: {
+export function ProTrialPrompt({ title, children, from, compact = false, headingLevel = 3 }: {
   /** What's locked, as a sentence: "Brand themes are part of GS Pro". */
   title: string;
   /** One or two lines on what they'd get. */
@@ -28,17 +28,20 @@ export function ProTrialPrompt({ title, children, from, compact = false }: {
   from: string;
   /** Tighter padding for use inside another card. */
   compact?: boolean;
+  /** The title's heading level: 2 where the prompt sits straight under a page's h1 (axe heading-order). */
+  headingLevel?: 2 | 3;
 }) {
   const who = useTrialEligibility();
   const toast = useToast();
   if (!who || who.isPro) return null;
+  const Title = headingLevel === 2 ? "h2" : "h3";
   const included = <ArrowLink href={`/gs-pro?from=${encodeURIComponent(from)}#included`} className="pro-trial__more">See what&apos;s included</ArrowLink>;
   return (
     <Card variant="outlined" padding={compact ? "medium" : "large"} className="pro-trial">
       <div className="pro-trial__head">
         {/* A square tile: a circle means Energy in the companion (design round 3, 2026-10-20). */}
         <IconTile icon={IconLock} tone="magenta" />
-        <h3 className="pro-trial__title">{title}</h3>
+        <Title className="pro-trial__title">{title}</Title>
       </div>
       {children && <div className="pro-trial__body">{children}</div>}
       {who.signedIn ? (

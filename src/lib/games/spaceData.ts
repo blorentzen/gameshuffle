@@ -313,9 +313,15 @@ export async function spaceRolls(s: GameSpace, viewerId: string | null, limit = 
     db.from("session_events").select("id, created_at, session_id, payload").eq("event_type", "shuffle").gte("created_at", twoDays).order("created_at", { ascending: false }).limit(60)
       .then((r) => (r.data ?? []) as { id: string; created_at: string; session_id: string; payload: { combo?: unknown; is_broadcaster?: boolean; twitch_display_name?: string } | null }[], () => []),
   ]);
+  // A space with more than one game to roll (Retro Mario Kart) says which game each roll was ("rolled in Double Dash").
+  const inGame = (roll: { game?: string } | null | undefined) => {
+    if ((s.rollGames?.length ?? 0) < 2 || !roll?.game) return "";
+    const g = s.rollGames!.find((x) => x.game === gameKey(roll.game));
+    return g ? ` in ${g.short}` : "";
+  };
   const items: RollItem[] = posts.flatMap((p) => (p.meta?.roll ? [{
     id: `p:${p.id}`, who: p.author.name, avatar: { id: p.author.id, avatar_source: p.author.avatarSource, avatar_seed: p.author.avatarSeed, avatar_options: p.author.avatarOptions, twitch_avatar: p.author.twitchAvatar, discord_avatar: p.author.discordAvatar },
-    verb: "rolled", at: p.createdAt, when: agoShort(p.createdAt), roll: p.meta.roll, href: `/community/post/${p.id}`, live: false,
+    verb: `rolled${inGame(p.meta.roll)}`, at: p.createdAt, when: agoShort(p.createdAt), roll: p.meta.roll, href: `/community/post/${p.id}`, live: false,
     reactions: p.reactions.reduce((n, r) => n + r.count, 0), comments: p.commentCount,
   }] : []));
   const mine = events.map((e) => ({ e, roll: cleanRoll(e.payload?.combo) })).filter((x) => x.roll && s.games.includes(gameKey(x.roll.game) ?? ""));
@@ -337,7 +343,7 @@ export async function spaceRolls(s: GameSpace, viewerId: string | null, limit = 
       const self = e.payload?.is_broadcaster !== false;
       items.push({
         id: `s:${e.id}`, who: self ? streamer : (e.payload?.twitch_display_name || "A viewer"), avatar: self ? avatarOf(owner) : null,
-        verb: self ? "rolled on stream" : `rolled in ${streamer}'s chat`, at: e.created_at, when: agoShort(e.created_at), roll, href: `/live/${owner.username}`,
+        verb: self ? `rolled${inGame(roll)} on stream` : `rolled${inGame(roll)} in ${streamer}'s chat`, at: e.created_at, when: agoShort(e.created_at), roll, href: `/live/${owner.username}`,
         live: onAir.has(owner.id), reactions: 0, comments: 0,
       });
     }

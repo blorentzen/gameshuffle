@@ -23,16 +23,13 @@ import { toCheckRows, checkSummary } from "@/lib/timeTrials/importRows";
 import { bestsMap, dropDraft, loadQuaxlyDraft, saveImported, saveQuaxlyDraft } from "@/lib/timeTrials/importFlow";
 import { gamePath, TT_GAMES, type TtGame } from "@/lib/timeTrials/tracks";
 import type { TtItems } from "@/lib/timeTrials/categories";
-import { LINK_LINE, LINK_URL } from "./timeTrials";
+import { editOriginal } from "./timeTrials";
+import { lineInPlace, onCard, saveListCard, savedCard, EPHEMERAL, TT_IMPORT_PREFIX, type Message } from "../ttCards";
 
 /** The message command's name as Discord shows it under Apps. */
 export const TT_SAVE_COMMAND = "Save to GameShuffle";
-export const TT_IMPORT_PREFIX = "ttq:";
+export { TT_IMPORT_PREFIX };
 
-const EPHEMERAL = 64;
-const link = (label: string, url: string) => ({ type: 2, style: 5, label, url });
-const btn = (label: string, customId: string, style: 1 | 2 | 3 | 4 = 2) => ({ type: 2, style, label, custom_id: customId });
-const row = (...components: unknown[]) => ({ type: 1, components });
 const privateReply = (content: string) => Response.json({ type: 4, data: { content, flags: EPHEMERAL, allowed_mentions: { parse: [] } } });
 
 type Embed = { title?: string | null; description?: string | null; author?: { name?: string | null } | null; fields?: { name?: string | null; value?: string | null }[] | null; footer?: { text?: string | null } | null };
@@ -43,13 +40,6 @@ export type Msg = {
   interaction?: { name?: string; user?: { id?: string } };
   interaction_metadata?: { name?: string; user?: { id?: string } };
 };
-
-async function editOriginal(appId: string, token: string, data: Record<string, unknown>): Promise<void> {
-  const res = await fetch(`https://discord.com/api/v10/webhooks/${appId}/${token}/messages/@original`, {
-    method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ allowed_mentions: { parse: [] }, ...data }),
-  }).catch(() => null);
-  if (res && !res.ok) console.error("[tt-import] edit failed:", res.status, await res.text().catch(() => ""));
-}
 
 /** Which game a Quaxly reply is for, from the command that made it ("dx display_time" is MK8DX). */
 function gameFromCommand(msg: Msg): TtGame | undefined {
@@ -83,9 +73,10 @@ function ownList(msg: Msg, userId: string, names: string[], text: string): boole
 function listItems(list: QuaxlyList): TtItems {
   return list.items === "none" ? "none" : "shrooms";
 }
-function listLabel(list: QuaxlyList): string {
+/** "150cc, with mushrooms" (the speed only for a game with two). */
+function listCategory(list: QuaxlyList): string {
   const g = TT_GAMES[list.game];
-  return `${g.label}${g.classes.length > 1 ? `, ${list.cc}cc` : ""}, ${listItems(list) === "none" ? "no mushrooms" : "with mushrooms"}`;
+  return `${g.classes.length > 1 ? `${list.cc}cc, ` : ""}${listItems(list) === "none" ? "no mushrooms" : "with mushrooms"}`;
 }
 
 export async function handleTtSaveCommand(interaction: Record<string, unknown>): Promise<Response> {
@@ -115,7 +106,7 @@ export async function handleTtSaveButton(interaction: Record<string, unknown>, c
   if (!user?.id) return privateReply("Couldn't tell who you are.");
   const draftId = customId.slice(TT_IMPORT_PREFIX.length);
   const loaded = await loadQuaxlyDraft(draftId);
-  if (!loaded) return Response.json({ type: 7, data: { content: "That list waited too long. Use Save to GameShuffle on Quaxly's reply again.", components: [] } });
+  if (!loaded) return Response.json({ type: 7, data: lineInPlace(interaction, "That list waited too long. Use Save to GameShuffle on Quaxly's reply again.") });
   if (loaded.discordId !== user.id) return privateReply("That isn't yours to save.");
   const appId = String(interaction.application_id ?? "");
   const token = String(interaction.token ?? "");
@@ -126,26 +117,23 @@ export async function handleTtSaveButton(interaction: Record<string, unknown>, c
     const rows = toCheckRows(list.rows, list.game, list.cc, new Set(mine), bests).filter((r) => r.keep && r.trackId && r.timeMs);
     const tally = await saveImported(actor, list.game, rows.map((r) => ({ track: r.trackId!, cc: r.cc, time: r.timeMs! })), loaded.guildId, listItems(list));
     await dropDraft(draftId);
-    const lines = [tally.saved ? `Saved **${tally.saved} ${tally.saved === 1 ? "time" : "times"}** on ${listLabel(list)}.` : "Nothing new to save: those times are already on GameShuffle."];
-    if (tally.already) lines.push(`${tally.already} ${tally.already === 1 ? "was" : "were"} already there.`);
-    if (tally.refused) lines.push(`${tally.refused} ${tally.refused === 1 ? "was" : "were"} faster than the world record and stayed out.`);
-    if (!actor.userId) lines.push(LINK_LINE);
-    await editOriginal(appId, token, {
-      content: lines.join("\n"),
-      components: [row(link("See your times", `${SITE_URL}${gamePath(list.game, list.cc)}`), ...(actor.userId ? [] : [link("Link to GameShuffle", LINK_URL)]))],
-    });
+    await editOriginal(appId, token, savedCard({
+      saved: tally.saved, already: tally.already, refused: tally.refused, gameLabel: TT_GAMES[list.game].label, category: listCategory(list),
+      seeUrl: `${SITE_URL}${gamePath(list.game, list.cc)}`, unlinked: !actor.userId,
+    }));
   });
-  return Response.json({ type: 6 });
+  // The list's reply is a card: Saved replaces it in place. One from before the cards gets a new private message.
+  return Response.json(onCard(interaction) ? { type: 6 } : { type: 5, data: { flags: EPHEMERAL } });
 }
 
-/** The private reply for Save to GameShuffle (split out so it can be run without Discord). */
-export async function saveReplyFor(interaction: Record<string, unknown>, user: { id: string; username: string; global_name?: string }, msg: Msg, list: QuaxlyList, text: string, guildId: string | null): Promise<{ content: string; components: unknown[] }> {
+/** The private reply for Save to GameShuffle (split out so it can be run without Discord): a card, or one plain line
+ *  when none of the times are yours. */
+export async function saveReplyFor(interaction: Record<string, unknown>, user: { id: string; username: string; global_name?: string }, msg: Msg, list: QuaxlyList, text: string, guildId: string | null): Promise<Message> {
   const actor = await discordActor(user);
   const names = await yourNames(interaction, user, actor);
   const own = list.hasHolders ? false : ownList(msg, user.id, names, text);
   const { mine } = yourRows(list, names, own);
   const mineIdx = new Set(mine.map((r) => list.rows.indexOf(r)));
-  const linkBtn = actor.userId ? [] : [link("Link to GameShuffle", LINK_URL)];
   if (!mineIdx.size) {
     const content = list.hasHolders
       ? `None of these times are under your name (${names.slice(0, 3).join(", ")}). Run \`${list.game === "mk8dx" ? "/dx display_time" : "/display_time"}\` with yourself as the player, then save that list.`
@@ -157,17 +145,9 @@ export async function saveReplyFor(interaction: Record<string, unknown>, user: {
   const sum = checkSummary(rows.filter((_, i) => mineIdx.has(i)));
   const draftId = await saveQuaxlyDraft(actor, user.id, guildId, { kind: "quaxly", list, mine: [...mineIdx], names });
   const checkUrl = draftId ? `${SITE_URL}/time-trials/import?d=${draftId}` : `${SITE_URL}/time-trials/import`;
-  const lines = sum.keep
-    ? [`Found **${sum.keep} ${sum.keep === 1 ? "new time" : "new times"}** for you on ${listLabel(list)}.`]
-    : [`All your times on this list are already on GameShuffle (${listLabel(list)}).`];
-  if (sum.keep && sum.already) lines.push(`${sum.already} more ${sum.already === 1 ? "is" : "are"} already saved.`);
-  if (sum.unclear) lines.push(`${sum.unclear} ${sum.unclear === 1 ? "track wasn't" : "tracks weren't"} clear. Pick ${sum.unclear === 1 ? "it" : "them"} on GameShuffle.`);
-  if (sum.record) lines.push(`${sum.record} ${sum.record === 1 ? "time is" : "times are"} faster than the world record, so ${sum.record === 1 ? "it stays" : "they stay"} out.`);
-  if (!actor.userId) lines.push(LINK_LINE);
-  const buttons = [
-    ...(sum.keep && draftId ? [btn(`Save ${sum.keep} ${sum.keep === 1 ? "time" : "times"}`, `${TT_IMPORT_PREFIX}${draftId}`, 3)] : []),
-    link(sum.keep ? "Check them on GameShuffle" : "See your times", sum.keep ? checkUrl : `${SITE_URL}${gamePath(list.game, list.cc)}`),
-    ...linkBtn,
-  ];
-  return { content: lines.join("\n"), components: [row(...buttons)] };
+  return saveListCard({
+    keep: sum.keep, already: sum.already, unclear: sum.unclear, record: sum.record,
+    gameLabel: TT_GAMES[list.game].label, category: listCategory(list), draftId, checkUrl,
+    seeUrl: `${SITE_URL}${gamePath(list.game, list.cc)}`, unlinked: !actor.userId,
+  });
 }

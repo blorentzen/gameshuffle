@@ -8,7 +8,7 @@ import { GAMES } from "../src/lib/break/games";
 import { publicPuzzles, puzzleOrder } from "../src/lib/break/games/facts";
 import { BREAK_GAMES } from "../src/lib/break/types";
 import {
-  QUICKFIRE_FOCUS, QUICKFIRE_FOCUS_IDS, QUICKFIRE_SETS, QUICKFIRE_SET_IDS, ROUND_COUNTS, RUSH_ROUNDS,
+  COOP_COUNTS, QUICKFIRE_FOCUS, QUICKFIRE_FOCUS_IDS, QUICKFIRE_SETS, QUICKFIRE_SET_IDS, ROUND_COUNTS, RUSH_ROUNDS,
   addPoints, everyoneAnswered, lineupFor, ranked,
 } from "../src/lib/activity/roomRules";
 
@@ -26,7 +26,7 @@ function seeded(seed: number) {
 
 // ── Lineups ──────────────────────────────────────────────────────────────────
 for (const set of QUICKFIRE_SET_IDS) {
-  const counts: readonly number[] = set === "rush" ? RUSH_ROUNDS : ROUND_COUNTS;
+  const counts: readonly number[] = set === "rush" ? RUSH_ROUNDS : set === "coop" ? COOP_COUNTS : ROUND_COUNTS;
   for (const n of counts) {
     for (let seed = 1; seed <= 50; seed++) {
       const l = lineupFor(set, n, seeded(seed));
@@ -51,7 +51,8 @@ check("not everyone answered", !everyoneAnswered(["a", "b"], new Set(["a"])));
 check("nobody here never closes early", !everyoneAnswered([], new Set(["a"])));
 
 // ── Every quick-fire game plays in a room ─────────────────────────────────────
-const all = new Set(QUICKFIRE_SET_IDS.flatMap((s) => QUICKFIRE_SETS[s].games));
+// Team up's games last several rounds on purpose; scripts/test-coop.ts checks them.
+const all = new Set(QUICKFIRE_SET_IDS.filter((s) => s !== "coop").flatMap((s) => QUICKFIRE_SETS[s].games));
 for (const id of all) {
   const game = GAMES[id];
   check(`${id}: exists`, !!game && !!BREAK_GAMES[id]);

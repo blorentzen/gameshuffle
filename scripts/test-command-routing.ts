@@ -16,6 +16,7 @@
  *      get their own, and one channel never sees another's.
  *   7. The speedrun commands (`!pb`, `!pace`, `!splits`) route, and a channel's
  *      own custom `!pb` answers instead of ours (yieldToCustom).
+ *   8. The level queue's `!add`, `!position`, `!remove` and `!level` route, and step aside for a channel's own.
  */
 
 import "@/lib/twitch/commands/registrations";
@@ -106,7 +107,7 @@ expect("!pace", "pace", "");
 expect("!splits", "splits", "");
 const speedrunDefs = ["pb", "pace", "splits"].map((n) => listCommands().find((d) => d.name === n));
 check("the speedrun commands step aside for a channel's own", speedrunDefs.every((d) => d?.yieldToCustom === true));
-check("other built-ins still win a clash", listCommands().filter((d) => d.yieldToCustom).map((d) => d.name).sort().join(",") === "pace,pb,splits");
+check("other built-ins still win a clash", listCommands().filter((d) => d.yieldToCustom).map((d) => d.name).sort().join(",") === "add,level,pace,pb,position,remove,splits");
 setCustomCommandTable("chan-c", [row("chan-c", "!pb", "My PB is on speedrun.com")]);
 // The dispatcher's order: a yielding built-in gives way to the channel's own command of the same name.
 const pick = (community: string, text: string) => {
@@ -118,6 +119,29 @@ const pick = (community: string, text: string) => {
 check("a channel's own !pb answers instead of ours", pick("chan-c", "!pb")?.startsWith("cc:chan-c:") === true, String(pick("chan-c", "!pb")));
 check("a channel without its own !pb gets ours", pick("chan-a", "!pb") === "pb");
 check("!pace still ours where only !pb is custom", pick("chan-c", "!pace") === "pace");
+
+// 8 The level queue (levels picks 2026-11-11): viewers' !add, !position, !remove; mods' !level; each steps aside for a
+// channel's own command of the same name, and !wheel add / remove keep their own.
+expect("!add 2J5-3K2-Y9G", "add", "2J5-3K2-Y9G");
+expect("!add 2J5 3K2 Y9G", "add", "2J5 3K2 Y9G");
+expect("!position", "position", "");
+expect("!remove", "remove", "");
+expect("!remove @kartkev", "remove", "@kartkev");
+expect("!level next", "level", "next");
+expect("!level next cleared", "level", "next cleared");
+expect("!level random", "level", "random");
+expect("!level skip", "level", "skip");
+expect("!level open", "level", "open");
+expect("!level close", "level", "close");
+expect("!level clear", "level", "clear");
+expect("!wheel add pizza", "wheel.add", "pizza");
+expect("!wheel remove pizza", "wheel.remove", "pizza");
+const levelDefs = ["add", "position", "remove", "level"].map((n) => listCommands().find((d) => d.name === n));
+check("viewers can !add, !position and !remove", levelDefs.slice(0, 3).every((d) => d && authorityMeets("viewer", d.minAuthority ?? "viewer")));
+check("only mods and the streamer run !level", !!levelDefs[3] && !authorityMeets("viewer", levelDefs[3].minAuthority ?? "viewer") && authorityMeets("mod", levelDefs[3].minAuthority ?? "viewer"));
+setCustomCommandTable("chan-d", [row("chan-d", "!add", "Use the other bot's queue")]);
+check("a channel's own !add answers instead of ours", pick("chan-d", "!add 2J5-3K2-Y9G")?.startsWith("cc:chan-d:") === true, String(pick("chan-d", "!add 2J5-3K2-Y9G")));
+check("a channel without its own !add gets ours", pick("chan-a", "!add 2J5-3K2-Y9G") === "add");
 
 console.log(`\n${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);

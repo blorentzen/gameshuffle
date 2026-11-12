@@ -22,6 +22,10 @@ import "server-only";
  * pace; either streamer can leave, which ends the game with the scores as
  * they are. Lines go to both chats. Every viewer in either chat also plays
  * along on their own.
+ *
+ * "Together" (co-op picks 2026-11-11): the same invite, but both chats are one
+ * team against the board. Marked on the host team row (members[0].style), and
+ * played by streamTogether.ts.
  */
 
 import { createServiceClient } from "@/lib/supabase/admin";
@@ -29,6 +33,7 @@ import { isBlocked } from "@/lib/moderation/blocks";
 import { createNotification } from "@/lib/social/notifications";
 import { resolveCommunityIdForOwner } from "@/lib/economy/communityResolver";
 import {
+  BOARDS_PER_GAME,
   COSTREAM_ROUNDS,
   DEFAULT_GUESS_SECONDS,
   REVEAL_PAUSE_MS,
@@ -48,6 +53,7 @@ import {
   versusFinalLine,
   type BankReason,
   type ChatAnswer,
+  type CostreamStyle,
   type WindowOutcome,
 } from "./streamRules";
 import { closeWindow, dropWindow, openGuessWindow, type GuessRow, type StreamWindow } from "./stream";
@@ -92,7 +98,7 @@ interface CoMeta {
 }
 
 type GuestState = "invited" | "joined" | "declined" | "left";
-interface Chat { team: number; name: string; score: number; strikes: number; broadcasterId: string | null; communityId: string | null; userId: string | null; state: "host" | GuestState }
+interface Chat { team: number; name: string; score: number; strikes: number; broadcasterId: string | null; communityId: string | null; userId: string | null; state: "host" | GuestState; style?: CostreamStyle }
 
 type TurnRow = { id: string; kind: Kind; team: number | null; answer: CoMeta | null; result: "hit" | "miss" | "empty" | null; status: "open" | "closing" | "closed"; opens_at: string; closes_at: string; closed_at: string | null; overruled: boolean; board_id: string | null };
 const TURN_COLS = "id, kind, team, answer, result, status, opens_at, closes_at, closed_at, overruled, board_id";
@@ -104,15 +110,21 @@ export const isCostreamMode = (mode: string) => mode === "costream";
 export async function loadChats(game: Pick<GameRow, "id" | "host_user_id">): Promise<Map<number, Chat>> {
   const { data } = await createServiceClient().from("brain_stream_teams").select("team, name, score, strikes, broadcaster_id, community_id, members").eq("game_id", game.id);
   const out = new Map<number, Chat>();
-  for (const r of (data ?? []) as { team: number; name: string; score: number; strikes: number; broadcaster_id: string | null; community_id: string | null; members: { name?: string; userId?: string; state?: GuestState }[] | null }[]) {
+  for (const r of (data ?? []) as { team: number; name: string; score: number; strikes: number; broadcaster_id: string | null; community_id: string | null; members: { name?: string; userId?: string; state?: GuestState; style?: CostreamStyle }[] | null }[]) {
     const m = r.members?.[0];
     out.set(r.team, {
       team: r.team, name: r.name, score: r.score, strikes: r.strikes, broadcasterId: r.broadcaster_id, communityId: r.community_id,
       userId: r.team === HOST ? game.host_user_id : m?.userId ?? null, state: r.team === HOST ? "host" : m?.state ?? "invited",
+      // The host row's members[0].style marks a co-stream where both chats are one team (streamTogether.ts).
+      style: r.team === HOST ? (m?.style === "together" ? "together" : "versus") : undefined,
     });
   }
   return out;
 }
+
+/** Both chats on one team against the board (streamTogether.ts), not one chat against the other. */
+export const isTogether = (chats: Map<number, Chat>) => chats.get(HOST)?.style === "together";
+const together = () => import("./streamTogether");
 
 const nameOf = (chats: Map<number, Chat>, team: number | null) => (team ? chats.get(team)?.name ?? "That chat" : "That chat");
 
@@ -180,6 +192,8 @@ export type InviteError = "game_running" | "window_open" | "no_boards" | "not_re
 export async function inviteCostream(input: {
   communityId: string; hostUserId: string; broadcasterId: string; guestUserId: string;
   rounds?: number; seconds?: number; familySafe?: boolean; prize?: number; first?: { id: string; promptId: string } | null;
+  /** "together": both chats are one team against the board (streamTogether.ts). */
+  style?: CostreamStyle;
 }): Promise<{ ok: true; game: GameRow } | { ok: false; error: InviteError }> {
   const svc = createServiceClient();
   if (input.guestUserId === input.hostUserId) return { ok: false, error: "self" };
@@ -191,12 +205,14 @@ export async function inviteCostream(input: {
   const guestCommunity = await resolveCommunityIdForOwner(input.guestUserId);
   if (guestCommunity && (await getRunningGame(guestCommunity) || await inCostream(guestCommunity))) return { ok: false, error: "guest_busy" };
 
-  const count = Math.min(COSTREAM_ROUNDS.max, Math.max(COSTREAM_ROUNDS.min, Math.round(input.rounds ?? COSTREAM_ROUNDS.default)));
+  const style: CostreamStyle = input.style === "together" ? "together" : "versus";
+  const span = style === "together" ? BOARDS_PER_GAME : COSTREAM_ROUNDS;
+  const count = Math.min(span.max, Math.max(span.min, Math.round(input.rounds ?? span.default)));
   const seconds = isGuessSeconds(input.seconds ?? 0) ? input.seconds! : DEFAULT_GUESS_SECONDS;
   const familySafe = input.familySafe ?? true;
   const picks = await pickBoards(input.communityId, familySafe, count, input.first);
   if (picks === "not_ready") return { ok: false, error: "not_ready" };
-  if (picks.length < COSTREAM_ROUNDS.min) return { ok: false, error: "no_boards" };
+  if (picks.length < span.min) return { ok: false, error: "no_boards" };
 
   const { data: row, error } = await svc.from("brain_stream_games").insert({
     host_community_id: input.communityId, host_user_id: input.hostUserId, mode: "costream",
@@ -209,7 +225,7 @@ export async function inviteCostream(input: {
   const [hostName, guestName] = await Promise.all([accountName(input.hostUserId), accountName(input.guestUserId)]);
   // Same keys on every row: a bulk insert sends missing keys as null, not the column default.
   const { error: teamErr } = await svc.from("brain_stream_teams").insert([
-    { game_id: game.id, team: HOST, kind: "chat", community_id: input.communityId, broadcaster_id: input.broadcasterId, name: hostName, members: [] },
+    { game_id: game.id, team: HOST, kind: "chat", community_id: input.communityId, broadcaster_id: input.broadcasterId, name: hostName, members: style === "together" ? [{ style }] : [] },
     { game_id: game.id, team: GUEST, kind: "chat", community_id: guestCommunity, broadcaster_id: null, name: guestName, members: [{ name: guestName, userId: input.guestUserId, state: "invited" }] },
   ]);
   if (teamErr) {
@@ -220,14 +236,14 @@ export async function inviteCostream(input: {
   await setPrize(game.id, input.prize);
   await createNotification({
     userId: input.guestUserId, type: "chatbrain_costream", actorUserId: input.hostUserId,
-    title: `${hostName} invited you to a Chat Brain co-stream: your chat against theirs`,
-    message: `${picks.length} rounds. Accept on your Chat Brain tab.`,
+    title: style === "together" ? `${hostName} invited you to a Chat Brain co-stream: your chat and theirs on one team` : `${hostName} invited you to a Chat Brain co-stream: your chat against theirs`,
+    message: style === "together" ? `${picks.length} board${picks.length === 1 ? "" : "s"}. Accept on your Chat Brain tab.` : `${picks.length} rounds. Accept on your Chat Brain tab.`,
     link: "/account/streaming?tab=chat-brain", data: { gameId: game.id },
   }).catch((err) => console.error("[chatbrain/costream] invite notice failed:", err));
   return { ok: true, game };
 }
 
-export interface CostreamInvite { gameId: string; host: string; rounds: number; seconds: number; invitedAt: string }
+export interface CostreamInvite { gameId: string; host: string; rounds: number; seconds: number; invitedAt: string; style: CostreamStyle }
 
 /** Invites waiting for this streamer. */
 export async function invitesFor(guestUserId: string): Promise<CostreamInvite[]> {
@@ -236,9 +252,11 @@ export async function invitesFor(guestUserId: string): Promise<CostreamInvite[]>
     .eq("team", GUEST).eq("brain_stream_games.status", "lobby").contains("members", JSON.stringify([{ userId: guestUserId, state: "invited" }])).limit(5);
   if (error) return [];
   const rows = (data ?? []) as unknown as { game_id: string; joined_at: string; brain_stream_games: { host_user_id: string; board_ids: string[]; window_seconds: number } | { host_user_id: string; board_ids: string[]; window_seconds: number }[] }[];
+  const { data: hosts } = rows.length ? await createServiceClient().from("brain_stream_teams").select("game_id, members").eq("team", HOST).in("game_id", rows.map((r) => r.game_id)) : { data: [] };
+  const styleOf = new Map(((hosts ?? []) as { game_id: string; members: { style?: string }[] | null }[]).map((h) => [h.game_id, h.members?.[0]?.style === "together" ? "together" as const : "versus" as const]));
   return Promise.all(rows.map(async (r) => {
     const g = Array.isArray(r.brain_stream_games) ? r.brain_stream_games[0] : r.brain_stream_games;
-    return { gameId: r.game_id, host: await accountName(g.host_user_id), rounds: g.board_ids.length, seconds: g.window_seconds, invitedAt: r.joined_at };
+    return { gameId: r.game_id, host: await accountName(g.host_user_id), rounds: g.board_ids.length, seconds: g.window_seconds, invitedAt: r.joined_at, style: styleOf.get(r.game_id) ?? "versus" };
   }));
 }
 
@@ -303,7 +321,8 @@ export async function startCostream(gameId: string): Promise<ControlResult> {
   if (!started) return { ok: false, error: "busy" };
   const board = await loadBoard(game.board_ids[0]);
   if (!board) return { ok: false, error: "failed" };
-  await startRound(started as GameRow, board, 0, chats);
+  if (isTogether(chats)) await (await together()).startTogether(started as GameRow, board, chats);
+  else await startRound(started as GameRow, board, 0, chats);
   return { ok: true };
 }
 
@@ -315,6 +334,7 @@ export async function closeCostreamWindow(window: StreamWindow, rows: GuessRow[]
   const board = await loadBoard(game.board_ids[game.current_board]);
   if (!board || game.status !== "playing" || window.boardId !== board.promptId) { await finish({}); return; }
   const chats = await loadChats(game);
+  if (isTogether(chats)) { await (await together()).closeTogetherWindow(window, rows, game, board, chats); return; }
   const { data: cur } = await svc.from("brain_stream_windows").select("answer").eq("id", window.id).maybeSingle();
   const meta: CoMeta = { ...((cur as { answer: CoMeta | null } | null)?.answer ?? { costream: true }), costream: true };
 
@@ -401,6 +421,7 @@ export async function pickCostreamControl(gameId: string, team: number): Promise
   const game = await loadGame(gameId);
   if (!game || game.status !== "playing" || game.mode !== "costream") return { ok: false, error: "no_game" };
   if (team !== HOST && team !== GUEST) return { ok: false, error: "pick_side" };
+  if (isTogether(await loadChats(game))) return { ok: false, error: "no_control" };
   if (game.round > game.current_board) return { ok: false, error: "round_over" };
   if (game.control_team) return { ok: false, error: "has_control" };
   if (await gameWindow(game.id)) return { ok: false, error: "busy" };
@@ -451,7 +472,7 @@ export async function finishCostream(game: GameRow, opts: { leftBy?: string } = 
   if (game.status === "lobby") return; // never started: nothing to announce
   const chats = await loadChats(game);
   const paid = await payPrize(game).catch((err) => { console.error("[chatbrain/costream] prize not paid:", err); return [] as PrizePaid[]; });
-  const line = versusFinalLine({
+  const line = isTogether(chats) ? await (await together()).togetherFinal(game, chats, paid) : versusFinalLine({
     sides: [HOST, GUEST].map((t) => ({ name: nameOf(chats, t), score: chats.get(t)?.score ?? 0 })),
     chatScore: 0, chatRight: { right: 0, asked: 0 }, top: withPrizes(await topPlayAlongKeyed(game.id, 3), paid),
   });
@@ -460,6 +481,8 @@ export async function finishCostream(game: GameRow, opts: { leftBy?: string } = 
 
 /** The next round: skips the one in play (nobody banks it) or finishes after the last. */
 export async function nextCostreamRound(game: GameRow): Promise<ControlResult> {
+  const chatsNow = await loadChats(game);
+  if (isTogether(chatsNow)) return (await together()).nextTogetherBoard(game, chatsNow);
   const svc = createServiceClient();
   const board = await loadBoard(game.board_ids[game.current_board]);
   if (!board) return { ok: false, error: "failed" };
@@ -499,12 +522,13 @@ export async function leaveCostream(gameId: string, userId: string): Promise<Con
 
 // ─── views ───────────────────────────────────────────────────────────────────
 
-export interface CostreamLobby { guest: { name: string; state: GuestState } | null; rounds: number; seconds: number }
+export interface CostreamLobby { guest: { name: string; state: GuestState } | null; rounds: number; seconds: number; style: CostreamStyle }
 
 /** The lobby, for the host's dashboard. */
 export async function lobbyView(game: GameRow): Promise<CostreamLobby> {
-  const guest = (await loadChats(game)).get(GUEST);
-  return { guest: guest ? { name: guest.name, state: guest.state as GuestState } : null, rounds: game.board_ids.length, seconds: game.window_seconds };
+  const chats = await loadChats(game);
+  const guest = chats.get(GUEST);
+  return { guest: guest ? { name: guest.name, state: guest.state as GuestState } : null, rounds: game.board_ids.length, seconds: game.window_seconds, style: isTogether(chats) ? "together" : "versus" };
 }
 
 const leanCache = new Map<string, { at: number; value: { leaning: StreamGameView["leaning"]; guesses: number } }>();
@@ -537,6 +561,7 @@ export async function costreamView(game: GameRow): Promise<Omit<StreamGameView, 
   const index = Math.min(game.current_board, game.board_ids.length - 1);
   const [board, chats] = await Promise.all([loadBoard(game.board_ids[index]), loadChats(game)]);
   if (!board) return null;
+  if (isTogether(chats)) return (await together()).togetherView(game, chats);
   const [reveals, turns, playalong] = await Promise.all([loadReveals(game.id, board.id), boardTurns(game.id, board.promptId), topPlayAlong(game.id)]);
   const byRank = new Map(reveals.map((r) => [r.rank, r]));
   const now = Date.now();
@@ -608,6 +633,8 @@ export async function costreamView(game: GameRow): Promise<Omit<StreamGameView, 
 
 /** What `!cb` says during a co-stream (in either chat). */
 export async function costreamStatusLine(game: GameRow): Promise<string> {
+  const chats = await loadChats(game);
+  if (isTogether(chats)) return (await together()).togetherStatusLine(game, chats);
   const view = await costreamView(game);
   const v = view?.versus;
   if (!view || !v) return "🧠 Chat Brain co-stream: answer with !a <your answer>.";

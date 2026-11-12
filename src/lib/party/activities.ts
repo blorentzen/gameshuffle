@@ -13,6 +13,9 @@ import {
   type OddHand, type OddRound, type OddVote,
 } from "@/lib/originals/oddOneOut";
 import { PartyError, isMissing, recordResults, type Loaded, type Viewer } from "@/lib/party/nights";
+import { BRAIN_TABLE_SLUG, brainTableView, runBrainTable, type BrainTableAction } from "@/lib/party/brainTable";
+import { coopNightView, runCoop, type CoopAction } from "@/lib/party/coop";
+import { isCoopGame } from "@/lib/coop/rules";
 
 /**
  * Activities: GameShuffle Originals played on the phones and the TV inside a
@@ -75,6 +78,8 @@ export function activityView(l: Loaded, a: ActivityData, v: Viewer) {
   if (slug === "tier-wars") return tierView(l, a, v);
   if (slug === "draft-night") return draftView(l, a, v);
   if (slug === "number-bingo") return bingoView(l, a, v);
+  if (slug === BRAIN_TABLE_SLUG) return brainTableView(l, a, v);
+  if (isCoopGame(slug)) return coopNightView(l, a, v, activityPlayers(l));
   return oddView(l, a, v);
 }
 
@@ -129,6 +134,8 @@ function oddView(l: Loaded, a: ActivityData, v: Viewer) {
 }
 
 export type ActivityAction =
+  | BrainTableAction
+  | CoopAction
   | { action: "bg_round"; pattern?: string }
   | { action: "bg_call" }
   | { action: "bg_claim" }
@@ -157,6 +164,14 @@ export async function runActivity(l: Loaded, v: Viewer, body: ActivityAction): P
   if (l.current.status === "done") throw new PartyError("activity_done", 409);
   const a = await loadActivity(l.night.id);
   if (!a.ready) throw new PartyError("unavailable", 503);
+  if (body.action.startsWith("co_")) {
+    if (!isCoopGame(l.current.game_slug)) throw new PartyError("bad_action");
+    return runCoop(l, v, body as CoopAction, a, activityPlayers(l));
+  }
+  if (body.action.startsWith("cb_")) {
+    if (l.current.game_slug !== BRAIN_TABLE_SLUG) throw new PartyError("bad_action");
+    return runBrainTable(l, v, body as BrainTableAction, a);
+  }
   if (body.action.startsWith("bg_")) {
     if (l.current.game_slug !== "number-bingo") throw new PartyError("bad_action");
     return runBingo(l, v, body, a);

@@ -37,6 +37,7 @@ export function RoadTrainerCard({ p, regions = true }: { p: RoadProgressView; re
         <div><dt>Trainers beaten</dt><dd>{n(p.trainersBeaten)}</dd></div>
         <div><dt>Stars this month</dt><dd>{n(p.starsThisMonth)}</dd></div>
       </dl>
+      {p.battles && <p className="road-card__battles">Trainer battles: {n(p.battles.won)} won, {n(p.battles.lost)} lost</p>}
       {p.marks?.length > 0 && (
         <div className="road-card__marks">
           <p className="road-card__marks-label">Villain teams beaten</p>

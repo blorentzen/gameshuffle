@@ -1,0 +1,451 @@
+{
+ "checkedOn": "2026-11-12",
+ "note": "Mario Kart: Double Dash!! art for the randomizer, all through Super Mario Wiki's file host (mariowiki.com): the in-game character select icons, special item icons, cup icons, course select pictures, battle course pictures and battle mode icons (game assets), and the official kart artwork (mariokart.com's Double Dash launch site and Nintendo's press renders; Bloom Coach and Barrel Train are the same official art as their Super Smash Bros. Ultimate spirits). Kart art with a white background (`white`) has the white joined to its edge made transparent. The header is the official box art scene, cropped to 16:9. Run scripts/pull-double-dash-art.ts.",
+ "characters": [
+  {
+   "name": "Mario",
+   "slug": "mario",
+   "file": "MKDD Mario.png"
+  },
+  {
+   "name": "Luigi",
+   "slug": "luigi",
+   "file": "MKDD Luigi.png"
+  },
+  {
+   "name": "Peach",
+   "slug": "peach",
+   "file": "PeachIcon-MKDD.png"
+  },
+  {
+   "name": "Daisy",
+   "slug": "daisy",
+   "file": "MKDD Daisy.png"
+  },
+  {
+   "name": "Yoshi",
+   "slug": "yoshi",
+   "file": "MKDD Yoshi.png"
+  },
+  {
+   "name": "Birdo",
+   "slug": "birdo",
+   "file": "BirdoMKDD.png"
+  },
+  {
+   "name": "Baby Mario",
+   "slug": "baby-mario",
+   "file": "MKDD Baby Mario Icon.png"
+  },
+  {
+   "name": "Baby Luigi",
+   "slug": "baby-luigi",
+   "file": "BabyLuigiMKDD.png"
+  },
+  {
+   "name": "Koopa",
+   "slug": "koopa",
+   "file": "MKDD Koopa.png"
+  },
+  {
+   "name": "Paratroopa",
+   "slug": "paratroopa",
+   "file": "MKDD Paratroopa.png"
+  },
+  {
+   "name": "Donkey Kong",
+   "slug": "donkey-kong",
+   "file": "MKDD DK.png"
+  },
+  {
+   "name": "Diddy Kong",
+   "slug": "diddy-kong",
+   "file": "MKDD Diddy.png"
+  },
+  {
+   "name": "Bowser",
+   "slug": "bowser",
+   "file": "BowserMKDD.png"
+  },
+  {
+   "name": "Bowser Jr.",
+   "slug": "bowser-jr",
+   "file": "BowserJrMKDD.png"
+  },
+  {
+   "name": "Wario",
+   "slug": "wario",
+   "file": "MKDD Wario.png"
+  },
+  {
+   "name": "Waluigi",
+   "slug": "waluigi",
+   "file": "MKDD Waluigi.png"
+  },
+  {
+   "name": "Toad",
+   "slug": "toad",
+   "file": "ToadIcon-MKDD.png"
+  },
+  {
+   "name": "Toadette",
+   "slug": "toadette",
+   "file": "ToadetteMKDDMug.png"
+  },
+  {
+   "name": "Petey Piranha",
+   "slug": "petey-piranha",
+   "file": "PeteyIcon-MKDD.png"
+  },
+  {
+   "name": "King Boo",
+   "slug": "king-boo",
+   "file": "KingBooIcon-MKDD.png"
+  }
+ ],
+ "karts": [
+  {
+   "name": "Red Fire",
+   "slug": "red-fire",
+   "file": "RedFire.jpg",
+   "white": true
+  },
+  {
+   "name": "Green Fire",
+   "slug": "green-fire",
+   "file": "MKDD Green Fire.png"
+  },
+  {
+   "name": "Heart Coach",
+   "slug": "heart-coach",
+   "file": "Mkdd heart coach.jpg",
+   "white": true
+  },
+  {
+   "name": "Bloom Coach",
+   "slug": "bloom-coach",
+   "file": "Bloom Coach MKDD artwork.png"
+  },
+  {
+   "name": "Turbo Yoshi",
+   "slug": "turbo-yoshi",
+   "file": "Mkdd turbo yoshi.jpg",
+   "white": true
+  },
+  {
+   "name": "Turbo Birdo",
+   "slug": "turbo-birdo",
+   "file": "MKDD Turbo Birdo.png"
+  },
+  {
+   "name": "Goo-Goo Buggy",
+   "slug": "goo-goo-buggy",
+   "file": "GooGoobuggy.jpg",
+   "white": true
+  },
+  {
+   "name": "Rattle Buggy",
+   "slug": "rattle-buggy",
+   "file": "MKDD Rattle Buggy.png"
+  },
+  {
+   "name": "Toad Kart",
+   "slug": "toad-kart",
+   "file": "MKDD Toad Kart.png"
+  },
+  {
+   "name": "Toadette Kart",
+   "slug": "toadette-kart",
+   "file": "MKDD Toadette Kart.png"
+  },
+  {
+   "name": "Koopa Dasher",
+   "slug": "koopa-dasher",
+   "file": "Mkdd koopa dasher.jpg",
+   "white": true
+  },
+  {
+   "name": "Para-Wing",
+   "slug": "para-wing",
+   "file": "MKDD Para-Wing.png"
+  },
+  {
+   "name": "DK Jumbo",
+   "slug": "dk-jumbo",
+   "file": "Mkdd dk jumbo.jpg",
+   "white": true
+  },
+  {
+   "name": "Barrel Train",
+   "slug": "barrel-train",
+   "file": "Barrel Train MKDD artwork.png"
+  },
+  {
+   "name": "Koopa King",
+   "slug": "koopa-king",
+   "file": "Mkdd koopa king.jpg",
+   "white": true
+  },
+  {
+   "name": "Bullet Blaster",
+   "slug": "bullet-blaster",
+   "file": "MKDD Bullet Blaster.png"
+  },
+  {
+   "name": "Wario Car",
+   "slug": "wario-car",
+   "file": "Wario Car MKDD art.jpg",
+   "white": true
+  },
+  {
+   "name": "Waluigi Racer",
+   "slug": "waluigi-racer",
+   "file": "MKDD Waluigi Racer.png"
+  },
+  {
+   "name": "Piranha Pipes",
+   "slug": "piranha-pipes",
+   "file": "MKDD Piranha Pipes.png"
+  },
+  {
+   "name": "Boo Pipes",
+   "slug": "boo-pipes",
+   "file": "MKDD Boo Pipes.png"
+  },
+  {
+   "name": "Parade Kart",
+   "slug": "parade-kart",
+   "file": "MKDD Parade Kart.png"
+  }
+ ],
+ "items": [
+  {
+   "name": "Fireballs (red)",
+   "slug": "fireballs-red",
+   "file": "FireballIcon-MKDD.png"
+  },
+  {
+   "name": "Fireballs (green)",
+   "slug": "fireballs-green",
+   "file": "GreenFireballIcon-MKDD.png"
+  },
+  {
+   "name": "Heart",
+   "slug": "heart",
+   "file": "HeartIcon-MKDD.png"
+  },
+  {
+   "name": "Yoshi's Egg",
+   "slug": "yoshi-egg",
+   "file": "YoshiEggIcon-MKDD.png"
+  },
+  {
+   "name": "Birdo's Egg",
+   "slug": "birdo-egg",
+   "file": "BirdoEggIcon-MKDD.png"
+  },
+  {
+   "name": "Chain Chomp",
+   "slug": "chain-chomp",
+   "file": "ChainChompIcon-MKDD.png"
+  },
+  {
+   "name": "Triple Green Shells",
+   "slug": "triple-green-shells",
+   "file": "GreenShell3Icon-MKDD.png"
+  },
+  {
+   "name": "Triple Red Shells",
+   "slug": "triple-red-shells",
+   "file": "RedShell3Icon-MKDD.png"
+  },
+  {
+   "name": "Giant Banana",
+   "slug": "giant-banana",
+   "file": "GiantBananaIcon-MKDD.png"
+  },
+  {
+   "name": "Bowser's Shell",
+   "slug": "bowsers-shell",
+   "file": "BowserShellIcon-MKDD.png"
+  },
+  {
+   "name": "Bob-omb",
+   "slug": "bob-omb",
+   "file": "BobombIcon-MKDD.png"
+  },
+  {
+   "name": "Golden Mushroom",
+   "slug": "golden-mushroom",
+   "file": "GoldMushroomIcon-MKDD.png"
+  }
+ ],
+ "tracks": [
+  {
+   "name": "Luigi Circuit",
+   "slug": "luigi-circuit",
+   "file": "LuigiCircuitIcon-MKDD.png"
+  },
+  {
+   "name": "Peach Beach",
+   "slug": "peach-beach",
+   "file": "PeachBeachIcon-MKDD.png"
+  },
+  {
+   "name": "Baby Park",
+   "slug": "baby-park",
+   "file": "BabyParkIcon-MKDD.png"
+  },
+  {
+   "name": "Dry Dry Desert",
+   "slug": "dry-dry-desert",
+   "file": "DryDryDesertIcon-MKDD.png"
+  },
+  {
+   "name": "Mushroom Bridge",
+   "slug": "mushroom-bridge",
+   "file": "MushroomBridgeIcon-MKDD.png"
+  },
+  {
+   "name": "Mario Circuit",
+   "slug": "mario-circuit",
+   "file": "MarioCircuitIcon-MKDD.png"
+  },
+  {
+   "name": "Daisy Cruiser",
+   "slug": "daisy-cruiser",
+   "file": "DaisyCruiserIcon-MKDD.png"
+  },
+  {
+   "name": "Waluigi Stadium",
+   "slug": "waluigi-stadium",
+   "file": "WaluigiStadiumIcon-MKDD.png"
+  },
+  {
+   "name": "Sherbet Land",
+   "slug": "sherbet-land",
+   "file": "SherbetLandIcon-MKDD.png"
+  },
+  {
+   "name": "Mushroom City",
+   "slug": "mushroom-city",
+   "file": "MushroomCityIcon-MKDD.png"
+  },
+  {
+   "name": "Yoshi Circuit",
+   "slug": "yoshi-circuit",
+   "file": "YoshiCircuitIcon-MKDD.png"
+  },
+  {
+   "name": "DK Mountain",
+   "slug": "dk-mountain",
+   "file": "DKMountainIcon-MKDD.png"
+  },
+  {
+   "name": "Wario Colosseum",
+   "slug": "wario-colosseum",
+   "file": "WarioColosseumIcon-MKDD.png"
+  },
+  {
+   "name": "Dino Dino Jungle",
+   "slug": "dino-dino-jungle",
+   "file": "DinoDinoJungleIcon-MKDD.png"
+  },
+  {
+   "name": "Bowser's Castle",
+   "slug": "bowsers-castle",
+   "file": "BowserCastleIcon-MKDD.png"
+  },
+  {
+   "name": "Rainbow Road",
+   "slug": "rainbow-road",
+   "file": "RainbowRoadIcon-MKDD.png"
+  }
+ ],
+ "battle": [
+  {
+   "name": "Cookie Land",
+   "slug": "cookie-land",
+   "file": "CookieLandIcon-MKDD.png"
+  },
+  {
+   "name": "Block City",
+   "slug": "block-city",
+   "file": "BlockCityIcon-MKDD.png"
+  },
+  {
+   "name": "Nintendo GameCube",
+   "slug": "nintendo-gamecube",
+   "file": "NintendoGameCubeIcon-MKDD.png"
+  },
+  {
+   "name": "Pipe Plaza",
+   "slug": "pipe-plaza",
+   "file": "PipePlazaIcon-MKDD.png"
+  },
+  {
+   "name": "Luigi's Mansion",
+   "slug": "luigis-mansion",
+   "file": "LuigiMansionIcon-MKDD.png"
+  },
+  {
+   "name": "Tilt-a-Kart",
+   "slug": "tilt-a-kart",
+   "file": "Tilt-a-KartIcon-MKDD.png"
+  }
+ ],
+ "cups": [
+  {
+   "name": "Mushroom Cup",
+   "slug": "mushroom",
+   "file": "MKDD-MushroomCup.png"
+  },
+  {
+   "name": "Flower Cup",
+   "slug": "flower",
+   "file": "MKDD-FlowerCup.png"
+  },
+  {
+   "name": "Star Cup",
+   "slug": "star",
+   "file": "MKDD Star Cup Emblem.png"
+  },
+  {
+   "name": "Special Cup",
+   "slug": "special",
+   "file": "MKDD Special Cup Emblem.png"
+  },
+  {
+   "name": "All Cup Tour",
+   "slug": "all-cup-tour",
+   "file": "MKDD-AllCupTour.png"
+  }
+ ],
+ "modes": [
+  {
+   "name": "Balloon Battle",
+   "slug": "balloon-battle",
+   "file": "MKDD Balloon Battle icon.png"
+  },
+  {
+   "name": "Shine Thief",
+   "slug": "shine-thief",
+   "file": "MKDD Shine Thief icon.png"
+  },
+  {
+   "name": "Bob-omb Blast",
+   "slug": "bob-omb-blast",
+   "file": "MKDD Bob-omb Blast icon.png"
+  }
+ ],
+ "keyart": {
+  "file": "MKDD Box Art Scene.jpg",
+  "slug": "mario-kart-double-dash-keyart",
+  "crop": [
+   0,
+   2350,
+   3000,
+   1688
+  ]
+ }
+}

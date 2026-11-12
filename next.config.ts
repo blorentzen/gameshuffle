@@ -97,8 +97,10 @@ const nextConfig: NextConfig = {
   // Only elements wrapped in <ViewTransition> animate; a browser without the API just navigates.
   experimental: { viewTransition: true },
   // Testing the Discord Activity locally: Discord's proxy (<app id>.discordsays.com)
-  // reaches the dev server through a cloudflared tunnel. Development only.
-  allowedDevOrigins: ["*.trycloudflare.com", "*.discordsays.com"],
+  // reaches the dev server through a cloudflared tunnel. DEV_ORIGINS adds hosts for
+  // a phone on the same network (e.g. DEV_ORIGINS=192.168.1.233 for playtesting /kart).
+  // Development only.
+  allowedDevOrigins: ["*.trycloudflare.com", "*.discordsays.com", ...(process.env.DEV_ORIGINS?.split(",").map((h) => h.trim()).filter(Boolean) ?? [])],
   images: {
     remotePatterns: [
       {

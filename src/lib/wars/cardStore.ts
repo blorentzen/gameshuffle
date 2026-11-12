@@ -10,6 +10,7 @@ import "server-only";
 import { createServiceClient } from "@/lib/supabase/admin";
 import { isReadsLike, type ReadsLike } from "./legacy";
 import { readTrack, type WarGame } from "./rules";
+import { nickTrackValue } from "./tracks";
 import { tagKey } from "./tags";
 import { teamCardFor, tagTaken, type CardSet, type LogoSource, type MkcPlayerLite, type PlayerCard, type RosterRow, type TeamCard } from "./cards";
 import { mkcTeam, rosterFor, type MkcTeam } from "./mkcTeams";
@@ -335,8 +336,10 @@ export async function setTrackName(guildId: string, game: WarGame, nick: string,
   const key = tagKey(n).slice(0, 24);
   if (!key) return "bad_nick";
   if (readTrack(game, n)) return "is_code";
-  const track = readTrack(game, trackCodeOrId)?.id ?? null;
-  if (!track) return "no_track";
+  const id = readTrack(game, trackCodeOrId)?.id ?? null;
+  if (!id) return "no_track";
+  // Mario Kart Wii's nicknames carry the game ("mkwii:<id>"): two Wii ids are also Mario Kart World ids.
+  const track = nickTrackValue(game, id);
   await createServiceClient().from("war_track_names").upsert({ guild_id: guildId, nick_key: key, nick: n, track, created_by: by }, { onConflict: "guild_id,nick_key" });
   return "ok";
 }

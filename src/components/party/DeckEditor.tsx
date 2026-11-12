@@ -1,8 +1,6 @@
 "use client";
 
-import { EVENTS, tagged } from "@/lib/analytics/events";
 import { useCallback, useEffect, useState } from "react";
-import Link from "next/link";
 import { Alert, Badge, Button, Checkbox, Chip, Input, Modal, Radio, RadioGroup, Select, Switch, Tabs, Textarea } from "@empac/cascadeds";
 import { IconPlus, IconPencil, IconSparkles } from "@tabler/icons-react";
 import { useToast } from "@/components/toast/ToastProvider";
@@ -12,6 +10,7 @@ import { cardParts } from "@/data/party/cards";
 import { rowToCard, validateCard, type CardDraft, type DeckCardRow } from "@/lib/party/deck";
 import { IconAction } from "@/components/actions/IconAction";
 import { AiDeckModal } from "@/components/ai/AiDeckModal";
+import { ProTrialPrompt } from "@/components/billing/ProTrialPrompt";
 
 /**
  * Card deck editor, shared by Platform Admin -> Decks (the official deck),
@@ -88,7 +87,7 @@ function FamilyDeckEditor({ scope, family, intro, ai }: { scope: string; family:
   };
 
   if (error === "unavailable") return <Alert variant="info" title="Decks need a database update">Once it&apos;s applied, every card can be written and changed here. Until then the built-in deck is used.</Alert>;
-  if (error === "pro_only") return <Alert variant="info" title="Your own cards are part of GS Pro">Write house rules, Chance cards and missions for your community. <Link href="/gs-pro?from=decks" className={tagged(EVENTS.upgradeClicked, { from: "decks" })}>See GS Pro</Link></Alert>;
+  if (error === "pro_only") return <ProTrialPrompt compact title="Your own cards are part of GS Pro" from="decks" headingLevel={2}><p>Write house rules, Chance cards and missions for your community.</p></ProTrialPrompt>;
   if (error === "staff_only") return <Alert variant="warning">Only staff can edit the official deck.</Alert>;
   if (!data) return <p className="party-muted">{error ? "Couldn't load the deck." : "Loading the deck…"}</p>;
 

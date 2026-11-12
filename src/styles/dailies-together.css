@@ -1,0 +1,16 @@
+/* ── The dailies together (co-op picks 2026-11-11): group streaks on end screens and crew pages, and the day board's race ── */
+.dailies-groups { display: flex; flex-direction: column; gap: var(--spacing-12); width: 100%; text-align: start; }
+.dailies-groups__title { margin: 0; font-size: var(--font-size-16); font-weight: var(--font-weight-bold); }
+.dailies-groups__list { display: flex; flex-direction: column; gap: var(--spacing-12); margin: 0; padding: 0; list-style: none; }
+.dailies-groups__row { display: flex; align-items: flex-start; gap: var(--spacing-12); }
+.dailies-groups__mark { display: inline-flex; align-items: center; justify-content: center; flex: none; width: 3.2rem; height: 3.2rem; border-radius: var(--radius-8, 8px); color: var(--text-secondary); background: color-mix(in srgb, var(--text-primary) 6%, transparent); }
+.dailies-groups__mark.is-on { color: #fff; background: linear-gradient(135deg, #ea580c, #c2410c); }
+.dailies-groups__text { display: flex; flex-direction: column; gap: var(--spacing-4); min-width: 0; font-size: var(--font-size-16); }
+.dailies-groups__text strong { font-weight: var(--font-weight-semibold, 600); }
+
+/* The day board's race between the places people play. */
+.daily-board__race { display: flex; flex-wrap: wrap; align-items: center; gap: var(--spacing-8) var(--spacing-16); margin: 0 0 var(--spacing-12); font-size: var(--font-size-14); }
+.daily-board__race-label { font-weight: var(--font-weight-semibold, 600); }
+.daily-board__race-team { display: inline-flex; align-items: center; gap: var(--spacing-6, 6px); }
+.daily-board__race-team strong { font-variant-numeric: tabular-nums; }
+.daily-board__race-team--lead strong { color: var(--brand-ink, var(--bg-primary)); }

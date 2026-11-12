@@ -17,12 +17,12 @@ import { useToast } from "@/components/toast/ToastProvider";
 import { useConfirm } from "@/components/confirm/ConfirmProvider";
 import { FREE_INDEX, PATTERNS, letterFor } from "@/lib/originals/bingo";
 import type { SavedPattern, StreamBingoView } from "@/lib/bingo/stream";
-import { EVENTS, tagged } from "@/lib/analytics/events";
 import { LoadingLines } from "@/components/loading/LoadingLines";
 import { AdminScreen, AdminSection, AdminPanel } from "@/components/account/admin/AdminKit";
 import { IconAction } from "@/components/actions/IconAction";
 import { BingoShape } from "@/components/overlay/NumberBingoOverlay";
 import { everyVisible } from "@/lib/hooks/everyVisible";
+import { ProTrialPrompt } from "@/components/billing/ProTrialPrompt";
 
 const ERRORS: Record<string, string> = {
   already_open: "A game is already running. End it first.",
@@ -172,10 +172,9 @@ export function StreamBingoTab() {
   if (!isPro) {
     return (
       <AdminScreen title="Bingo" intro={intro}>
-        <AdminPanel>
-          <p className="dbot-muted">Stream Bingo is part of GS Pro: cards on your live page, calls on your overlay, tokens and your own prize for the winner.</p>
-          <Link href="/gs-pro?from=bingo" className={tagged(EVENTS.upgradeClicked, { from: "bingo" })}><Button variant="primary" size="small">See GS Pro</Button></Link>
-        </AdminPanel>
+        <ProTrialPrompt title="Stream Bingo is part of GS Pro" from="bingo" headingLevel={2}>
+          <p>Cards on your live page, calls on your overlay, tokens and your own prize for the winner.</p>
+        </ProTrialPrompt>
       </AdminScreen>
     );
   }

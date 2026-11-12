@@ -5,7 +5,7 @@ import { EVENTS, tagged } from "@/lib/analytics/events";
 import { BrowseHero } from "@/components/events/BrowseHero";
 import { ImageComingSoon } from "@/components/ImageComingSoon";
 import { ResponsiveCarousel } from "@/components/layout/ResponsiveCarousel";
-import { randomizerCatalog } from "@/data/randomizer-catalog";
+import { linkSuffix, randomizerCatalog } from "@/data/randomizer-catalog";
 
 export const metadata: Metadata = {
   openGraph: { siteName: "GameShuffle", type: "website", url: "https://www.gameshuffle.co/randomizers" },
@@ -44,6 +44,7 @@ export default function RandomizersPage() {
                   ctaLabel={e.cta ?? "Open randomizer"}
                   isNew={e.isNew}
                   linkTitle
+                  linkTitleSuffix={linkSuffix(e)}
                   linkClassName={tagged(EVENTS.randomizerCardClicked, { to: e.slug, from: "index" })}
                 />
               ))}

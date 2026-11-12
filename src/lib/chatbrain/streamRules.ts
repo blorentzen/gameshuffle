@@ -464,3 +464,35 @@ export function costreamTurnLine(i: { who: string; outcome: WindowOutcome; strik
   if (i.next === "steal") return `🧠 ${head}. ✖ Strike 3! ${i.other}, one answer to steal the round: !a.`.slice(0, 480);
   return `🧠 ${head}. ✖ Strike ${i.strikes}.`.slice(0, 480);
 }
+
+// ─── Co-stream together (co-op picks 2026-11-11) ─────────────────────────────
+//
+// Two channels' chats as ONE team against the board: every guess window takes
+// both chats' answers, the biggest group across both is the answer, and the
+// strikes and score are shared. Same pace as Chat plays: a board ends on a
+// clear or three strikes, and the host moves on.
+
+export type CostreamStyle = "versus" | "together";
+
+const both = (sides: [string, string]) => `${sides[0]}'s chat and ${sides[1]}'s chat`;
+
+export function togetherQuestionLine(i: { index: number; count: number; question: string; sides: [string, string]; seconds: number }): string {
+  const head = i.count > 1 ? `Board ${i.index + 1} of ${i.count}: ` : "";
+  return `🧠 Co-stream ${head}${i.question}  ▸  ${both(i.sides)} are one team: answer with !a <your answer>. What most of you say counts, ${i.seconds}s a guess.`.slice(0, 480);
+}
+
+/** The result of a guess, in both chats. */
+export function togetherResultLine(o: WindowOutcome, ctx: { strikes: number; score: number }): string {
+  return resultLine(o, ctx).replace(/^🧠 Chat said/, "🧠 Both chats said").replace(/^🧠 Nobody answered\./, "🧠 Neither chat answered.");
+}
+
+/** A board ends: no "!cb next" hint (only the host's side runs the game). */
+export function togetherBoardEndLine(i: { cleared: boolean; strikes: number; boardPoints: number; rest: BoardAnswer[]; last: boolean }): string {
+  const line = boardEndLine({ ...i, last: true }).replace("Chat found them all", "Both chats found them all").replace("Chat banked", "The chats banked");
+  return (i.last ? line : `${line} The host moves on to the next board.`).slice(0, 480);
+}
+
+export function togetherFinalLine(i: { score: number; boards: number; sides: [string, string]; top: { name: string; points: number; tokens?: number }[] }): string {
+  const top = i.top.length ? ` Top brains: ${i.top.map((t) => `${t.name} ${t.points}${t.tokens ? ` (+${t.tokens} tokens)` : ""}`).join(", ")}.` : "";
+  return `🧠 Game over! ${both(i.sides)} scored ${i.score} points together over ${i.boards} board${i.boards === 1 ? "" : "s"}.${top}`.slice(0, 480);
+}

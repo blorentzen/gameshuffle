@@ -30,6 +30,7 @@ import { OddOneOutPanel, type OddActivityView } from "@/components/party/OddOneO
 import { TierWarsPanel, type TierActivityView } from "@/components/party/TierWarsPanel";
 import { BingoPanel, type BingoActivityView } from "@/components/party/BingoPanel";
 import { GameHeader, GameInfoButton, GameInfoList } from "@/components/activity/GameInfo";
+import { CoopLobbyCard, CoopPlay } from "@/components/activity/RoomCoop";
 import {
   PARTY_GAMES, QUICKFIRE_FOCUS, QUICKFIRE_FOCUS_IDS, QUICKFIRE_SETS, QUICKFIRE_SET_IDS, ROOM_ERRORS, ROOM_POLL_MS, ROUND_COUNTS, RUSH_ROUNDS,
   type QuickfireFocus, type QuickfireSetId, type RoomView,
@@ -45,6 +46,8 @@ type Load =
 const initials = (name: string) => name.split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0]?.toUpperCase()).join("") || "?";
 const secsLeft = (iso: string | null, now: number) => (iso ? Math.max(0, Math.ceil((Date.parse(iso) - now) / 1000)) : 0);
 const PLACE = ["1st", "2nd", "3rd"];
+/** Team up has its own card in the lobby; the quick-fire card offers the rest. */
+const QUICK_SETS = QUICKFIRE_SET_IDS.filter((id) => id !== "coop");
 const placeLabel = (n: number) => PLACE[n - 1] ?? `${n}th`;
 /** "2 of 3 got it" / "All 3 got it" / "Nobody answered". */
 function tallyLine(right: number, answered: number): string {
@@ -159,11 +162,11 @@ function Lobby({ view, act }: { view: RoomView; act: Act }) {
             <GameInfoButton game="quickfire" />
           </div>
           <p className="gs-room__game-blurb">Short rounds everyone answers on their own screen. The game judges, the fastest-thinking table wins.</p>
-          <GameInfoList label="Sets" games={QUICKFIRE_SET_IDS.map((id) => `quickfire-${id}` as const)} />
+          <GameInfoList label="Sets" games={QUICK_SETS.map((id) => `quickfire-${id}` as const)} />
           {view.isHost && (
             <div className="gs-room__form">
               <Select fullWidth floatingLabel="Rounds of" value={set} onChange={(v) => setSet(v as QuickfireSetId)}
-                options={QUICKFIRE_SET_IDS.map((id) => ({ value: id, label: QUICKFIRE_SETS[id].name }))} />
+                options={QUICK_SETS.map((id) => ({ value: id, label: QUICKFIRE_SETS[id].name }))} />
               <p className="gs-room__hint">{QUICKFIRE_SETS[set].blurb}</p>
               {facts && (
                 <Select fullWidth floatingLabel="Characters from" value={focus} onChange={(v) => setFocus(v as QuickfireFocus)}
@@ -175,6 +178,7 @@ function Lobby({ view, act }: { view: RoomView; act: Act }) {
             </div>
           )}
         </Card>
+        <CoopLobbyCard view={view} act={act} />
         <Card variant="outlined" padding="medium" className="gs-room__game">
           <div className="gs-room__game-head">
             <h3 className="gs-room__game-title"><IconDice5 size={18} aria-hidden /> Roll for the call</h3>
@@ -261,6 +265,7 @@ function Quickfire({ view, act, serverNow }: { view: RoomView; act: Act; serverN
   const end = async () => {
     if (await confirm({ title: "End this game?", body: "Everyone goes back to the lobby. Scores so far are cleared.", confirmLabel: "End game" })) void act({ action: "lobby" });
   };
+  if (q.coop) return <CoopPlay view={view} act={act} serverNow={serverNow} />;
   const answer = async (text: string) => {
     const ok = await act({ action: "answer", text }, true);
     if (!ok) toast.error(ROOM_ERRORS.not_an_answer);
@@ -306,9 +311,9 @@ function Quickfire({ view, act, serverNow }: { view: RoomView; act: Act; serverN
             </ul>
           )}
         </div>
-        <aside className="gs-room__side" aria-label="Scores">
+        <section className="gs-room__side" aria-label="Scores">
           <PlayerList view={view} act={act} scores />
-        </aside>
+        </section>
       </div>
       {view.isHost && (
         <div className="gs-room__host">
@@ -368,9 +373,9 @@ function Party({ view, act }: { view: RoomView; act: Act }) {
           {p.slug === "tier-wars" && <TierWarsPanel activity={p.activity as TierActivityView} me={me} seatName={seatName} busy={busy} act={send} gameDone={false} inCall />}
           {p.slug === "number-bingo" && <BingoPanel activity={p.activity as BingoActivityView} me={me} seatName={seatName} busy={busy} act={send} gameDone={false} inCall />}
         </div>
-        <aside className="gs-room__side" aria-label="Scores">
+        <section className="gs-room__side" aria-label="Scores">
           <PlayerList view={view} act={act} scores />
-        </aside>
+        </section>
       </div>
       {view.isHost && (
         <div className="gs-room__host">
@@ -451,9 +456,9 @@ function Brain({ view, act, serverNow }: { view: RoomView; act: Act; serverNow: 
             </>
           )}
         </div>
-        <aside className="gs-room__side" aria-label="Scores">
+        <section className="gs-room__side" aria-label="Scores">
           <PlayerList view={view} act={act} scores />
-        </aside>
+        </section>
       </div>
       {view.isHost && (
         <div className="gs-room__host">

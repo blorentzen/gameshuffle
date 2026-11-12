@@ -1,0 +1,11 @@
+/* Mario Kart 7 randomizer (MarioKart7Randomizer). The player cards are the shared Mario Kart card (PlayerCard), the
+   intro, tabs and race tiles come from randomizer.css and the Race and Battle tabs from kart-races.css; this is the
+   parts setting. */
+
+.mk7-randomizer { width: 100%; min-width: 0; }
+.mk7-randomizer > .type-card-disclaimer { text-align: start; }
+
+/* The parts setting and what it opens, above the Options line. */
+.mk7-parts { display: grid; gap: var(--spacing-8); text-align: start; }
+.mk7-parts > .empac-select { min-width: min(100%, 24rem); }
+.mk7-parts .party-muted { margin: 0; font-size: var(--font-size-14); }

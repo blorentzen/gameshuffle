@@ -10,9 +10,7 @@ import "server-only";
  * (the leader, or the team behind you when you lead).
  */
 
-import { trackCode } from "@/lib/timeTrials/codes";
-import { TT_GAMES } from "@/lib/timeTrials/tracks";
-import { penaltyTeam, warTrack, type WarGame, type WarSide } from "./rules";
+import { penaltyTeam, WAR_GAME_LABELS, warTrack, type WarGame, type WarSide } from "./rules";
 import { formatLabel, placesOf, raceWinner, roomOf, swingFor, teamColor, teamScores } from "./format";
 import { siteLogos } from "./logos";
 import { warPagePath } from "./page";
@@ -91,7 +89,7 @@ export async function warPageView(war: War): Promise<WarPageView> {
       for (let k = 0; k < room; k++) owner.push(-1);
       places.forEach((list, team) => list.forEach((p) => { if (p >= 1 && p <= room) owner[p - 1] = team; }));
     }
-    return { n: r.n, code: t ? trackCode(t) : null, track: t?.name ?? null, spots: r.spots, diff, lead, scores, owner, winner: raceWinner(r, war.game, war.format) };
+    return { n: r.n, code: t ? t.code : null, track: t?.name ?? null, spots: r.spots, diff, lead, scores, owner, winner: raceWinner(r, war.game, war.format) };
   });
   const teams: WarPageTeam[] = all.map((t, i) => ({
     tag: t.tag, name: t.name || t.tag, logo: t.logo && safe.has(t.logo) ? t.logo : null, total: s.totals[i] ?? 0,
@@ -108,7 +106,7 @@ export async function warPageView(war: War): Promise<WarPageView> {
     path: warPagePath(war),
     status: war.status,
     game: war.game,
-    gameLabel: TT_GAMES[war.game].label,
+    gameLabel: WAR_GAME_LABELS[war.game],
     racesTotal: war.racesTotal,
     date: new Date(war.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "America/Los_Angeles" }),
     us: team("us"),

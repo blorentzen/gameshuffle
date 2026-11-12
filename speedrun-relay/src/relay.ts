@@ -37,6 +37,7 @@ import { signBody } from "./tokens";
 
 export interface RelayEnv {
   RELAY: DurableObjectNamespace<Relay>;
+  ROOM: DurableObjectNamespace<import("./room").Room>;
   SPEEDRUN_RELAY_SECRET?: string;
   GS_ORIGIN?: string;
 }
@@ -54,6 +55,8 @@ interface Persist {
   pendingSegments?: Segment[] | null;
   /** What the desktop LiveSplit add-on last said (null for LiveSplit One, or nothing connected). */
   timer?: TimerInfo | null;
+  /** The race room this runner is in (src/room.ts): every change is sent there while it's set. */
+  room?: { roomId: string; key: string } | null;
 }
 
 interface Attachment {
@@ -134,6 +137,7 @@ export class Relay extends DurableObject<RelayEnv> {
   private client: LsoClient | null = null;
   private work: Promise<unknown> = Promise.resolve();
   private hooks: Promise<unknown> = Promise.resolve();
+  private rooms: Promise<unknown> = Promise.resolve();
   private syncPending = false;
   private failures = 0;
   private softTimer: ReturnType<typeof setTimeout> | null = null;
@@ -174,7 +178,10 @@ export class Relay extends DurableObject<RelayEnv> {
       case "admin":
         return this.admin(req);
       case "state":
-        return json({ state: this.p.core.state, overlays: this.overlayCount(), timer: this.p.timer ?? null });
+        return json({ state: this.p.core.state, overlays: this.overlayCount(), timer: this.p.timer ?? null, room: this.p.room?.roomId ?? null });
+      case "bind":
+        // Only from a Room object: the Worker never forwards this op.
+        return this.bindRoom(req);
       default:
         return new Response("Not found", { status: 404 });
     }
@@ -211,7 +218,12 @@ export class Relay extends DurableObject<RelayEnv> {
     const [client, server] = Object.values(new WebSocketPair());
     this.ctx.acceptWebSocket(server, ["watch"]);
     server.serializeAttachment({ kind: remote ? "remote" : "overlay", version } satisfies Attachment);
-    server.send(JSON.stringify({ type: "state", state: this.p.core.state }));
+    // A run going: the time as of now, so a watcher that opens mid-run (an OBS reload) doesn't start from the last split.
+    const s = this.p.core.state;
+    const now = Date.now();
+    const first = s.phase === "running" ? { ...s, elapsedMs: predictedMs(s, now), at: now } : s;
+    server.send(JSON.stringify({ type: "state", state: first }));
+    if (remote) this.toRoom();
     return new Response(null, { status: 101, webSocket: client });
   }
 
@@ -337,6 +349,7 @@ export class Relay extends DurableObject<RelayEnv> {
   async webSocketClose(ws: WebSocket, code: number, reason: string): Promise<void> {
     closeQuietly(ws, code === 1005 || code === 1006 ? 1000 : code, reason);
     this.socketGone(ws);
+    if (attachmentOf(ws)?.kind === "remote") this.toRoom();
   }
 
   async webSocketError(ws: WebSocket): Promise<void> {
@@ -461,6 +474,7 @@ export class Relay extends DurableObject<RelayEnv> {
     await this.save();
     if (before && info.runKey && before !== info.runKey) await this.syncAll(lso, false);
     this.hook("info", this.p.core.state, { timer: info });
+    this.toRoom();
   }
 
   private async onEvent(lso: LsoClient, name: string): Promise<void> {
@@ -599,6 +613,68 @@ export class Relay extends DurableObject<RelayEnv> {
       }
     }
     if (event) this.hook(event, state);
+    this.toRoom();
+  }
+
+  // ---- Race rooms -------------------------------------------------------------------------------------------
+
+  /** A Room object binds this runner to it (or lets go: roomId null, only when `from` is still the room). */
+  private async bindRoom(req: Request): Promise<Response> {
+    const body = (await req.json().catch(() => null)) as { roomId?: unknown; key?: unknown; from?: unknown } | null;
+    if (body?.roomId === null) {
+      if (this.p.room && (body.from == null || body.from === this.p.room.roomId)) {
+        this.p.room = null;
+        await this.save();
+      }
+      return json({ ok: true });
+    }
+    const roomId = typeof body?.roomId === "string" && /^[A-Za-z0-9]{16}$/.test(body.roomId) ? body.roomId : null;
+    const key = typeof body?.key === "string" && /^[A-Za-z0-9-]{1,40}$/.test(body.key) ? body.key : null;
+    if (!roomId || !key) return json({ ok: false, error: "bad_body" }, 400);
+    this.p.room = { roomId, key };
+    await this.save();
+    this.toRoom();
+    return json({ ok: true });
+  }
+
+  /** The runner's timer as a room sees it. */
+  private laneLive() {
+    const s = this.p.core.state;
+    const remotes = this.ctx.getWebSockets("watch").filter((ws) => attachmentOf(ws)?.kind === "remote").length;
+    const mode: "lso" | "addon" | "remote" = this.client ? (this.p.timer ? "addon" : "lso") : "remote";
+    const canStart = this.client ? (this.p.timer ? this.p.timer.remote : true) : s.segments.length > 0;
+    return {
+      seq: s.seq, connected: s.connected, mode, canStart, remotes, phase: s.phase, index: s.index, elapsedMs: s.elapsedMs,
+      at: s.at, count: s.segments.length, splits: s.splits, last: s.last ? { kind: s.last.kind, index: s.last.index } : null,
+      attempt: s.attempt,
+    };
+  }
+
+  /** Sends the runner's state to their room, in order with the rest. A room that no longer has them lets them go. */
+  private toRoom(): void {
+    const room = this.p.room;
+    const relayId = this.p.relayId;
+    if (!room || !relayId) return;
+    const body = JSON.stringify({ key: room.key, relayId, live: this.laneLive() });
+    const send = async () => {
+      try {
+        const res = await this.env.ROOM.getByName(room.roomId).fetch(new Request("https://room/lane", {
+          method: "POST",
+          headers: { "x-relay-op": "lane", "x-room-id": room.roomId, "content-type": "application/json" },
+          body,
+        }));
+        await res.body?.cancel();
+        if (res.status === 409 && this.p.room?.roomId === room.roomId) {
+          this.p.room = null;
+          await this.save();
+        }
+      } catch (e) {
+        console.warn("[relay] room update failed:", e instanceof Error ? e.message : e);
+      }
+    };
+    const run = this.rooms.then(send, send);
+    this.rooms = run;
+    this.ctx.waitUntil(run);
   }
 
   /** Tells the site, in order, without holding anything else up. Retried once on a 5xx or a network error. */

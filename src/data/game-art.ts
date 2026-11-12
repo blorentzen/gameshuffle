@@ -50,6 +50,42 @@ export const GAME_ART: Record<string, GameArt> = {
     hero: { src: "/images/mario-kart-64/mario-kart-64-keyart.webp", alt: "Mario Kart 64 artwork of Mario, Wario, Donkey Kong and Bowser racing at Royal Raceway", width: 1600, height: 900 },
     cover: "/images/mario-kart-64/mario-kart-64-keyart.webp",
   },
+  "super-smash-bros-melee": {
+    /* The official group artwork (Super Mario Wiki, File:SSBM.jpg), cropped to its cast at 16:9 by scripts/pull-melee-art.ts. */
+    hero: { src: "/images/super-smash-bros-melee/super-smash-bros-melee-keyart.webp", alt: "Super Smash Bros. Melee artwork of the whole cast lined up under a blue sky", width: 1280, height: 720 },
+    cover: "/images/super-smash-bros-melee/super-smash-bros-melee-keyart.webp",
+  },
+  "mario-kart-double-dash": {
+    /* The official box art scene (Super Mario Wiki, File:MKDD Box Art Scene.jpg: Mario and Luigi leading Peach, Daisy,
+       Birdo, Diddy and Donkey Kong on Luigi Circuit), cropped to 16:9 by scripts/pull-double-dash-art.ts. */
+    hero: { src: "/images/mario-kart-double-dash/mario-kart-double-dash-keyart.webp", alt: "Mario Kart: Double Dash!! artwork of Mario and Luigi sharing the Red Fire, with Peach, Daisy, Donkey Kong and Diddy Kong behind them on Luigi Circuit", width: 1600, height: 900 },
+    cover: "/images/box-art/mario-kart-double-dash.webp",
+  },
+  "mario-kart-ds": {
+    /* The official group artwork (Super Mario Wiki, File:MKDS Mario Peach Luigi and Blooper Artwork.png: Peach in the
+       Royale, Luigi in the Poltergust 4000 and Mario in the B Dasher, a Blooper ahead), cropped to 16:9 by
+       scripts/pull-mario-kart-ds-art.ts. */
+    hero: { src: "/images/mario-kart-ds/mario-kart-ds-keyart.webp", alt: "Mario Kart DS artwork of Peach in the Royale, Luigi in the Poltergust 4000 and Mario in the B Dasher, with a Blooper ahead of them", width: 1600, height: 900 },
+    cover: "/images/box-art/mario-kart-ds.webp",
+  },
+  "mario-kart-7": {
+    /* The official group artwork (Super Mario Wiki, File:MK7 Groupart.png: Mario, Bowser, Peach, Luigi, Yoshi, Donkey
+       Kong and Lakitu on Toad Circuit), cropped to 16:9 by scripts/pull-mario-kart-7-art.ts. */
+    hero: { src: "/images/mario-kart-7/mario-kart-7-keyart.webp", alt: "Mario Kart 7 artwork of Mario leading Bowser, Peach, Luigi, Yoshi and Donkey Kong on Toad Circuit, with Lakitu above", width: 1600, height: 900 },
+    cover: "/images/box-art/mario-kart-7.webp",
+  },
+  "super-mario-kart": {
+    /* The official international cover artwork (Super Mario Wiki, File:SMK Group Art.jpeg), cropped to 16:9 by
+       scripts/pull-super-mario-kart-art.ts. */
+    hero: { src: "/images/super-mario-kart/super-mario-kart-keyart.webp", alt: "Super Mario Kart artwork of Mario leading the other seven drivers around a bend", width: 1600, height: 900 },
+    cover: "/images/box-art/super-mario-kart.webp",
+  },
+  "mario-kart-wii": {
+    /* The official Mario Kart Wii poster (Super Mario Wiki, File:Poster_MKWii.jpg), cropped to its racers at 16:9
+       by scripts/pull-mkwii-art.ts. */
+    hero: { src: "/images/mario-kart-wii/mario-kart-wii-keyart.webp", alt: "Mario Kart Wii artwork of Mario, Peach, Bowser, Yoshi and Luigi racing at Luigi Circuit", width: 1600, height: 900 },
+    cover: "/images/mario-kart-wii/mario-kart-wii-keyart.webp",
+  },
   "perfect-dark": {
     /* Xbox store hero for the 2010 remaster (the only official landscape art at full size). */
     /* The header uses the art above the logo (our title already says Perfect Dark); the card keeps the logo. */
@@ -76,6 +112,11 @@ export const GAME_ART: Record<string, GameArt> = {
     /* Tokyo 2099 rooftop key art (Marvel Database mirror of the official art). */
     hero: { src: "/images/marvel-rivals/marvel-rivals-keyart.webp", alt: "Marvel Rivals key art of heroes on a Tokyo 2099 rooftop", width: 1600, height: 900 },
     cover: "/images/marvel-rivals/marvel-rivals-keyart.webp",
+  },
+  "super-mario-bros-wonder": {
+    /* The official key art from supermariobroswonder.nintendo.com, cropped to 16:9 by scripts/pull-wonder-art.ts. */
+    hero: { src: "/images/super-mario-bros-wonder/super-mario-bros-wonder-keyart.webp", alt: "Super Mario Bros. Wonder key art of Mario, Luigi, Peach, Daisy, Yoshi and Elephant Mario", width: 1600, height: 900, focus: "center 60%" },
+    cover: "/images/box-art/super-mario-bros-wonder.webp",
   },
 
 };

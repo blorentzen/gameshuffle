@@ -26,4 +26,6 @@ export interface HubRunning {
   breakBounty: { text: string; tokens: number; voters: number } | null;
   /** Chaos challenges to call: still open, or a market marked done and nobody's been paid. */
   challenges: { open: number; needsWinner: number };
+  /** The level queue (levels picks 2026-11-11): while it's open or a level is playing, or a level game is on stream. */
+  levels?: { open: boolean; game: string; gameName: string; waiting: number; now: { code: string; from: string } | null; onStream: boolean } | null;
 }

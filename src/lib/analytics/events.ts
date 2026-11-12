@@ -184,10 +184,42 @@ export const EVENTS = {
   pokemonRolled: "Pokemon Rolled",
   /** A generator roll's link was copied. */
   pokemonLinkCopied: "Pokemon Link Copied",
+  /** The Pokémon Champions team builder reached six legal Pokémon (props: { via: pick | fill | link }), once a visit. */
+  championsTeamCompleted: "Champions Team Completed",
+  /** "Fill the rest at random" in the team builder (props: { added, cover: on | off }). */
+  championsTeamFilled: "Champions Team Filled",
+  /** A team builder link was copied (props: { size }). */
+  championsTeamLinkCopied: "Champions Team Link Copied",
+  /** A player sent their team list to a Pokémon Champions tournament (props: { size, swap: yes | no }). */
+  teamListSent: "Team List Sent",
   /** The Sonic Racing: CrossWorlds randomizer rolled racers (props: { players, slot: all | one }). */
   sonicRacersRolled: "Sonic Racers Rolled",
   /** The Sonic Racing: CrossWorlds randomizer rolled races or a Grand Prix (props: { kind: races | grand-prix, count }). */
   sonicRacesRolled: "Sonic Races Rolled",
+  /** The Super Mario Bros. Wonder randomizer rolled a challenge or part of one (props: { part: all | player | level | rule, players, switch2: yes | no }). */
+  wonderChallengeRolled: "Wonder Challenge Rolled",
+  /** The Super Mario Bros. Wonder randomizer rolled a run of levels (props: { count, world }). */
+  wonderLevelsRolled: "Wonder Levels Rolled",
+  /** The Mario Kart: Double Dash!! randomizer rolled karts (props: { mode: solo | duo, karts, slot: all | one }). */
+  doubleDashRolled: "Double Dash Rolled",
+  /** The Double Dash randomizer rolled races or battles (props: { kind: cup | tour | races | battle, count, engine }). */
+  doubleDashRacesRolled: "Double Dash Races Rolled",
+  /** The Mario Kart DS randomizer rolled characters and karts (props: { karts, slot: all | one, level: start | own | borrowed | all }). */
+  marioKartDsRolled: "Mario Kart DS Rolled",
+  /** The Mario Kart DS randomizer rolled races or battles (props: { kind: cup | nitro | retro | races | battle, count, engine }). */
+  marioKartDsRacesRolled: "Mario Kart DS Races Rolled",
+  /** The Mario Kart DS randomizer rolled Mission Mode missions (props: { count, level: any | 1-7, bosses, level7 }). */
+  marioKartDsMissionRolled: "Mario Kart DS Mission Rolled",
+  /** The Mario Kart 7 randomizer rolled karts (props: { karts, slot: all | one, parts: start | all }). */
+  mario7Rolled: "Mario Kart 7 Rolled",
+  /** The Mario Kart 7 randomizer rolled races or battles (props: { kind: cup | new | classic | races | battle, count, engine }). */
+  mario7RacesRolled: "Mario Kart 7 Races Rolled",
+  /** The Super Mario Kart randomizer rolled racers (props: { players, slot: all | one }). */
+  superMarioKartRolled: "Super Mario Kart Rolled",
+  /** The Super Mario Kart randomizer rolled races or battles (props: { kind: cup | races | battle, count, engine }). */
+  superMarioKartRacesRolled: "Super Mario Kart Races Rolled",
+  /** A game space's Rolls switched game (Retro Mario Kart: Double Dash, Mario Kart DS, Mario Kart 64, Mario Kart 7 or Super Mario Kart) (props: { space, game }). */
+  spaceRollGame: "Space Roll Game Switched",
   /** A free bracket tool made a bracket, schedule or round 1 (props: { format: single | double | roundrobin | swiss, players }). */
   bracketMade: "Bracket Made",
   /** A bracket tool's link was copied (props: { format }). */
@@ -219,8 +251,31 @@ export const EVENTS = {
   speedrunAddonDownloaded: "Speedrun Addon Downloaded",
   /** Splits set on the setup page: { from: template:<id> | numbers | typed | file, game }. */
   speedrunSplitsSet: "Speedrun Splits Set",
+  /** Speedrun races (src/components/races, picks 2026-11-10): made, joined, started by the host, shared after. */
+  raceMade: "Race Made",
+  raceJoined: "Race Joined",
+  raceStarted: "Race Started",
+  raceShared: "Race Shared",
   /** A LiveSplit file downloaded from the setup page: { from: template | numbers | typed }. */
   speedrunSplitsDownloaded: "Speedrun Splits Downloaded",
+  /** Levels from players (picks 2026-11-11): a level shared to a space's board {game}. */
+  levelShared: "Level Shared",
+  /** Copy code on a level's card {game, from: board | now | queue}. */
+  levelCodeCopied: "Level Code Copied",
+  /** The level queue opened from the dashboard {game}. */
+  levelQueueOpened: "Level Queue Opened",
+  /** A level ended on the dashboard {game, result: cleared | skipped | gave_up | none, via: next | random | result}. */
+  levelPlayed: "Level Played",
+  /** Curating player levels (picks 2026-11-11): a like {game}; a player's mark {game, outcome: cleared | gave_up | no_load | none}. */
+  levelLiked: "Level Liked",
+  levelMarked: "Level Marked",
+  /** A list made on a board {game}; a list queued by a GS Pro streamer {game, added}. */
+  levelListMade: "Level List Made",
+  levelListQueued: "Level List Queued",
+  /** "Add to my queue" on a board level {game}. */
+  levelQueuedFromBoard: "Level Queued From Board",
+  /** A Mario Maker 2 maker ID saved on the profile. */
+  makerIdSaved: "Maker ID Saved",
   /** The weekly lounge report switched on or off in the MMR studio (props: { on }). */
   loungeWeeklySwitched: "Lounge Weekly Switched",
   /** A lounge name confirmed by Discord on /lounge ({games}: how many lounge games). */
@@ -280,6 +335,10 @@ export const EVENTS = {
   seriesVoted: "Series Voted",
   /** A player saved their own card (hours, kart build). */
   seriesCardSaved: "Series Card Saved",
+  /** Chat Brain at the table finished (co-op picks 2026-11-11) {where: phone, mode: table | teams, won}. */
+  brainTableFinished: "Brain Table Finished",
+  /** A Chat Brain co-stream invite where both chats play as one team (co-op picks 2026-11-11). */
+  brainTogetherInvited: "Brain Together Invited",
 } as const;
 
 export type AnalyticsEvent = (typeof EVENTS)[keyof typeof EVENTS];

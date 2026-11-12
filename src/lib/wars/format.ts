@@ -12,6 +12,12 @@
  * Kart World's points for rooms under 12 players aren't written down anywhere we found, so those formats stay off
  * until they've been checked in a real room.
  *
+ * Mario Kart Wii (added 2026-11-11): 12 players score 15, 12, 10, 8, 7, 6, 5, 4, 3, 2, 1, 0 (73 a race, 876 a 12-race
+ * war), checked against two sources: Super Mario Wiki's Mario Kart Wii page and the last row of MKW Table Bot's
+ * scoreMatrix (common.py, github.com/BadWolf1023/MKW-Table-Bot). Only Table Bot lists smaller rooms (8 players: 15, 11,
+ * 8, 6, 4, 2, 1, 0), one source, so two-team Wii wars smaller than 6v6 stay off like World's; several teams in a
+ * 12-player room (six of 2, four of 3, three of 4) use the 12-player table and work.
+ *
  * Teams are numbered in the order they were named: 0 is your team, 1 the team in vs:, then the others. A race keeps
  * your team's places in `spots` (as two-team wars always have), the other teams' in `places`, or only each team's
  * points (`scores`) when a war carried over from another bot never had the places.
@@ -38,9 +44,12 @@ const MK8DX_SMALL: Record<number, number[]> = {
   10: [12, 10, 8, 7, 6, 5, 4, 3, 2, 1],
 };
 const MKW24 = [15, 12, 10, 9, 9, 8, 8, 7, 7, 6, 6, 6, 5, 5, 5, 4, 4, 4, 3, 3, 3, 2, 2, 1];
+/** Mario Kart Wii's 12-player table. */
+export const MKWII_P12: readonly number[] = [15, 12, 10, 8, 7, 6, 5, 4, 3, 2, 1, 0];
 
 /** Points per place for a room, or null when GameShuffle doesn't know them (a format that stays off). */
 export function pointsTable(game: WarGame, room: number): readonly number[] | null {
+  if (game === "mkwii") return room === 12 ? MKWII_P12 : null;
   if (room === 12) return P12;
   if (game === "mkworld" && room === 24) return MKW24;
   if (game === "mk8dx") return MK8DX_SMALL[room] ?? null;
@@ -54,7 +63,9 @@ export const raceTotal = (table: readonly number[]) => table.reduce((a, b) => a 
 export const formatLabel = (f: WarFormat) => (f.teams === 2 ? `${f.size}v${f.size}` : `${f.size}v${f.size} · ${f.teams} teams`);
 
 /** The formats a game offers in /war's format: option (the team size; how many teams comes from others:). */
-export const FORMAT_SIZES: Record<WarGame, number[]> = { mk8dx: [6, 5, 4, 3, 2], mkworld: [6, 4, 3, 2, 12] };
+export const FORMAT_SIZES: Record<WarGame, number[]> = { mk8dx: [6, 5, 4, 3, 2], mkworld: [6, 4, 3, 2, 12], mkwii: [6, 4, 3, 2] };
+
+const GAME_NAME: Record<WarGame, string> = { mk8dx: "Mario Kart 8 Deluxe", mkworld: "Mario Kart World", mkwii: "Mario Kart Wii" };
 
 /**
  * Whether a format can be played, or why not. Two teams of 2 to 6 (Mario Kart World: 6, or 12 in a 24-player room);
@@ -66,7 +77,7 @@ export function formatProblem(game: WarGame, f: WarFormat): string | null {
   if (f.teams === 2) {
     if (f.size === 12) return game === "mkworld" ? null : "12v12 needs Mario Kart World's 24-player rooms.";
     if (f.size < 2 || f.size > 6) return "Two teams can be 2v2 to 6v6.";
-    if (!pointsTable(game, room)) return `Mario Kart World's points for a ${room}-player room haven't been checked yet, so ${formatLabel(f)} isn't on. Play it in a 12-player room with more teams, or as 6v6.`;
+    if (!pointsTable(game, room)) return `${GAME_NAME[game]}'s points for ${room === 8 || room === 11 ? "an" : "a"} ${room}-player room haven't been checked yet, so ${formatLabel(f)} isn't on. Play it in a 12-player room with more teams, or as 6v6.`;
     return null;
   }
   if (room === 12) return [2, 3, 4].includes(f.size) ? null : `A 12-player room fits six teams of 2, four of 3 or three of 4. ${f.teams} teams of ${f.size} is ${room}.`;

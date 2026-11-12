@@ -186,14 +186,23 @@ export async function rememberChannel(guildId: string, channelId: string, patch:
     ...(withFormat ? { format: { size: patch.size ?? now?.size ?? 6, races: patch.races ?? now?.races ?? RACES } } : {}),
     updated_at: new Date().toISOString(),
   };
-  const { data, error } = await db.from("war_channels").upsert(row, { onConflict: "guild_id,channel_id" }).select(await chCols()).single();
+  let { data, error } = await db.from("war_channels").upsert(row, { onConflict: "guild_id,channel_id" }).select(await chCols()).single();
+  // Before supabase/wars-mkwii-m1.sql the game column only takes Mario Kart 8 Deluxe and World: keep everything else.
+  if (error?.code === WII_NOT_READY_CODE && row.game === "mkwii") {
+    ({ data, error } = await db.from("war_channels").upsert({ ...row, game: now?.game === "mkwii" ? null : now?.game ?? null }, { onConflict: "guild_id,channel_id" }).select(await chCols()).single());
+  }
   if (error) { console.error("[wars] remember channel failed:", error.message); return null; }
   return toChannel(data as unknown as ChannelRow);
 }
 
+/** A check constraint said no: before wars-mkwii-m1.sql, that's a Mario Kart Wii war or channel. */
+const WII_NOT_READY_CODE = "23514";
+/** What a Mario Kart Wii war says until the database takes it. */
+export const WII_NOT_READY = "Mario Kart Wii wars open once GameShuffle's database update runs. Start this one as Mario Kart 8 Deluxe or World, or try again later.";
+
 // ── Starting and changing a war ───────────────────────────────────────────────────────────────
 
-export type StartResult = { ok: true; war: War } | { ok: false; error: "live"; war: War } | { ok: false; error: "failed" | "not_ready" };
+export type StartResult = { ok: true; war: War } | { ok: false; error: "live"; war: War } | { ok: false; error: "failed" | "not_ready" | "wii_not_ready" };
 
 export async function startWar(input: {
   guildId: string; channelId: string; game: WarGame; entry: WarEntry; us: WarTeamRef; them: WarTeamRef; by: { id: string; name: string };
@@ -225,6 +234,8 @@ export async function startWar(input: {
     // Two people starting at once: the unique index lets one in.
     const again = await liveWar(input.guildId, input.channelId);
     if (again) return { ok: false, error: "live", war: again };
+    // The insert is one row, so a refused Mario Kart Wii war leaves nothing behind (WII_NOT_READY says why).
+    if (error.code === WII_NOT_READY_CODE && input.game === "mkwii") return { ok: false, error: "wii_not_ready" };
     console.error("[wars] start failed:", error.message);
     return { ok: false, error: "failed" };
   }

@@ -14,6 +14,7 @@ import { BrowseHero } from "@/components/events/BrowseHero";
 import { RowPanel } from "@/components/marketing/RowPanel";
 import { PlansPanel } from "@/components/marketing/PlansPanel";
 import { FaqList } from "@/components/marketing/FaqList";
+import { ArrowLink } from "@/components/ui/ArrowLink";
 import { MarketingJsonLd } from "@/components/marketing/MarketingJsonLd";
 import { SpeedrunDemo } from "./SpeedrunDemo";
 
@@ -87,6 +88,7 @@ export function SpeedrunPitch() {
         <section className="srl__sec srl__flat" aria-labelledby="srl-any">
           <h2 id="srl-any" className="srl__h">Any game, any category</h2>
           <p className="srl__p">The overlay shows whatever you run. Your splits come from LiveSplit, LiveSplit One or the names you type once for the phone remote, and LiveSplit sends your game and category too. Any%, 100%, glitchless, a single-level run with one split: they all draw the same way.</p>
+          <p className="srl__p">Ready-made split lists for Super Mario 64, Minecraft, Celeste, Super Mario Bros., Odyssey, Breath of the Wild, Portal, Cuphead, Hollow Knight and Super Mario World come with a LiveSplit download. <ArrowLink href="/speedrun/splits">Speedrun splits by game</ArrowLink></p>
         </section>
 
         <section className="srl__sec srl__flat" aria-labelledby="srl-how">

@@ -37,6 +37,10 @@ export const BOX_ART: Record<string, { twitchId: string; twitchName: string }> =
     "twitchId": "512710",
     "twitchName": "Call of Duty: Warzone"
   },
+  "celeste": {
+    "twitchId": "492535",
+    "twitchName": "Celeste"
+  },
   "counter-strike-2": {
     "twitchId": "32399",
     "twitchName": "Counter-Strike"
@@ -44,6 +48,10 @@ export const BOX_ART: Record<string, { twitchId: string; twitchName: string }> =
   "crash-team-racing": {
     "twitchId": "2056946408",
     "twitchName": "Crash Team Racing Nitro-Fueled"
+  },
+  "cuphead": {
+    "twitchId": "459064",
+    "twitchName": "Cuphead"
   },
   "dead-by-daylight": {
     "twitchId": "491487",
@@ -73,6 +81,10 @@ export const BOX_ART: Record<string, { twitchId: string; twitchName: string }> =
     "twitchId": "459527",
     "twitchName": "Gang Beasts"
   },
+  "geometry-dash": {
+    "twitchId": "460951",
+    "twitchName": "Geometry Dash"
+  },
   "goldeneye-007": {
     "twitchId": "829248383",
     "twitchName": "GoldenEye 007"
@@ -96,6 +108,10 @@ export const BOX_ART: Record<string, { twitchId: string; twitchName: string }> =
   "halo-infinite": {
     "twitchId": "506416",
     "twitchName": "Halo Infinite"
+  },
+  "hollow-knight": {
+    "twitchId": "490147",
+    "twitchName": "Hollow Knight"
   },
   "hollow-knight-silksong": {
     "twitchId": "511391",
@@ -133,6 +149,10 @@ export const BOX_ART: Record<string, { twitchId: string; twitchName: string }> =
     "twitchId": "9250",
     "twitchName": "Mario Kart 64"
   },
+  "mario-kart-7": {
+    "twitchId": "28588",
+    "twitchName": "Mario Kart 7"
+  },
   "mario-kart-8-deluxe": {
     "twitchId": "941530474",
     "twitchName": "Mario Kart 8 Deluxe"
@@ -140,6 +160,10 @@ export const BOX_ART: Record<string, { twitchId: string; twitchName: string }> =
   "mario-kart-double-dash": {
     "twitchId": "17189",
     "twitchName": "Mario Kart: Double Dash!!"
+  },
+  "mario-kart-ds": {
+    "twitchId": "5993",
+    "twitchName": "Mario Kart DS"
   },
   "mario-kart-wii": {
     "twitchId": "18871",
@@ -261,6 +285,10 @@ export const BOX_ART: Record<string, { twitchId: string; twitchName: string }> =
     "twitchId": "518379",
     "twitchName": "Pokémon UNITE"
   },
+  "portal": {
+    "twitchId": "6187",
+    "twitchName": "Portal"
+  },
   "rainbow-six-siege": {
     "twitchId": "460630",
     "twitchName": "Rainbow Six Siege"
@@ -297,9 +325,25 @@ export const BOX_ART: Record<string, { twitchId: string; twitchName: string }> =
     "twitchId": "55453844",
     "twitchName": "Street Fighter 6"
   },
+  "super-mario-64": {
+    "twitchId": "2692",
+    "twitchName": "Super Mario 64"
+  },
+  "super-mario-bros": {
+    "twitchId": "509508",
+    "twitchName": "Super Mario Bros."
+  },
   "super-mario-bros-wonder": {
     "twitchId": "463447553",
     "twitchName": "Super Mario Bros. Wonder"
+  },
+  "super-mario-kart": {
+    "twitchId": "17470",
+    "twitchName": "Super Mario Kart"
+  },
+  "super-mario-maker-2": {
+    "twitchId": "511399",
+    "twitchName": "Super Mario Maker 2"
   },
   "super-mario-odyssey": {
     "twitchId": "493997",
@@ -312,6 +356,10 @@ export const BOX_ART: Record<string, { twitchId: string; twitchName: string }> =
   "super-mario-party-jamboree": {
     "twitchId": "1471610418",
     "twitchName": "Super Mario Party Jamboree"
+  },
+  "super-mario-world": {
+    "twitchId": "1229",
+    "twitchName": "Super Mario World"
   },
   "super-smash-bros-melee": {
     "twitchId": "16282",

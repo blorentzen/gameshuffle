@@ -14,6 +14,7 @@ import { createServiceClient } from "@/lib/supabase/admin";
 import { callerFrom, canManageGuild, guildOwner } from "../guildOwner";
 import { channelMessage, ephemeralMessage } from "../respond";
 import { TAG_CONTENT_MAX, TAG_NAME, TAG_NAME_RULE, tidyTagName } from "../tagRules";
+import { proWallReply } from "@/lib/discord/proReply";
 
 interface SubOption {
   name: string;
@@ -60,7 +61,7 @@ export async function handleGsTag(interaction: Record<string, unknown>): Promise
   }
 
   // set / delete — Pro + Manage-Server.
-  if (!owner.isPro) return ephemeralMessage("📌 Tags are a GS Pro feature.");
+  if (!owner.isPro) return ephemeralMessage(proWallReply("📌 Tags are", "discord-bot"));
   if (!canManageGuild(interaction)) {
     return ephemeralMessage("Only members who can manage the server can edit tags.");
   }

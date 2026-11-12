@@ -7,8 +7,12 @@ export interface Character {
 export interface Vehicle {
   name: string;
   img: string;
-  drift?: string; // "Inward" | "Outward" — MK8DX only
-  type?: string;  // "Kart" | "Bike" | "ATV" — MKWorld only
+  drift?: string; // "Inward" | "Outward" (MK8DX); "Inside" | "Outside" on Mario Kart Wii's bikes
+  type?: string;  // "Kart" | "Bike" | "ATV" (MKWorld, Mario Kart Wii)
+  /** Mario Kart Wii: the size class it belongs to ("Small" | "Medium" | "Large"); only drivers of that size can take it. */
+  size?: string;
+  /** What the vehicle filter matches when set (Mario Kart Wii: "Kart" | "Outside-drift bike" | "Inside-drift bike"); else `drift`. */
+  kind?: string;
 }
 
 export interface Wheel {
@@ -26,6 +30,8 @@ export interface Course {
   img: string;
   type?: string; // "Tour" | "Standard" — MK8DX only
   icon?: string; // overworld icon — MKWorld
+  /** A short line under the name ("7 laps", "Shine Thief"), when the race needs one. */
+  note?: string;
 }
 
 export interface Cup {
@@ -94,6 +100,12 @@ export interface GameConfig {
   isNew?: boolean;
   /** Every player gets a different character (Mario Kart 64 doesn't allow repeats). */
   uniqueCharacters?: boolean;
+  /** The character filter's choices when they aren't Light / Medium / Heavy (Mario Kart Wii's size classes). */
+  weightFilter?: { label: string; options: { value: string; label: string }[] };
+  /** The vehicle filter's choices when they aren't MK8DX's drift types (Mario Kart Wii: karts and the two kinds of bike). */
+  vehicleFilter?: { label: string; options: { value: string; label: string }[] };
+  /** A line under the vehicle saying what it is ("Bike · Inside drift"), for games where that decides how it handles. */
+  vehicleNote?: boolean;
   /** The second race mode's wording when it isn't Knockout Rally (Mario Kart 64 battle courses). */
   altMode?: { tab: string; heading: string; body: string; button: string; counterLabel: string; /** Tile label, e.g. "Battle" (default "Race"). */ unit?: string };
 }

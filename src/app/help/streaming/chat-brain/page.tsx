@@ -64,6 +64,17 @@ export default function Page() {
         <li><strong>Who runs it:</strong> you and your mods set the pace (<strong>Next round</strong>, <code>!cb next</code>, <code>!cb lock</code>, <code>!cb control 1</code> or <code>2</code> after three empty face-offs). Either streamer can leave, which ends the game with the scores as they are. In a Twitch Shared Chat, each message counts for the channel it was typed in.</li>
       </ul>
 
+      <h2>Co-stream together: both chats on one team</h2>
+      <p>
+        Pick <strong>Co-stream together</strong> under <strong>Who plays</strong> to put both chats on the same side against 1 to 5
+        boards. The invite, accepting and leaving work as in a co-stream, and only you need GS Pro.
+      </p>
+      <ul>
+        <li><strong>Every guess is shared:</strong> both chats answer each guess with <code>!a</code> in their own channel, and the biggest answer across both chats is the team&apos;s.</li>
+        <li><strong>One score, three strikes:</strong> the score and the strikes belong to the team, the same as chat plays. A cleared board or three strikes ends it.</li>
+        <li><strong>On screen:</strong> each overlay and live page shows what each chat answered, by channel name.</li>
+      </ul>
+
       <h2>Prizes for the top brains</h2>
       <p>
         When you start any game, you can put up a token prize (25 to 500 tokens). When the game ends, the top three viewers by points

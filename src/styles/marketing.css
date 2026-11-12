@@ -2462,6 +2462,20 @@
 .dmock__thumb--wide { aspect-ratio: 16 / 9; }
 .dmock__ephemeral { margin: 0 0 0 5.2rem; color: #949ba4; font-size: var(--font-size-12); }
 .dmock__ephemeral b { color: #dbdee1; }
+/* The time trial cards (src/lib/discord/ttCards.ts): small print, a label, gold for a fallen server record, the result
+   screenshot full width, and the managers' line with Verify beside it. */
+.dmock__container--gold { border-left-color: #e0b13a; }
+.dmock__container > .dmock__live, .dmock__container > .dmock__shot, .dmock__container > .dmock__mgr { justify-self: stretch; }
+.dmock__sub { color: #949ba4; font-size: var(--font-size-12); }
+.dmock__label { font-size: var(--font-size-16); }
+.dmock__record { display: grid; }
+.dmock__thumb--square { aspect-ratio: 1; width: 7.6rem; }
+.dmock__mgr { display: flex; align-items: center; justify-content: space-between; gap: var(--spacing-12); }
+.dmock__mgr .dmock__btn { flex: none; }
+.dmock__shot { position: relative; display: block; aspect-ratio: 16 / 9; border-radius: 8px; overflow: hidden; background: linear-gradient(180deg, transparent 70%, rgba(0, 0, 0, 0.25) 70%), repeating-linear-gradient(100deg, transparent 0 4.6rem, rgba(255, 255, 255, 0.07) 4.6rem 5rem), linear-gradient(160deg, #0d2052, #2350b8 55%, #6aa5ff); }
+.dmock__shot::before { content: ""; position: absolute; left: 9%; bottom: 14%; width: 24%; height: 20%; border-radius: 40% 40% 14% 14%; background: linear-gradient(180deg, #f2645a, #b9302a); box-shadow: 0 6px 0 -2px #1b1b1b; }
+.dmock__shot-card { position: absolute; right: 6%; top: 12%; width: 46%; display: grid; grid-template-columns: auto auto; justify-content: space-between; gap: 0.2rem 1rem; background: rgba(255, 255, 255, 0.94); color: #0f1d45; border-radius: 6px; padding: 0.8rem 1rem; font-size: var(--font-size-12); font-weight: 700; font-variant-numeric: tabular-nums; }
+.dmock__shot-card b { color: #0f1d45; border-top: 1px solid #c9d3ee; padding-top: 0.3rem; }
 @media (max-width: 480px) {
   .dmock__body { padding-inline: var(--spacing-12); }
   .dmock__msg { grid-template-columns: 3.2rem minmax(0, 1fr); gap: var(--spacing-8); }
@@ -2507,11 +2521,12 @@
 .looks-prompt__actions { display: flex; flex-wrap: wrap; align-items: center; gap: var(--spacing-12) var(--spacing-20); }
 /* A wall's button row and the small line under it read as one unit. */
 .pro-trial__act { display: grid; gap: var(--spacing-8); }
+/* In a window (ProWallModal) the window is the one surface: the prompt drops its own frame. */
+.pro-wall-modal .pro-trial { border: 0; box-shadow: none; padding: 0; background: transparent; }
 
 /* SeasonPicker (community season board, profile Season tab). */
 .season-picker { max-width: 26rem; margin: 0 0 var(--spacing-12); }
-.season-picker__upsell { margin: 0 0 var(--spacing-12); font-size: var(--font-size-14); }
-.season-picker__upsell a { font-weight: 600; }
+.season-picker__upsell { margin: 0 0 var(--spacing-16); max-width: 56rem; }
 
 /* ---------- Ways into the shop (build G): homepage band, TCG and game night lines ---------- */
 .shop-band {

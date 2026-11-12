@@ -30,6 +30,22 @@ export function fighterPool(game: SmashGame, o: FighterOptions): SmashFighter[] 
 
 export interface FighterRoll { name: string; costume: number }
 
+/** How many costumes a fighter has: its named colors (Melee: 4 to 6), else Ultimate's 8. */
+export const costumeCount = (f: SmashFighter | undefined): number => f?.costumes?.length || 8;
+
+/** "Costume 3 · Blue" where the game names its colors (Melee), else "Costume 3". */
+export function costumeLabel(f: SmashFighter | undefined, costume: number): string {
+  const color = f?.costumes?.[costume - 1];
+  return color ? `Costume ${costume} · ${color}` : `Costume ${costume}`;
+}
+
+/** The fighter's art in that costume (Melee has a portrait per costume), or "" when the game has none (Melee's Sheik). */
+export function costumeArt(game: SmashGame, f: SmashFighter | undefined, costume: number): string {
+  if (!f || !game.artReady) return "";
+  const img = f.costumeImgs?.[costume - 1] ?? f.img;
+  return img ? `${game.assetBase}${img}` : "";
+}
+
 /**
  * A fighter (and costume slot 1-8) for each player. Repeats between players
  * are allowed, like the game, unless `unique`. `used` leaves out fighters
@@ -42,7 +58,7 @@ export function drawFighters(pool: SmashFighter[], players: number, opts: { uniq
   const order = shuffle(fresh, rng);
   return Array.from({ length: players }, (_, i) => {
     const f = opts.unique ? order[i % order.length] : pick(fresh, rng)!;
-    return { name: f.name, costume: 1 + Math.floor(rng() * 8) };
+    return { name: f.name, costume: 1 + Math.floor(rng() * costumeCount(f)) };
   });
 }
 
@@ -73,10 +89,11 @@ export function stagePool(game: SmashGame, o: StageOptions): SmashStage[] {
 
 export interface StageRoll { stageId: string; form: StageForm; hazards: boolean }
 
-/** Competitive: the stage as it is, hazards off. Party: any form, hazards on or off. */
-export function rollStage(pool: SmashStage[], competitive: boolean, rng: Rng = Math.random): StageRoll {
+/** Competitive: the stage as it is, hazards off. Party: any form, hazards on or off (a game without forms, Melee:
+ *  always the stage as it is, `forms` false). */
+export function rollStage(pool: SmashStage[], competitive: boolean, rng: Rng = Math.random, forms = true): StageRoll {
   const s = pick(pool, rng)!;
-  if (competitive) return { stageId: s.id, form: "normal", hazards: false };
+  if (competitive || !forms) return { stageId: s.id, form: "normal", hazards: false };
   const r = rng();
   return { stageId: s.id, form: r < 0.6 ? "normal" : r < 0.8 ? "battlefield" : "omega", hazards: rng() < 0.6 };
 }
@@ -94,15 +111,20 @@ export interface SmashRules {
 /** The common competitive ruleset: 3 stocks, 7 minutes, no items. */
 export const COMPETITIVE_RULES: SmashRules = { kind: "stock", stocks: 3, minutes: 7, items: "off", finalSmashMeter: false };
 
-export function rollPartyRules(rng: Rng = Math.random): SmashRules {
-  const kind = pick(["stock", "stock", "time", "stamina"] as const, rng)!;
-  return {
-    kind,
-    stocks: kind === "time" ? null : pick([1, 2, 3, 4], rng)!,
-    minutes: kind === "time" ? pick([2, 3, 4, 5], rng)! : pick([5, 7], rng)!,
-    items: pick(["off", "low", "medium", "high", "very high"] as const, rng)!,
-    finalSmashMeter: rng() < 0.4,
-  };
+/** The game's competitive ruleset (Melee: 4 stocks, 8 minutes, items off). */
+export const competitiveRules = (game?: SmashGame): SmashRules => game?.rules?.competitive ?? COMPETITIVE_RULES;
+
+/** Party rules, from what the game has: Stamina and the Final Smash meter only where the game has them (not Melee). */
+export function rollPartyRules(rng: Rng = Math.random, game?: SmashGame): SmashRules {
+  const stamina = game?.rules ? game.rules.stamina : true;
+  const finalSmash = game?.rules ? game.rules.finalSmash : true;
+  const kind = pick(stamina ? (["stock", "stock", "time", "stamina"] as const) : (["stock", "stock", "time"] as const), rng)!;
+  const stocks = kind === "time" ? null : pick([1, 2, 3, 4], rng)!;
+  const minutes = kind === "time" ? pick([2, 3, 4, 5], rng)! : pick([5, 7], rng)!;
+  const items = pick(["off", "low", "medium", "high", "very high"] as const, rng)!;
+  // Same draws in the same order as before for Ultimate; a game without Final Smashes ignores the last one.
+  const meter = rng() < 0.4;
+  return { kind, stocks, minutes, items, finalSmashMeter: finalSmash && meter };
 }
 
 /* ── Custom Smash ────────────────────────────────────────────────────────── */

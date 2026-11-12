@@ -48,7 +48,7 @@ export function WeatherTile({ kind, size }: { kind: "rain" | "sun" | "sand"; siz
   return <span className={`duel-evtile duel-evtile--${size}`} style={{ background: EVENT_LOOK[kind].bg }} aria-hidden="true"><Glyph size={size === "lg" ? 30 : 15} stroke={2} /></span>;
 }
 
-export function DuelEventsBar({ turn, event, forecast, later = null, weather, outcome, hint, picture, staging = false, onShow, turnRef, inWindow = false }: {
+export function DuelEventsBar({ turn, event, forecast, later = null, weather, outcome, hint, picture, staging = false, onShow, turnRef, inWindow = false, battle = false }: {
   turn: number;
   event: DuelEventView | null;
   forecast: DuelEventView | null;
@@ -65,6 +65,8 @@ export function DuelEventsBar({ turn, event, forecast, later = null, weather, ou
   turnRef?: Ref<HTMLSpanElement>;
   /** The copy at the top of the turn window. */
   inWindow?: boolean;
+  /** A trainer battle counts rounds (both players' turns), and has no "six" before the start. */
+  battle?: boolean;
 }) {
   const next = staging ? null : forecast;
   const after = staging ? null : later;
@@ -83,7 +85,7 @@ export function DuelEventsBar({ turn, event, forecast, later = null, weather, ou
   if (inWindow && !w && !eventChip && !next && !after) return null;
   return (
     <div className={`duel-evbar${inWindow ? " duel-evbar--window" : ""}`} role="group" aria-label="Events">
-      {!inWindow && <span className="duel-evbar__turn" ref={turnRef} tabIndex={-1}>{turn > 0 ? `Turn ${turn}` : "Today's six"}</span>}
+      {!inWindow && <span className="duel-evbar__turn" ref={turnRef} tabIndex={-1}>{turn > 0 ? `${battle ? "Round" : "Turn"} ${turn}` : battle ? "Your cards" : "Today's six"}</span>}
       {weather && w && (
         chip("weather", "duel-ev--now", `${w.word}: ${w.line}, ${turnsLeft(weather.turnsLeft)}.`, (
           <>

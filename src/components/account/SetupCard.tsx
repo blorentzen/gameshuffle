@@ -12,6 +12,11 @@ import { describeSmashSetup } from "@/data/smash";
 import { describeSplatoonSetup } from "@/data/splatoon";
 import { describeKirbySetup } from "@/data/kirby";
 import { describeSonicSetup } from "@/data/sonic";
+import { describeWonderSetup } from "@/data/wonder";
+import { describeDoubleDashSetup } from "@/data/double-dash";
+import { describeMarioKartDsSetup } from "@/data/mario-kart-ds";
+import { describeMarioKart7Setup } from "@/data/mario-kart-7";
+import { describeSuperMarioKartSetup } from "@/data/super-mario-kart";
 import { describeStadiumSetup } from "@/data/pokemon/stadium-setup";
 
 interface SetupCardProps {
@@ -91,6 +96,46 @@ export function SetupCard({ config, onCopyLink, onDelete, onView, copied }: Setu
       {cfg?.type === "sonic-setup" && (
         <dl className="saved-build-card__party">
           {describeSonicSetup(cfg).map((r) => (
+            <div key={r.label}><dt>{r.label}</dt><dd>{r.value}</dd></div>
+          ))}
+        </dl>
+      )}
+
+      {cfg?.type === "wonder-setup" && (
+        <dl className="saved-build-card__party">
+          {describeWonderSetup(cfg).map((r) => (
+            <div key={r.label}><dt>{r.label}</dt><dd>{r.value}</dd></div>
+          ))}
+        </dl>
+      )}
+
+      {cfg?.type === "double-dash-setup" && (
+        <dl className="saved-build-card__party">
+          {describeDoubleDashSetup(cfg).map((r) => (
+            <div key={r.label}><dt>{r.label}</dt><dd>{r.value}</dd></div>
+          ))}
+        </dl>
+      )}
+
+      {cfg?.type === "mario-kart-ds-setup" && (
+        <dl className="saved-build-card__party">
+          {describeMarioKartDsSetup(cfg).map((r) => (
+            <div key={r.label}><dt>{r.label}</dt><dd>{r.value}</dd></div>
+          ))}
+        </dl>
+      )}
+
+      {cfg?.type === "mario-kart-7-setup" && (
+        <dl className="saved-build-card__party">
+          {describeMarioKart7Setup(cfg).map((r) => (
+            <div key={r.label}><dt>{r.label}</dt><dd>{r.value}</dd></div>
+          ))}
+        </dl>
+      )}
+
+      {cfg?.type === "super-mario-kart-setup" && (
+        <dl className="saved-build-card__party">
+          {describeSuperMarioKartSetup(cfg).map((r) => (
             <div key={r.label}><dt>{r.label}</dt><dd>{r.value}</dd></div>
           ))}
         </dl>
@@ -249,7 +294,7 @@ export function SetupCard({ config, onCopyLink, onDelete, onView, copied }: Setu
       <div className="saved-build-card__actions saved-build-card__actions--row">
         <RowActions>
           {onView && <IconAction label={`View ${config.config_name}`} icon={IconEye} onClick={() => onView(config.id)} />}
-          {(cfg?.type === "game-night-setup" || cfg?.type === "item-set" || cfg?.type === "party-setup" || cfg?.type === "smash-setup" || cfg?.type === "splatoon-setup" || cfg?.type === "kirby-setup" || cfg?.type === "stadium-setup" || cfg?.type === "sonic-setup") && (
+          {(cfg?.type === "game-night-setup" || cfg?.type === "item-set" || cfg?.type === "party-setup" || cfg?.type === "smash-setup" || cfg?.type === "splatoon-setup" || cfg?.type === "kirby-setup" || cfg?.type === "stadium-setup" || cfg?.type === "sonic-setup" || cfg?.type === "wonder-setup" || cfg?.type === "double-dash-setup" || cfg?.type === "mario-kart-ds-setup" || cfg?.type === "mario-kart-7-setup" || cfg?.type === "super-mario-kart-setup") && (
             <IconAction
               label={`Open ${config.config_name} in the randomizer`}
               icon={IconExternalLink}

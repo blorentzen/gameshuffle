@@ -1,8 +1,9 @@
 import { SMASH_CARDS } from "@/data/smash/cards";
 import { ULTIMATE } from "@/data/smash/ultimate";
+import { MELEE } from "@/data/smash/melee";
 import type { SmashGame } from "@/lib/smash/types";
 
-export const SMASH_GAMES: Record<string, SmashGame> = { [ULTIMATE.slug]: ULTIMATE };
+export const SMASH_GAMES: Record<string, SmashGame> = { [ULTIMATE.slug]: ULTIMATE, [MELEE.slug]: MELEE };
 export function smashGame(slug: string | null | undefined): SmashGame | null {
   return (slug && SMASH_GAMES[slug]) || null;
 }

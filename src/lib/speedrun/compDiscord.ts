@@ -12,9 +12,11 @@ export interface CompSpeedrun {
   pace: boolean;
   /** The role a pace alert pings, or null for none. */
   paceRole: string | null;
+  /** Post speedrun races (starting, then results) that the owner or a member runs in (free, races picks 9A). */
+  races: boolean;
 }
 
-export const EMPTY_COMP_SPEEDRUN: CompSpeedrun = { pbs: false, pace: false, paceRole: null };
+export const EMPTY_COMP_SPEEDRUN: CompSpeedrun = { pbs: false, pace: false, paceRole: null, races: false };
 
 export function readCompSpeedrun(settings: Record<string, unknown> | null | undefined): CompSpeedrun {
   const raw = settings?.speedrun;
@@ -24,5 +26,6 @@ export function readCompSpeedrun(settings: Record<string, unknown> | null | unde
     pbs: r.pbs === true,
     pace: r.pace === true,
     paceRole: typeof r.paceRole === "string" && /^\d{5,25}$/.test(r.paceRole) ? r.paceRole : null,
+    races: r.races === true,
   };
 }

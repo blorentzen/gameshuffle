@@ -50,8 +50,11 @@ export const COMPARE_GROUPS: CompareGroup[] = [
     label: "Streaming and Discord",
     rows: [
       { label: "Twitch chat bot, !mmr and chat games", href: "/twitch-chat-games", free: false, supporter: false, pro: true, backer: true },
-      { label: "Overlay tools, polls, Stream Bingo, Chat Brain, break mode", href: "/for-streamers", free: false, supporter: false, pro: true, backer: true },
-      { label: "GameShuffle's Discord bot", href: "/discord", free: "One server", supporter: "One server", pro: "Five servers, roles and go-live alerts", backer: "Five servers, roles and go-live alerts" },
+      { label: "MMR card, war, speedrun and timer overlays", href: "/mmr-card", free: true, supporter: true, pro: true, backer: true },
+      { label: "The GameShuffle overlay: tools, polls, Stream Bingo, raffles, the war score, Chat Brain, break mode", href: "/for-streamers", free: false, supporter: false, pro: true, backer: true },
+      { label: "Trivia, live nights and the level queue on stream", href: "/twitch-chat-games", free: false, supporter: false, pro: true, backer: true },
+      { label: "Speedrun predictions and PB pace alerts", free: false, supporter: false, pro: true, backer: true },
+      { label: "GameShuffle's Discord bot", href: "/discord", free: "One server, with the Weekly and Chat Brain posts", supporter: "One server, with the Weekly and Chat Brain posts", pro: "Five servers, roles and go-live alerts", backer: "Five servers, roles and go-live alerts" },
     ],
   },
   {
@@ -60,6 +63,8 @@ export const COMPARE_GROUPS: CompareGroup[] = [
       { label: "AI tools", free: "3 tries a day", supporter: "3 tries a day", pro: "60 a month across every tool", backer: "60 a month across every tool" },
       { label: "Lounge: how you play, tonight's goal, weekly report, night recap", href: "/lounge", free: false, supporter: false, pro: true, backer: true },
       { label: "Pokémon card collection and deck lists", href: "/pokemon-tcg-companion", free: "250 cards, 3 decks", supporter: "250 cards, 3 decks", pro: "No limit", backer: "No limit" },
+      { label: "Hosting Play together in the TCG Companion (your opponent joins free)", href: "/pokemon-tcg-companion", free: false, supporter: false, pro: true, backer: true },
+      { label: "Game nights whose attendee list and TV board update live", href: "/game-nights", free: false, supporter: false, pro: true, backer: true },
     ],
   },
   {

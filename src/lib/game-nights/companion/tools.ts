@@ -1,5 +1,5 @@
 import type { ComponentType } from "react";
-import { IconBulb, IconCards, IconCircleNumber1, IconUserQuestion, IconHandFinger, IconTrophy, IconTornado, IconDice6, IconDice3, IconDice5, IconFlag, IconGridDots, IconHeart, IconMoon, IconNotebook, IconSearch, IconSparkles, IconStack2, IconStopwatch, IconTargetArrow } from "@tabler/icons-react";
+import { IconBrain, IconBulb, IconCards, IconCircleNumber1, IconUserQuestion, IconHandFinger, IconTrophy, IconTornado, IconDice6, IconDice3, IconDice5, IconFlag, IconGridDots, IconHeart, IconMoon, IconNotebook, IconSearch, IconSparkles, IconStack2, IconStopwatch, IconTargetArrow } from "@tabler/icons-react";
 
 /**
  * Companion-tools registry — digital versions of the physical bits a board-game
@@ -257,6 +257,25 @@ export const COMPANION_TOOLS: CompanionTool[] = [
       "Read it out loud, count to three, and everyone points at who they think fits. You can point at yourself.",
       "Tap Next prompt and keep going; prompts don't repeat until the pack runs out.",
       "With a free account you can host it on everyone's phones instead: votes are anonymous, the TV shows the reveal, and you score a point each time your vote matches the room's pick.",
+    ],
+  },
+  {
+    id: "chat-brain",
+    name: "Chat Brain",
+    // Staff only until Chat Brain launches (the page checks); off the tools grid and the sitemap until then.
+    unlisted: true,
+    description: "Guess what most people said, together or in two teams, on one phone.",
+    href: "/game-nights/tools/chat-brain",
+    icon: IconBrain,
+    tagline: "A GameShuffle Original: guess the answers most people gave, on one phone.",
+    usesRoster: true,
+    about: "Chat Brain is a guessing game made by GameShuffle. Every board comes from real answers: lots of people answered a question like \"Name a snack you eat while gaming\", and the most popular answers made the board. You guess what most people said.",
+    howToPlay: [
+      "Pick who plays: everyone as one team, or two teams taking turns.",
+      "Read the question out loud, talk it over, and type one answer. If it's on the board, its points go up; if not, it's a strike.",
+      "One team: three strikes or a cleared board ends it. Bank 50 points a board to win.",
+      "Two teams: the team in control answers until it clears the board or takes three strikes, then the other team gets one answer to steal every point found so far.",
+      "With a free account you can play it on everyone's phones instead: everyone types an answer, the answer most of you gave counts, and the TV shows the board.",
     ],
   },
   {

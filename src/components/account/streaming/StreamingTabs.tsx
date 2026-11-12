@@ -7,7 +7,7 @@
  *   Setup       Twitch · YouTube & Kick · Schedule · Mods (Discord moved to Account ▸ Discord, 2026-11-05)
  *   Overlay     Layout · Tool looks · Wheels · Chat feed
  *   Chat        Commands · Built-in · Modules · Game defaults
- *   Live games  Polls · Bingo · Chat Draft · Chat Brain
+ *   Live games  Polls · Bingo · Chat Draft · Chat Brain · Break mode · Level queue
  *   Viewers     Engagement · Walk-up songs
  *
  * Free accounts get Get started; every other screen is left out of the map, so
@@ -41,6 +41,7 @@ import { StreamBingoTab } from "@/components/account/StreamBingoTab";
 import { ChatDraftTab } from "@/components/account/ChatDraftTab";
 import { ChatBrainStreamTab } from "@/components/account/ChatBrainStreamTab";
 import { BreakModeTab } from "@/components/account/BreakModeTab";
+import { LevelQueueTab } from "@/components/levels/LevelQueueTab";
 import { EngagementTab } from "@/components/account/EngagementTab";
 import { ChannelAnthemSettings } from "@/components/account/ChannelAnthemSettings";
 import type { SetupStep } from "@/lib/streaming/setup";
@@ -93,6 +94,7 @@ export function proScreens(profileTimezone: string | null): ScreenMap {
         <BreakModeTab />
       </Wrap>
     ),
+    "level-queue": () => <LevelQueueTab />,
     engagement: () => <Wrap title="Engagement"><EngagementTab /></Wrap>,
     anthems: () => (
       <Wrap title="Walk-up songs" intro="Let viewers walk out to their own song when they show up in your chat. Viewers pick their song on their profile; you choose who gets one, when it plays and how loud.">

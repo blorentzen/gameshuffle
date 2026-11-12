@@ -1,6 +1,6 @@
 import type { BrowseHeroProps } from "@/components/events/BrowseHero";
 
-/** The page's header, shared with its loading outline so the header never jumps when the page arrives. */
+/** The page's header. */
 export const ROAD_HERO: BrowseHeroProps = {
   eyebrow: "Trainer Road",
   title: "Pokémon Gym Leaders and Champions: every team, every region",

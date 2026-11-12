@@ -11,7 +11,7 @@ import { readTyped, type Typed } from "./legacy";
 import { readsLikeFor, teamFor, trackNames } from "./cardStore";
 import { addPenalty, addRace, pendingTrack, removePenalty, replaceRace, setPendingTrack, setSide, setTrack, undoRace, warTeams, type War, type WarTeamRef } from "./store";
 import { placesText, readTrack, type ReadSpots, type WarGame, type WarSide } from "./rules";
-import { trackTitle } from "@/lib/timeTrials/codes";
+import { warTrackTitle as trackTitle } from "./tracks";
 import { serverLogo } from "./logos";
 import { registryTeam } from "./teams";
 import { cardLogo } from "./tables";

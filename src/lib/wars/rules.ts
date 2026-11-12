@@ -14,17 +14,24 @@
  * is a place or a range ("1-3 7 8 12"), which those bots refuse.
  */
 
-import { tracksByCode, trackCode } from "@/lib/timeTrials/codes";
-import { ttTracks, type TtTrack } from "@/lib/timeTrials/tracks";
 import { DEFAULT_FORMAT, swingFor, teamScores, type WarFormat } from "./format";
+import { warTrackById, warTrackByCode, warTracks, type WarTrack } from "./tracks";
 
-export type WarGame = "mk8dx" | "mkworld";
+/** The war games. "mkworld" is Mario Kart World (and "mkw" means World across GameShuffle); Mario Kart Wii is "mkwii". */
+export type WarGame = "mk8dx" | "mkworld" | "mkwii";
+export const WAR_GAMES: readonly WarGame[] = ["mk8dx", "mkworld", "mkwii"];
+export const isWarGame = (v: unknown): v is WarGame => v === "mk8dx" || v === "mkworld" || v === "mkwii";
+/** A game from a request or an option: one of the three, else `fallback` (never silently another game). */
+export const warGameOr = (v: unknown, fallback: WarGame): WarGame => (isWarGame(v) ? v : fallback);
+export const WAR_GAME_LABELS: Record<WarGame, string> = { mk8dx: "Mario Kart 8 Deluxe", mkworld: "Mario Kart World", mkwii: "Mario Kart Wii" };
 export type WarSide = "us" | "them";
 export type WarEntry = "scorer" | "taps";
 
 export const ROOM = 12;
 export const TEAM = 6;
 export const RACES = 12;
+/** Mario Kart 8 Deluxe's (and World's) 12-player table. `POINTS`, `RACE_TOTAL`, `pointsFor`, `raceScore` and `maxSwing`
+ *  are that table only; a war scores through format.ts's `pointsTable(game, room)`, which knows Mario Kart Wii's. */
 export const POINTS: readonly number[] = [15, 12, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1];
 export const RACE_TOTAL = POINTS.slice(0, ROOM).reduce((a, b) => a + b, 0);
 
@@ -248,23 +255,22 @@ export const placeName = (p: number) => `${p}${p % 10 === 1 && p !== 11 ? "st" :
 
 // ── Tracks ────────────────────────────────────────────────────────────────────────────────────
 
-export function warTrack(game: WarGame, id: string): TtTrack | null {
-  return ttTracks(game).find((t) => t.id === id) ?? null;
+export type { WarTrack } from "./tracks";
+
+export function warTrack(game: WarGame, id: string): WarTrack | null {
+  return warTrackById(game, id);
 }
 
 export function trackLabel(game: WarGame, id: string): string {
   const t = warTrack(game, id);
-  return t ? trackCode(t) ?? t.name : id;
+  return t ? t.code ?? t.name : id;
 }
 
 /** A typed track code: the exact code (any case) when only one track has it. */
-export function readTrack(game: WarGame, raw: string): TtTrack | null {
+export function readTrack(game: WarGame, raw: string): WarTrack | null {
   const text = raw.trim();
   if (!text) return null;
-  const exactCase = ttTracks(game).find((t) => trackCode(t) === text);
-  if (exactCase) return exactCase;
-  const list = tracksByCode(text, game).filter((t) => (trackCode(t) ?? "").toLowerCase() === text.toLowerCase());
-  return list.length === 1 ? list[0] : null;
+  return warTrackByCode(game, text);
 }
 
 function distance(a: string, b: string): number {
@@ -279,12 +285,12 @@ function distance(a: string, b: string): number {
 }
 
 /** The closest tracks to a code nobody has (up to `max`): codes that start with it, then the nearest codes, then names. */
-export function suggestTracks(game: WarGame, raw: string, max = 3): TtTrack[] {
+export function suggestTracks(game: WarGame, raw: string, max = 3): WarTrack[] {
   const q = raw.trim().toLowerCase();
   if (!q) return [];
-  const all = ttTracks(game).filter((t) => trackCode(t));
+  const all = warTracks(game).filter((t) => t.code);
   const scored = all.map((t) => {
-    const code = (trackCode(t) ?? "").toLowerCase();
+    const code = (t.code ?? "").toLowerCase();
     const name = t.name.toLowerCase();
     let score = distance(q, code) * 2;
     if (code.startsWith(q) || q.startsWith(code)) score -= 3;
@@ -295,7 +301,7 @@ export function suggestTracks(game: WarGame, raw: string, max = 3): TtTrack[] {
 }
 
 /** "Track then places" in one line ("SSC 12379+"), or places alone; the track is optional. */
-export function readRaceLine(game: WarGame, raw: string): { track: TtTrack | null; trackText: string | null; spots: ReadSpots } {
+export function readRaceLine(game: WarGame, raw: string): { track: WarTrack | null; trackText: string | null; spots: ReadSpots } {
   const parts = raw.trim().split(/\s+/);
   // A first word with a letter is the track (codes like CC and bBC3 are made of letters places can use too).
   if (parts.length >= 2 && /[a-z]/i.test(parts[0])) {

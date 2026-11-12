@@ -41,7 +41,7 @@ export function DecksTab({ isPro }: { isPro: boolean }) {
           <DeckEditor scope="me" ai />
         </AdminSection>
       ) : (
-        <ProTrialPrompt title="Your own cards are part of GS Pro" from="decks">
+        <ProTrialPrompt title="Your own cards are part of GS Pro" from="decks" headingLevel={2}>
           Write house rules, Chance cards and missions for your crew, or have AI draft them for you. Until then, your nights use the GameShuffle deck.
         </ProTrialPrompt>
       )}

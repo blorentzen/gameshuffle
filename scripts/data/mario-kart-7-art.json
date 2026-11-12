@@ -1,0 +1,530 @@
+{
+ "checkedOn": "2026-11-12",
+ "note": "Mario Kart 7 art for the randomizer, all through Super Mario Wiki's file host (mariowiki.com): the in-game character select icons (64px, drawn at 128, the white behind them made transparent), the official artwork of every kart body, tire set and glider (white background joined to the edge made transparent), the in-game course select pictures for the 32 courses and 6 battle courses, the in-game cup emblems, and the official group artwork on Toad Circuit cropped to 16:9 for the header. Run scripts/pull-mario-kart-7-art.ts.",
+ "characters": [
+  {
+   "name": "Mario",
+   "slug": "mario",
+   "file": "MK7 Icon character select Mario.png",
+   "white": true
+  },
+  {
+   "name": "Luigi",
+   "slug": "luigi",
+   "file": "MK7 Icon character select Luigi.png",
+   "white": true
+  },
+  {
+   "name": "Peach",
+   "slug": "peach",
+   "file": "MK7 Icon character select Peach.png",
+   "white": true
+  },
+  {
+   "name": "Yoshi",
+   "slug": "yoshi",
+   "file": "MK7 Icon character select Yoshi.png",
+   "white": true
+  },
+  {
+   "name": "Bowser",
+   "slug": "bowser",
+   "file": "MK7 Icon character select Bowser.png",
+   "white": true
+  },
+  {
+   "name": "Donkey Kong",
+   "slug": "donkey-kong",
+   "file": "MK7 Icon character select Donkey Kong.png",
+   "white": true
+  },
+  {
+   "name": "Toad",
+   "slug": "toad",
+   "file": "MK7 Icon character select Toad.png",
+   "white": true
+  },
+  {
+   "name": "Koopa Troopa",
+   "slug": "koopa-troopa",
+   "file": "MK7 Icon character select Koopa Troopa.png",
+   "white": true
+  },
+  {
+   "name": "Daisy",
+   "slug": "daisy",
+   "file": "MK7 Icon character select Daisy.png",
+   "white": true
+  },
+  {
+   "name": "Wario",
+   "slug": "wario",
+   "file": "MK7 Icon character select Wario.png",
+   "white": true
+  },
+  {
+   "name": "Rosalina",
+   "slug": "rosalina",
+   "file": "MK7 Icon character select Rosalina.png",
+   "white": true
+  },
+  {
+   "name": "Metal Mario",
+   "slug": "metal-mario",
+   "file": "MetalMarioIcon-MK7.png",
+   "white": true
+  },
+  {
+   "name": "Shy Guy",
+   "slug": "shy-guy",
+   "file": "ShyGuyIcon-MK7.png",
+   "white": true
+  },
+  {
+   "name": "Honey Queen",
+   "slug": "honey-queen",
+   "file": "QueenBeeIcon-MK7.png",
+   "white": true
+  },
+  {
+   "name": "Wiggler",
+   "slug": "wiggler",
+   "file": "WigglerIcon-MK7.png",
+   "white": true
+  },
+  {
+   "name": "Lakitu",
+   "slug": "lakitu",
+   "file": "LakituIcon-MK7.png",
+   "white": true
+  },
+  {
+   "name": "Mii",
+   "slug": "mii",
+   "file": "MK7 Icon character select Mii.png",
+   "white": true
+  }
+ ],
+ "bodies": [
+  {
+   "name": "Standard",
+   "slug": "standard",
+   "file": "MK7 Toad-Standard Kart.png"
+  },
+  {
+   "name": "Birthday Girl",
+   "slug": "birthday-girl",
+   "file": "MK7 Royal Ribbon.png"
+  },
+  {
+   "name": "Bolt Buggy",
+   "slug": "bolt-buggy",
+   "file": "MK7 Bolt Buggy.png"
+  },
+  {
+   "name": "Bumble V",
+   "slug": "bumble-v",
+   "file": "MK7 Bumble V.png"
+  },
+  {
+   "name": "Bruiser",
+   "slug": "bruiser",
+   "file": "MK7 Growlster.png"
+  },
+  {
+   "name": "Soda Jet",
+   "slug": "soda-jet",
+   "file": "MK7 Soda Jet.png"
+  },
+  {
+   "name": "B Dasher",
+   "slug": "b-dasher",
+   "file": "MK7 B Dasher.png"
+  },
+  {
+   "name": "Egg 1",
+   "slug": "egg-1",
+   "file": "MK7 Egg 1.png"
+  },
+  {
+   "name": "Barrel Train",
+   "slug": "barrel-train",
+   "file": "MK7 Barrel Train.png"
+  },
+  {
+   "name": "Tiny Tug",
+   "slug": "tiny-tug",
+   "file": "MK7 Tiny Tug.png"
+  },
+  {
+   "name": "Cact-X",
+   "slug": "cact-x",
+   "file": "MK7 Cact-X.png"
+  },
+  {
+   "name": "Koopa Clown",
+   "slug": "koopa-clown",
+   "file": "MK7 Koopa Clown.png"
+  },
+  {
+   "name": "Cloud 9",
+   "slug": "cloud-9",
+   "file": "MK7 Cloud 9.png"
+  },
+  {
+   "name": "Zucchini",
+   "slug": "zucchini",
+   "file": "MK7 Zucchini.png"
+  },
+  {
+   "name": "Blue Seven",
+   "slug": "blue-seven",
+   "file": "MK7 Blue Seven.png"
+  },
+  {
+   "name": "Pipe Frame",
+   "slug": "pipe-frame",
+   "file": "MK7 Pipe Frame.png"
+  },
+  {
+   "name": "Gold Standard",
+   "slug": "gold-standard",
+   "file": "MK7 Gold Kart.png"
+  }
+ ],
+ "tires": [
+  {
+   "name": "Standard",
+   "slug": "standard",
+   "file": "MK7 Standard.png"
+  },
+  {
+   "name": "Roller",
+   "slug": "roller",
+   "file": "MK7 Roller.png"
+  },
+  {
+   "name": "Monster",
+   "slug": "monster",
+   "file": "MK7 Monster.png"
+  },
+  {
+   "name": "Slim",
+   "slug": "slim",
+   "file": "MK7 Slim.png"
+  },
+  {
+   "name": "Slick",
+   "slug": "slick",
+   "file": "MK7 Slick.png"
+  },
+  {
+   "name": "Sponge",
+   "slug": "sponge",
+   "file": "MK7 Sponge Wheels.png"
+  },
+  {
+   "name": "Mushroom",
+   "slug": "mushroom",
+   "file": "MK7 Mushroom Wheels.png"
+  },
+  {
+   "name": "Wood",
+   "slug": "wood",
+   "file": "MK7 Wood.png"
+  },
+  {
+   "name": "Red Monster",
+   "slug": "red-monster",
+   "file": "MK7 Red Monster.png"
+  },
+  {
+   "name": "Gold Tires",
+   "slug": "gold-tires",
+   "file": "MK7 Gold Tires.png"
+  }
+ ],
+ "gliders": [
+  {
+   "name": "Super Glider",
+   "slug": "super-glider",
+   "file": "MK7 Super Glider.png"
+  },
+  {
+   "name": "Peach Parasol",
+   "slug": "peach-parasol",
+   "file": "MK7 Peach Parasol.png"
+  },
+  {
+   "name": "Flower Glider",
+   "slug": "flower-glider",
+   "file": "MK7 Flower Glider.png"
+  },
+  {
+   "name": "Swooper",
+   "slug": "swooper",
+   "file": "MK7 Swoop.png"
+  },
+  {
+   "name": "Paraglider",
+   "slug": "paraglider",
+   "file": "MK7 Paraglider.png"
+  },
+  {
+   "name": "Gold Glider",
+   "slug": "gold-glider",
+   "file": "MK7 Gold Glider.png"
+  },
+  {
+   "name": "Beast Glider",
+   "slug": "beast-glider",
+   "file": "MK7 Beast Glider.png"
+  }
+ ],
+ "tracks": [
+  {
+   "name": "Toad Circuit",
+   "slug": "toad-circuit",
+   "file": "Toad Circuit.png"
+  },
+  {
+   "name": "Daisy Hills",
+   "slug": "daisy-hills",
+   "file": "Daisyhills.png"
+  },
+  {
+   "name": "Cheep Cheep Lagoon",
+   "slug": "cheep-cheep-lagoon",
+   "file": "Cheepcheeplagoon.png"
+  },
+  {
+   "name": "Shy Guy Bazaar",
+   "slug": "shy-guy-bazaar",
+   "file": "ShyGuyBazaar.png"
+  },
+  {
+   "name": "Wuhu Loop",
+   "slug": "wuhu-loop",
+   "file": "Wuhu Loop.png"
+  },
+  {
+   "name": "Mario Circuit",
+   "slug": "mario-circuit",
+   "file": "MariocircuitMK7.png"
+  },
+  {
+   "name": "Music Park",
+   "slug": "music-park",
+   "file": "MusicPark.png"
+  },
+  {
+   "name": "Rock Rock Mountain",
+   "slug": "rock-rock-mountain",
+   "file": "RockRockMountain.png"
+  },
+  {
+   "name": "Piranha Plant Slide",
+   "slug": "piranha-plant-slide",
+   "file": "PPS2.png"
+  },
+  {
+   "name": "Wario Shipyard",
+   "slug": "wario-shipyard",
+   "file": "Wariogalleon.png"
+  },
+  {
+   "name": "Neo Bowser City",
+   "slug": "neo-bowser-city",
+   "file": "NeoBowserCity.png"
+  },
+  {
+   "name": "Maka Wuhu",
+   "slug": "maka-wuhu",
+   "file": "Wuhumountainloop.png"
+  },
+  {
+   "name": "DK Jungle",
+   "slug": "dk-jungle",
+   "file": "DKJungle.png"
+  },
+  {
+   "name": "Rosalina's Ice World",
+   "slug": "rosalinas-ice-world",
+   "file": "RosalinaIceWorld.png"
+  },
+  {
+   "name": "Bowser's Castle",
+   "slug": "bowsers-castle",
+   "file": "BowserCastleMK7.png"
+  },
+  {
+   "name": "Rainbow Road",
+   "slug": "rainbow-road",
+   "file": "RainbowroadMK7.png"
+  },
+  {
+   "name": "N64 Luigi Raceway",
+   "slug": "n64-luigi-raceway",
+   "file": "LuigiracewayMK7.png"
+  },
+  {
+   "name": "GBA Bowser Castle 1",
+   "slug": "gba-bowser-castle-1",
+   "file": "MK7 GBA Bowser Castle 1.png"
+  },
+  {
+   "name": "Wii Mushroom Gorge",
+   "slug": "wii-mushroom-gorge",
+   "file": "MushroomGorgeMK7.png"
+  },
+  {
+   "name": "DS Luigi's Mansion",
+   "slug": "ds-luigis-mansion",
+   "file": "LuigiMansionMK7.png"
+  },
+  {
+   "name": "N64 Koopa Beach",
+   "slug": "n64-koopa-beach",
+   "file": "KoopaTroopaBeachMK7.png"
+  },
+  {
+   "name": "SNES Mario Circuit 2",
+   "slug": "snes-mario-circuit-2",
+   "file": "MK7-SFC-MC.png"
+  },
+  {
+   "name": "Wii Coconut Mall",
+   "slug": "wii-coconut-mall",
+   "file": "Wii Coconut Mall.png"
+  },
+  {
+   "name": "DS Waluigi Pinball",
+   "slug": "ds-waluigi-pinball",
+   "file": "MK7-DS-WP.png"
+  },
+  {
+   "name": "N64 Kalimari Desert",
+   "slug": "n64-kalimari-desert",
+   "file": "KalimariDesertMK7.png"
+  },
+  {
+   "name": "DS DK Pass",
+   "slug": "ds-dk-pass",
+   "file": "DKPassMK7.png"
+  },
+  {
+   "name": "GCN Daisy Cruiser",
+   "slug": "gcn-daisy-cruiser",
+   "file": "DaisyCruiserMK7.png"
+  },
+  {
+   "name": "Wii Maple Treeway",
+   "slug": "wii-maple-treeway",
+   "file": "MapleTreewayMK7.png"
+  },
+  {
+   "name": "Wii Koopa Cape",
+   "slug": "wii-koopa-cape",
+   "file": "KoopaCapeMK7.png"
+  },
+  {
+   "name": "GCN Dino Dino Jungle",
+   "slug": "gcn-dino-dino-jungle",
+   "file": "DinoDinoJungleMK7.png"
+  },
+  {
+   "name": "DS Airship Fortress",
+   "slug": "ds-airship-fortress",
+   "file": "AirshipFortressMK7.png"
+  },
+  {
+   "name": "SNES Rainbow Road",
+   "slug": "snes-rainbow-road",
+   "file": "SNES MK7.png"
+  }
+ ],
+ "battle": [
+  {
+   "name": "Honeybee Hive",
+   "slug": "honeybee-hive",
+   "file": "MK7 Honeybee Hive View.png"
+  },
+  {
+   "name": "Sherbet Rink",
+   "slug": "sherbet-rink",
+   "file": "NM MK7 Sherbet Rink.png"
+  },
+  {
+   "name": "Wuhu Town",
+   "slug": "wuhu-town",
+   "file": "MK7 Wuhu Town.png"
+  },
+  {
+   "name": "GBA Battle Course 1",
+   "slug": "gba-battle-course-1",
+   "file": "Battlecourse1gbaMK7.png"
+  },
+  {
+   "name": "N64 Big Donut",
+   "slug": "n64-big-donut",
+   "file": "BigDonutMK7.png"
+  },
+  {
+   "name": "DS Palm Shore",
+   "slug": "ds-palm-shore",
+   "file": "PalmShoremap MK7.png"
+  }
+ ],
+ "cups": [
+  {
+   "name": "Mushroom Cup",
+   "slug": "mushroom",
+   "file": "MK7-MushroomCup.png"
+  },
+  {
+   "name": "Flower Cup",
+   "slug": "flower",
+   "file": "MK7-FlowerCup.png"
+  },
+  {
+   "name": "Star Cup",
+   "slug": "star",
+   "file": "MK7 Star Cup Emblem.png"
+  },
+  {
+   "name": "Special Cup",
+   "slug": "special",
+   "file": "MK7 Special Cup Emblem.png"
+  },
+  {
+   "name": "Shell Cup",
+   "slug": "shell",
+   "file": "MK7 Shell Cup Emblem.png"
+  },
+  {
+   "name": "Banana Cup",
+   "slug": "banana",
+   "file": "MK7 Banana Cup Emblem.png"
+  },
+  {
+   "name": "Leaf Cup",
+   "slug": "leaf",
+   "file": "MK7 Leaf Cup Emblem.png"
+  },
+  {
+   "name": "Lightning Cup",
+   "slug": "lightning",
+   "file": "MK7 Lightning Cup Emblem.png"
+  }
+ ],
+ "keyart": {
+  "file": "MK7 Groupart.png",
+  "slug": "mario-kart-7-keyart",
+  "crop": [
+   13,
+   0,
+   1253,
+   705
+  ]
+ }
+}

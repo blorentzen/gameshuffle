@@ -1,0 +1,79 @@
+/*
+ * Co-op games for players (src/lib/coop/rules.ts): the Discord Activity's
+ * Team up (RoomCoop.tsx), a live night's phone panel (CoopPanel.tsx) and its
+ * TV (CoopTv.tsx). Sizes use the 10px root's tokens (--font-size-14 = 14px).
+ */
+
+/* ── Shared ─────────────────────────────────────────────────────────────── */
+.coop-outcome { display: flex; flex-wrap: wrap; align-items: center; gap: var(--spacing-8, 8px); margin: 0; padding: var(--spacing-12, 12px) var(--spacing-16, 16px); border-radius: var(--radius-12, 12px); font-size: var(--font-size-16); font-weight: 700; background: var(--background-secondary); border: 1px solid var(--border-default); }
+.coop-outcome.is-won { border-color: var(--color-success-500, #1a8a57); }
+.coop-outcome.is-lost { border-color: var(--color-error-500, #c42b41); }
+.coop-results { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--spacing-8, 8px); }
+.coop-results__row { display: flex; align-items: baseline; gap: var(--spacing-8, 8px); font-size: var(--font-size-14); }
+.coop-results__row b { font-weight: 700; }
+
+/* ── The Activity's Together room ──────────────────────────────────────── */
+.coop-side { display: grid; gap: var(--spacing-12, 12px); align-content: start; }
+.coop-side__record { margin: 0; font-size: var(--font-size-14); color: var(--text-secondary); }
+.coop-side__record b { color: var(--text-primary); font-size: var(--font-size-16); font-variant-numeric: tabular-nums; }
+.coop-side__in { display: inline-grid; place-items: center; width: 2.4rem; height: 2.4rem; border-radius: 50%; background: var(--color-success-50, #e6f6ee); color: var(--color-success-700, #136b43); flex: 0 0 auto; }
+
+/* ── A live night's phone panel ────────────────────────────────────────── */
+.coop-panel__last { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--spacing-8, 8px); margin: 0; font-size: var(--font-size-14); color: var(--text-secondary); }
+.coop-panel__last .oddone__label { color: var(--text-primary); }
+.coop-panel__round { padding-top: var(--spacing-12, 12px); border-top: 1px solid var(--border-default); }
+.coop-panel .coop-results__row { font-size: var(--font-size-14); }
+
+/* ── A live night's TV (dark, read from across the room) ───────────────── */
+.coop-tv { display: grid; gap: clamp(1.2rem, 1.6vw, 2rem); justify-items: start; }
+.coop-tv__boss { display: flex; align-items: center; gap: clamp(1.6rem, 2vw, 2.8rem); width: min(100%, 72rem); padding: clamp(1.4rem, 1.8vw, 2.4rem); border-radius: 1.6rem; background: rgba(229, 72, 107, 0.16); border: 1px solid rgba(255, 107, 138, 0.4); }
+.coop-tv__boss-glyph { flex: none; width: clamp(8rem, 9vw, 12rem); height: clamp(8rem, 9vw, 12rem); border-radius: 2rem; display: grid; place-items: center; background: #2a1030; color: #ff8aa6; box-shadow: inset 0 0 0 2px rgba(255, 138, 166, 0.4); }
+.coop-tv__boss-glyph svg { width: 60%; height: 60%; }
+.coop-tv__boss.is-down .coop-tv__boss-glyph { filter: grayscale(1); opacity: 0.6; transform: rotate(-12deg); }
+.coop-tv__boss-info { flex: 1; min-width: 0; display: grid; gap: 1rem; }
+.coop-tv__boss-info b { font-size: clamp(2.4rem, 2.8vw, 3.8rem); font-weight: 800; overflow-wrap: anywhere; }
+.coop-tv__boss-info small { font-size: clamp(1.6rem, 1.6vw, 2.2rem); color: #ffd0da; font-variant-numeric: tabular-nums; }
+.coop-tv__boss-hp { display: block; height: clamp(1.8rem, 2vw, 2.8rem); border-radius: 99px; background: rgba(0, 0, 0, 0.35); overflow: hidden; }
+.coop-tv__boss-hp i { display: block; height: 100%; border-radius: 99px; background: linear-gradient(90deg, #ff4d6d, #ffb347); transition: width 900ms ease; }
+.coop-tv__letters { display: flex; flex-wrap: wrap; align-items: flex-start; gap: clamp(2rem, 3vw, 4rem); }
+.coop-tv__letters-grid { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.6rem; }
+.coop-tv__letters-grid li { display: grid; grid-template-columns: repeat(5, clamp(4rem, 2.8vw, 5.6rem)); gap: 0.6rem; }
+.coop-tv__letters-grid span { height: clamp(4rem, 2.8vw, 5.6rem); display: grid; place-items: center; border-radius: 1rem; background: rgba(255, 255, 255, 0.08); border: 2px solid rgba(255, 255, 255, 0.22); font-size: clamp(2.4rem, 2.2vw, 3.4rem); font-weight: 800; }
+.coop-tv__letters-grid span.is-g { background: #2fb36d; border-color: #2fb36d; color: #04210f; }
+.coop-tv__letters-grid span.is-y { background: #e8a92c; border-color: #e8a92c; color: #2a1a00; }
+.coop-tv__letters-grid span.is-x { background: #3a3f57; border-color: #3a3f57; color: #e1e4ff; }
+.coop-tv__letters-grid li.is-skipped { grid-template-columns: 1fr; }
+.coop-tv__letters-grid li.is-skipped span { background: transparent; border-style: dashed; font-size: clamp(1.6rem, 1.6vw, 2rem); font-weight: 700; color: #c4c9ff; }
+.coop-tv__letters-keys { display: grid; gap: 0.6rem; }
+.coop-tv__letters-keys div { display: flex; gap: 0.6rem; }
+.coop-tv__letters-keys div:nth-child(2) { padding-left: 1.8rem; }
+.coop-tv__letters-keys div:nth-child(3) { padding-left: 4.2rem; }
+.coop-tv__letters-keys span { width: clamp(3.2rem, 2.6vw, 4.2rem); height: clamp(4rem, 3.2vw, 5rem); display: grid; place-items: center; border-radius: 0.8rem; background: rgba(255, 255, 255, 0.14); font-size: clamp(1.6rem, 1.5vw, 2rem); font-weight: 800; }
+.coop-tv__letters-keys span.is-g { background: #2fb36d; color: #04210f; }
+.coop-tv__letters-keys span.is-y { background: #e8a92c; color: #2a1a00; }
+.coop-tv__letters-keys span.is-x { background: transparent; color: rgba(255, 255, 255, 0.35); }
+.coop-tv__c4 { display: grid; grid-template-columns: repeat(7, clamp(3.6rem, 3.2vw, 5.6rem)); gap: clamp(0.6rem, 0.7vw, 1rem); padding: clamp(1rem, 1.2vw, 1.6rem); border-radius: 1.6rem; background: #2a3fb8; }
+.coop-tv__c4 span { aspect-ratio: 1; border-radius: 50%; background: #10133a; }
+.coop-tv__c4 span.is-chat { background: #ffd34d; }
+.coop-tv__c4 span.is-bot { background: #ff6b8a; }
+.coop-tv__c4 span.is-last { box-shadow: 0 0 0 4px #fff; }
+.coop-tv__c4 span.is-win { box-shadow: 0 0 0 4px #3bd17f; }
+.coop-tv__table { display: grid; gap: 1.2rem; width: min(100%, 72rem); }
+.coop-tv__table-row { display: grid; grid-template-columns: clamp(12rem, 11vw, 16rem) minmax(0, 1fr) auto; align-items: center; gap: 1.6rem; font-size: clamp(1.6rem, 1.5vw, 2rem); font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; color: #c4c9ff; }
+.coop-tv__faces { display: flex; flex-wrap: wrap; gap: 1rem; }
+.coop-tv__face { width: clamp(5.2rem, 4.4vw, 7.2rem); height: clamp(5.2rem, 4.4vw, 7.2rem); border-radius: 1.4rem; display: grid; place-items: center; background: #fff; color: #10133a; box-shadow: 0 4px 0 rgba(0, 0, 0, 0.3); }
+.coop-tv__face svg { width: 60%; height: 60%; }
+.coop-tv__faces.is-small .coop-tv__face { width: clamp(4rem, 3.8vw, 5.2rem); height: clamp(4rem, 3.8vw, 5.2rem); box-shadow: none; }
+.coop-tv__face.is-star { color: #c98a00; }
+.coop-tv__face.is-coin { color: #b8860b; }
+.coop-tv__face.is-mushroom { color: #d6334a; }
+.coop-tv__face.is-shell { color: #1f8a4c; }
+.coop-tv__face.is-bomb { background: #2a2d3e; color: #ff8a8a; }
+.coop-tv__none { font-size: clamp(1.6rem, 1.5vw, 2rem); font-weight: 600; letter-spacing: 0; text-transform: none; color: #e1e4ff; }
+.coop-tv__bombs { display: flex; gap: 1rem; }
+.coop-tv__bombs i { width: 2.4rem; height: 2.4rem; border-radius: 50%; border: 3px solid rgba(255, 255, 255, 0.45); }
+.coop-tv__bombs i.on { background: #ff6b6b; border-color: #ff6b6b; }
+.coop-tv__riding { color: #ffd34d; font-size: clamp(2rem, 2vw, 2.8rem); letter-spacing: 0; text-transform: none; }
+.coop-tv__score { display: flex; flex-wrap: wrap; gap: 3.2rem; font-size: clamp(1.8rem, 1.8vw, 2.4rem); color: #c4c9ff; }
+.coop-tv__score b { color: #fff; font-size: 1.4em; font-variant-numeric: tabular-nums; }
+@media (prefers-reduced-motion: reduce) { .coop-tv__boss-hp i { transition: none; } .coop-tv__boss.is-down .coop-tv__boss-glyph { transform: none; } }

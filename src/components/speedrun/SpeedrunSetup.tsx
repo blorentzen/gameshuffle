@@ -32,6 +32,7 @@ import type { SpeedrunLook, SpeedrunSettings, SpeedrunSetupView, SpeedrunStats, 
 import { SpeedrunCanvas } from "./SpeedrunCanvas";
 import { SpeedrunSplits } from "./SpeedrunSplits";
 import { SpeedrunRuns } from "./SpeedrunRuns";
+import { SpeedrunRaces } from "./SpeedrunRaces";
 import { shownName } from "@/lib/speedrun/splitGroups";
 
 export type SetupBlocked = "not_ready" | "not_configured" | null;
@@ -475,6 +476,8 @@ export function SpeedrunSetup({ initial, blocked, studio = false }: Props) {
               <div className="sr-sec__h"><h2 id="sr-splits-h">Your splits</h2></div>
               <SpeedrunSplits view={view} game={form.game} category={form.category} onSaved={tookSplits} />
             </section>
+
+            <SpeedrunRaces view={view} />
           </div>
 
           <div>

@@ -59,3 +59,6 @@
 .profile-road .road-card { box-shadow: inset 0 0 0 2px var(--rc-edge); }
 .profile-road .pcard__title a { color: inherit; text-decoration: none; }
 .profile-road .pcard__title a:hover { text-decoration: underline; }
+
+/* Trainer battles against friends (battle pick 14). */
+.road-card__battles { margin: 0; font-size: var(--font-size-14); color: var(--rc-ink); font-variant-numeric: tabular-nums; }

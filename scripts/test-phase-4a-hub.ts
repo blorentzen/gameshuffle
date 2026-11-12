@@ -51,14 +51,15 @@ async function main() {
 
   const NOW = new Date("2026-04-26T12:00:00Z");
 
+  // The placeholder is a plain hyphen since the no-dashes copy sweep (2026-10-06).
   await test("null input → placeholder", () => {
-    assert.equal(formatRelativeTime(null), "—");
+    assert.equal(formatRelativeTime(null), "-");
   });
   await test("undefined input → placeholder", () => {
-    assert.equal(formatRelativeTime(undefined), "—");
+    assert.equal(formatRelativeTime(undefined), "-");
   });
   await test("invalid date string → placeholder", () => {
-    assert.equal(formatRelativeTime("not-a-date"), "—");
+    assert.equal(formatRelativeTime("not-a-date"), "-");
   });
 
   await test("now → 'just now'", () => {
@@ -134,13 +135,13 @@ async function main() {
     assert.equal(formatDuration(2 * 3600 + 15 * 60), "2h 15m");
   });
   await test("negative input → placeholder", () => {
-    assert.equal(formatDuration(-1), "—");
+    assert.equal(formatDuration(-1), "-");
   });
   await test("NaN input → placeholder", () => {
-    assert.equal(formatDuration(Number.NaN), "—");
+    assert.equal(formatDuration(Number.NaN), "-");
   });
   await test("Infinity input → placeholder", () => {
-    assert.equal(formatDuration(Number.POSITIVE_INFINITY), "—");
+    assert.equal(formatDuration(Number.POSITIVE_INFINITY), "-");
   });
 
   // ---------- hub.access capability gate ----------------------------------

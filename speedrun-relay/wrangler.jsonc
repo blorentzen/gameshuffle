@@ -6,10 +6,10 @@
   "workers_dev": true,
   "observability": { "enabled": true },
   "durable_objects": {
-    "bindings": [{ "name": "RELAY", "class_name": "Relay" }]
+    "bindings": [{ "name": "RELAY", "class_name": "Relay" }, { "name": "ROOM", "class_name": "Room" }]
   },
-  // SQLite-backed Durable Objects work on the Workers Free plan.
-  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["Relay"] }],
+  // SQLite-backed Durable Objects work on the Workers Free plan. v2 adds race rooms (src/room.ts).
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["Relay"] }, { "tag": "v2", "new_sqlite_classes": ["Room"] }],
   // SPEEDRUN_RELAY_SECRET is a secret: `npx wrangler secret put SPEEDRUN_RELAY_SECRET`
   // (locally it comes from .dev.vars, which also overrides GS_ORIGIN).
   "vars": { "GS_ORIGIN": "https://www.gameshuffle.co" },
@@ -19,7 +19,7 @@
     "dev": {
       "vars": { "GS_ORIGIN": "https://dev.gameshuffle.co" },
       "durable_objects": {
-        "bindings": [{ "name": "RELAY", "class_name": "Relay" }]
+        "bindings": [{ "name": "RELAY", "class_name": "Relay" }, { "name": "ROOM", "class_name": "Room" }]
       }
     }
   }

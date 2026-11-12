@@ -31,6 +31,9 @@ interface AppCardProps {
   /** Make the title itself a link to `href`, so the link text names the tool
    *  (e.g. "Mario Kart 8 Deluxe Randomizer") rather than only "Open randomizer". */
   linkTitle?: boolean;
+  /** With `linkTitle`: words the title link reads after the title without showing them (" randomizer"), so a card
+   *  titled with a game's name links as "Mario Kart World randomizer". */
+  linkTitleSuffix?: string;
   /** Extra classes for the card's `href` links (title + primary CTA), e.g. analytics tags. */
   linkClassName?: string;
 }
@@ -50,6 +53,7 @@ export function AppCard({
   secondaryLabel,
   secondaryExternal = false,
   linkTitle = false,
+  linkTitleSuffix,
   media,
   linkClassName,
 }: AppCardProps) {
@@ -89,7 +93,9 @@ export function AppCard({
       <CardContent>
         <h2 style={{ fontSize: "var(--font-size-20)", marginBottom: "0.5rem" }}>
           {linkTitle && href && !external ? (
-            <Link href={href} className={linkClassName ? `app-card__title-link ${linkClassName}` : "app-card__title-link"}>{title}</Link>
+            <Link href={href} className={linkClassName ? `app-card__title-link ${linkClassName}` : "app-card__title-link"}>
+              {title}{linkTitleSuffix ? <span className="sr-only">{linkTitleSuffix}</span> : null}
+            </Link>
           ) : (
             title
           )}

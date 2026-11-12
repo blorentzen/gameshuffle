@@ -520,6 +520,41 @@ for (const def of SPEEDRUN_COMMANDS) {
   });
 }
 
+// Level queue (GS Pro, levels picks 2026-11-11): Mario Maker 2 course IDs, Fortnite island codes and Fall Guys share
+// codes sent from chat. Quiet unless the streamer has set up the queue; each steps aside for a channel's own command
+// with the same name (other queue bots use !add and !remove too).
+const LEVEL_COMMANDS: { name: "add" | "position" | "remove" | "level"; mod: boolean; cooldown: number; summary: string; usage: string; detail: string }[] = [
+  { name: "add", mod: false, cooldown: 5, summary: "Send a level to the streamer's level queue.", usage: "!add <code>", detail: "A Super Mario Maker 2 course ID, a Fortnite island code or a Fall Guys share code, for the game on stream. One level each in line; a level played this stream can't come back. GS Pro." },
+  { name: "position", mod: false, cooldown: 10, summary: "Where your level is in the level queue.", usage: "!position", detail: "Your place in line and the code you sent." },
+  { name: "remove", mod: false, cooldown: 5, summary: "Take your level out of the level queue.", usage: "!remove · mods: !remove @name", detail: "Takes out the level you sent. Mods can take out someone else's with !remove @name." },
+  { name: "level", mod: true, cooldown: 2, summary: "Run the level queue: the next level, a random one, skip, open, close or clear the line.", usage: "!level next · !level random · !level skip · !level open · !level close · !level clear", detail: "Mods and the streamer. !level next and !level random end the level being played and bring up another; add cleared or gaveup to give the one ending its result (!level next cleared). !level skip marks it Skipped. GS Pro." },
+];
+for (const def of LEVEL_COMMANDS) {
+  registerCommand({
+    name: def.name,
+    trigger: [def.name],
+    actor: def.mod ? "crew" : "everyone",
+    surface: ["chat"],
+    economy: "none",
+    category: "community",
+    family: "community",
+    minAuthority: def.mod ? "mod" : "viewer",
+    vipOnly: false,
+    cooldownSeconds: def.cooldown,
+    yieldToCustom: true,
+    help: { summary: def.summary, usage: def.usage, detail: def.detail },
+    handler: async (cmd) => {
+      // Loaded on use: the level store is server-only, and the routing test loads this file in plain Node.
+      const { handleLevelCommand } = await import("./levels");
+      await handleLevelCommand({
+        userId: cmd.userId, platform: cmd.platform, senderId: cmd.senderTwitchId, senderName: cmd.senderDisplayName || cmd.senderLogin,
+        canRun: cmd.isBroadcaster || cmd.isModerator, reply: cmd.reply,
+      }, def.name, cmd.args ?? "");
+      return { ok: true };
+    },
+  });
+}
+
 // Coin flip (Pro). Broadcaster + mods only; flips a coin on the overlay.
 registerCommand({
   name: "gs.flip",

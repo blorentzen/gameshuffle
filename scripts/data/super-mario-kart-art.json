@@ -1,0 +1,210 @@
+{
+ "checkedOn": "2026-11-12",
+ "note": "Super Mario Kart art for the randomizer, all through Super Mario Wiki's file host (mariowiki.com): the official artwork of each driver in their kart (white background joined to the edge made transparent), the in-game lower-screen course maps for the 20 courses and 4 battle courses (pixel art drawn at 2x with nearest-neighbour), the in-game cup emblems (drawn at 4x), and the official international cover artwork cropped to 16:9 for the header. Run scripts/pull-super-mario-kart-art.ts.",
+ "characters": [
+  {
+   "name": "Mario",
+   "slug": "mario",
+   "file": "Mario holding flag SMK artwork.jpg",
+   "white": true
+  },
+  {
+   "name": "Luigi",
+   "slug": "luigi",
+   "file": "Luigi winks SMK artwork.jpg",
+   "white": true
+  },
+  {
+   "name": "Princess",
+   "slug": "princess",
+   "file": "SMK Princess artwork.jpg",
+   "white": true
+  },
+  {
+   "name": "Yoshi",
+   "slug": "yoshi",
+   "file": "Yoshi SMK artwork.jpg",
+   "white": true
+  },
+  {
+   "name": "Bowser",
+   "slug": "bowser",
+   "file": "Bowser SMK artwork.jpg",
+   "white": true
+  },
+  {
+   "name": "Donkey Kong Jr.",
+   "slug": "donkey-kong-jr",
+   "file": "Donkey Kong JR SMK artwork.jpg",
+   "white": true
+  },
+  {
+   "name": "Koopa Troopa",
+   "slug": "koopa-troopa",
+   "file": "Koopa Troopa SMK artwork.jpg",
+   "white": true
+  },
+  {
+   "name": "Toad",
+   "slug": "toad",
+   "file": "Toad SMK artwork.jpg",
+   "white": true
+  }
+ ],
+ "tracks": [
+  {
+   "name": "Mario Circuit 1",
+   "slug": "mario-circuit-1",
+   "file": "SMK Mario Circuit 1 Lower-Screen Map.png"
+  },
+  {
+   "name": "Donut Plains 1",
+   "slug": "donut-plains-1",
+   "file": "SMK Donut Plains 1 Lower-Screen Map.png"
+  },
+  {
+   "name": "Ghost Valley 1",
+   "slug": "ghost-valley-1",
+   "file": "SMK Ghost Valley 1 Lower-Screen Map.png"
+  },
+  {
+   "name": "Bowser Castle 1",
+   "slug": "bowser-castle-1",
+   "file": "SMK Bowser Castle 1 Lower-Screen Map.png"
+  },
+  {
+   "name": "Mario Circuit 2",
+   "slug": "mario-circuit-2",
+   "file": "SMK Mario Circuit 2 Lower-Screen Map.png"
+  },
+  {
+   "name": "Choco Island 1",
+   "slug": "choco-island-1",
+   "file": "SMK Choco Island 1 Lower-Screen Map.png"
+  },
+  {
+   "name": "Ghost Valley 2",
+   "slug": "ghost-valley-2",
+   "file": "SMK Ghost Valley 2 Lower-Screen Map.png"
+  },
+  {
+   "name": "Donut Plains 2",
+   "slug": "donut-plains-2",
+   "file": "SMK Donut Plains 2 Lower-Screen Map.png"
+  },
+  {
+   "name": "Bowser Castle 2",
+   "slug": "bowser-castle-2",
+   "file": "SMK Bowser Castle 2 Lower-Screen Map.png"
+  },
+  {
+   "name": "Mario Circuit 3",
+   "slug": "mario-circuit-3",
+   "file": "SMK Mario Circuit 3 Lower-Screen Map.png"
+  },
+  {
+   "name": "Koopa Beach 1",
+   "slug": "koopa-beach-1",
+   "file": "SMK Koopa Beach 1 Lower-Screen Map.png"
+  },
+  {
+   "name": "Choco Island 2",
+   "slug": "choco-island-2",
+   "file": "SMK Choco Island 2 Lower-Screen Map.png"
+  },
+  {
+   "name": "Vanilla Lake 1",
+   "slug": "vanilla-lake-1",
+   "file": "SMK Vanilla Lake 1 Lower-Screen Map.png"
+  },
+  {
+   "name": "Bowser Castle 3",
+   "slug": "bowser-castle-3",
+   "file": "SMK Bowser Castle 3 Lower-Screen Map.png"
+  },
+  {
+   "name": "Mario Circuit 4",
+   "slug": "mario-circuit-4",
+   "file": "SMK Mario Circuit 4 Lower-Screen Map.png"
+  },
+  {
+   "name": "Donut Plains 3",
+   "slug": "donut-plains-3",
+   "file": "SMK Donut Plains 3 Lower-Screen Map.png"
+  },
+  {
+   "name": "Koopa Beach 2",
+   "slug": "koopa-beach-2",
+   "file": "SMK Koopa Beach 2 Lower-Screen Map.png"
+  },
+  {
+   "name": "Ghost Valley 3",
+   "slug": "ghost-valley-3",
+   "file": "SMK Ghost Valley 3 Lower-Screen Map.png"
+  },
+  {
+   "name": "Vanilla Lake 2",
+   "slug": "vanilla-lake-2",
+   "file": "SMK Vanilla Lake 2 Lower-Screen Map.png"
+  },
+  {
+   "name": "Rainbow Road",
+   "slug": "rainbow-road",
+   "file": "SMK Rainbow Road Lower-Screen Map.png"
+  }
+ ],
+ "battle": [
+  {
+   "name": "Battle Course 1",
+   "slug": "battle-course-1",
+   "file": "SMK Battle Course 1 Lower-Screen Map.png"
+  },
+  {
+   "name": "Battle Course 2",
+   "slug": "battle-course-2",
+   "file": "SMK Battle Course 2 Lower-Screen Map.png"
+  },
+  {
+   "name": "Battle Course 3",
+   "slug": "battle-course-3",
+   "file": "SMK Battle Course 3 Lower-Screen Map.png"
+  },
+  {
+   "name": "Battle Course 4",
+   "slug": "battle-course-4",
+   "file": "SMK Battle Course 4 Lower-Screen Map.png"
+  }
+ ],
+ "cups": [
+  {
+   "name": "Mushroom Cup",
+   "slug": "mushroom",
+   "file": "SMK Mushroom Cup Emblem.png"
+  },
+  {
+   "name": "Flower Cup",
+   "slug": "flower",
+   "file": "SMK Flower Cup Emblem.png"
+  },
+  {
+   "name": "Star Cup",
+   "slug": "star",
+   "file": "SMK Star Cup Emblem.png"
+  },
+  {
+   "name": "Special Cup",
+   "slug": "special",
+   "file": "SMK Special Cup Emblem.png"
+  }
+ ],
+ "keyart": {
+  "file": "SMK Group Art.jpeg",
+  "slug": "super-mario-kart-keyart",
+  "crop": [
+   0,
+   200,
+   2048,
+   1152
+  ]
+ }
+}

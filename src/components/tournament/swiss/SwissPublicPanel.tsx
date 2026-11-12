@@ -23,12 +23,14 @@ import { CutMatches, StandingsTable, TablesTable } from "./SwissParts";
 
 const initials = (name: string) => name.split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0]?.toUpperCase()).join("") || "?";
 
-function MatchCard({ view, you, act, busy, onDeck, tournamentId, reload }: {
+function MatchCard({ view, you, act, busy, onDeck, deckLabel, tournamentId, reload }: {
   view: SwissView;
   you: NonNullable<SwissView["you"]>;
   act: (b: Record<string, unknown>) => Promise<string | null>;
   busy: string | null;
   onDeck?: () => void;
+  /** The button's words ("My team list" on a Pokémon Champions event). */
+  deckLabel?: string;
   tournamentId: string;
   reload: () => void;
 }) {
@@ -117,7 +119,7 @@ function MatchCard({ view, you, act, busy, onDeck, tournamentId, reload }: {
       {statusLine && <p className={`swiss-you__status${m.state === "disagree" ? " swiss-you__status--warn" : ""}`} aria-live="polite">{statusLine}</p>}
       <div className="swiss-you__links">
         <Button variant="ghost" size="small" onClick={() => document.getElementById("swiss-standings")?.scrollIntoView({ behavior: "smooth" })}>Standings</Button>
-        {onDeck && <Button variant="ghost" size="small" onClick={onDeck}>My deck list</Button>}
+        {onDeck && <Button variant="ghost" size="small" onClick={onDeck}>{deckLabel ?? "My deck list"}</Button>}
         <Button variant="ghost" size="small" onClick={() => void drop()} disabled={!!busy}>Drop</Button>
       </div>
     </div>
@@ -126,7 +128,7 @@ function MatchCard({ view, you, act, busy, onDeck, tournamentId, reload }: {
 
 const ordinal = (n: number) => `${n}${n % 100 >= 11 && n % 100 <= 13 ? "th" : ["th", "st", "nd", "rd"][n % 10] ?? "th"}`;
 
-export function SwissPublicPanel({ tournamentId, showDeckLink }: { tournamentId: string; showDeckLink?: boolean }) {
+export function SwissPublicPanel({ tournamentId, showDeckLink, deckLabel }: { tournamentId: string; showDeckLink?: boolean; deckLabel?: string }) {
   const { view, busy, act, reload } = useSwiss(tournamentId);
   if (!view) return <div className="comp-card"><LoadingLines label="Loading Swiss" /></div>;
   if (view.phase === "setup") {
@@ -142,7 +144,7 @@ export function SwissPublicPanel({ tournamentId, showDeckLink }: { tournamentId:
   const champion = view.cut ? view.cut.matches.find((m) => m.round === view.cut!.bracket.rounds - 1)?.winner ?? null : view.phase === "done" ? view.standings[0]?.id ?? null : null;
   return (
     <>
-      {view.you && <MatchCard view={view} you={view.you} act={act} busy={busy} tournamentId={tournamentId} reload={() => void reload()} onDeck={showDeckLink ? () => document.getElementById("deck-list")?.scrollIntoView({ behavior: "smooth" }) : undefined} />}
+      {view.you && <MatchCard view={view} you={view.you} act={act} busy={busy} tournamentId={tournamentId} reload={() => void reload()} onDeck={showDeckLink ? () => document.getElementById("deck-list")?.scrollIntoView({ behavior: "smooth" }) : undefined} deckLabel={deckLabel} />}
 
       {champion && <div className="comp-card"><p className="swiss-champion"><IconTrophy size={18} stroke={1.9} aria-hidden /> {nameOf(champion)} won the tournament</p></div>}
 

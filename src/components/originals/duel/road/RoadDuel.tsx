@@ -35,6 +35,7 @@ import { reducedMotion } from "../duelLook";
 import { useDuelPlay } from "../useDuelPlay";
 import { DuelVersus, versusKicker, versusTone, type VersusInfo } from "../DuelVersus";
 import { EVENTS, track } from "@/lib/analytics/events";
+import { DuelFriendButton } from "@/components/races/DuelFriend";
 
 export interface RoadTeamOption {
   id: string;
@@ -281,7 +282,10 @@ export function RoadDuel({ region, person, teams, next }: {
               <p className="road-start__resume">You have a duel in progress against this team. <Button variant="ghost" size="small" onClick={() => { play.resume(home.current as RoadRunView); scrollToArena(); }}>Pick it up</Button></p>
             )}
             <div className="road-start__go">
-              <Button variant="primary" size="large" iconBefore={IconSwords} onClick={() => void start(openLevel(level, home))} disabled={starting} loading={starting}>Battle now</Button>
+              <div className="road-start__btns">
+                <Button variant="primary" size="large" iconBefore={IconSwords} onClick={() => void start(openLevel(level, home))} disabled={starting} loading={starting}>Battle now</Button>
+                <DuelFriendButton trainerId={selected} trainerName={person.name} level={openLevel(level, home)} easy={home.easy.can} hard={home.hard.can} signedIn={home.signedIn} tier={home.tier} cards={home.team.length} />
+              </div>
               <p className="road-start__note">Every duel counts: your best this month stays on the board. The clock starts when you tap Battle now.</p>
             </div>
           </>

@@ -19,6 +19,6 @@ export async function GET(req: Request) {
   const game = (BOARD_GAMES as string[]).includes(url.searchParams.get("game") ?? "") ? (url.searchParams.get("game") as BoardGame) : "shuffle";
   const period = (BOARD_PERIODS as string[]).includes(url.searchParams.get("period") ?? "") ? (url.searchParams.get("period") as BoardPeriod) : "day";
   const player = await playerForIdentity(s.iid, s.uid);
-  const view = await boardView({ game, period, me: playerKey(player.kind, player.id) });
+  const view = await boardView({ game, period, me: playerKey(player.kind, player.id), race: true });
   return NextResponse.json(view, { headers: { "Cache-Control": "private, no-store" } });
 }

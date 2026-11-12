@@ -21,11 +21,10 @@
  * and which Continue here reads back (readBlock), so nothing waits on the server between the check and the card.
  */
 
-import { readTrack, type WarGame } from "./rules";
+import { readTrack, WAR_GAME_LABELS, warTrack, type WarGame } from "./rules";
+import { wiiTrackByName } from "./tracks";
 import { DEFAULT_FORMAT, formatLabel, formatProblem, pointsTable, raceTotal, roomOf, teamScores, type WarFormat } from "./format";
 import { plainDiscord, trackFor } from "@/lib/timeTrials/quaxly";
-import { trackCode } from "@/lib/timeTrials/codes";
-import { ttTracks } from "@/lib/timeTrials/tracks";
 
 export type CarryFrom = "Quaxly" | "Toad Bot" | "Kiwi" | "Sokuji";
 export const CARRY_FROM: readonly CarryFrom[] = ["Quaxly", "Toad Bot", "Kiwi", "Sokuji"];
@@ -72,22 +71,24 @@ function findTrack(raw: string, game: WarGame): { track: string | null; trackTex
   const text = raw.trim();
   if (!text) return { track: null, trackText: null };
   const tail = text.includes(" - ") ? text.slice(text.lastIndexOf(" - ") + 3).trim() : null;
-  const t = (tail && readTrack(game, tail)) || readTrack(game, text) || trackFor(text, game) || (tail ? trackFor(tail, game) : null);
+  // Names: Mario Kart Wii's own list (it has no time trial boards), else the time trial reader's.
+  const byName = (s: string) => (game === "mkwii" ? wiiTrackByName(s) : trackFor(s, game));
+  const t = (tail && readTrack(game, tail)) || readTrack(game, text) || byName(text) || (tail ? byName(tail) : null);
   return t ? { track: t.id, trackText: null } : { track: null, trackText: text.slice(0, 40) };
 }
 
 const codeOf = (game: WarGame, id: string | null) => {
-  const t = id ? ttTracks(game).find((x) => x.id === id) : null;
-  return t ? trackCode(t) ?? t.name : null;
+  const t = id ? warTrack(game, id) : null;
+  return t ? t.code ?? t.name : null;
 };
 
 /** The other team's places in a two-team race: the rest of the room. */
 const rest = (spots: number[], room: number) => Array.from({ length: room }, (_, k) => k + 1).filter((p) => !spots.includes(p));
 
-/** The two-team size whose race adds up to `sum` (82 is 6v6 in a 12-player room). */
-function sizeFromSum(sum: number): number | null {
+/** The two-team size whose race adds up to `sum` (82 is 6v6 in a 12-player room; 73 in Mario Kart Wii's). */
+function sizeFromSum(sum: number, game: WarGame): number | null {
   for (const size of [6, 5, 4, 3, 2]) {
-    const t = pointsTable("mk8dx", size * 2);
+    const t = pointsTable(game === "mkwii" ? "mkwii" : "mk8dx", size * 2);
     if (t && raceTotal(t) === sum) return size;
   }
   return null;
@@ -142,8 +143,8 @@ function totalScore(all: string[], game: WarGame): CarryRead | null {
       if (t >= 0) penalties.push({ team: t, points: Number(m[2]) });
     }
     const sum = Number(toad[0][2]) + Number(toad[0][3]);
-    const size = sizeFromSum(sum);
-    if (!size) return { ok: false, error: `Toad Bot's races add up to ${sum} points, which isn't a Mario Kart 8 Deluxe or Mario Kart World room GameShuffle knows.` };
+    const size = sizeFromSum(sum, game);
+    if (!size) return { ok: false, error: `Toad Bot's races add up to ${sum} points, which isn't ${game === "mkwii" ? "a Mario Kart Wii" : "a Mario Kart 8 Deluxe or Mario Kart World"} room GameShuffle knows.` };
     const races: CarryRace[] = toad.map((m) => ({ n: Number(m[1]), spots: [], scores: [Number(m[2]), Number(m[3])], ...findTrack(m[5] ?? "", game) }));
     if (played > 12 && races.length === 12) notes.push(`Toad Bot only shows the first 12 races, so races 13 to ${played} aren't here. Add them on the card after it's carried.`);
     return finishRead({ from: "Toad Bot", game, format: { size, teams: 2 }, tags, races, penalties, racesTotal: Math.max(12, played), totals }, played, notes);
@@ -180,9 +181,12 @@ function kiwi(all: string[]): CarryRead | null {
 /** "222 : 188(+34)" or "a : b : c : d : e : f": each team's number. */
 const sokujiScores = (s: string) => s.split(" : ").map((x) => int(x.split("(")[0]) ?? NaN);
 
-function sokuji(all: string[], game: WarGame): CarryRead | null {
+function sokuji(all: string[], channelGame: WarGame): CarryRead | null {
   const ti = all.findIndex((l) => /^(Sokuji|即時集計) (\d)v\d$/.test(l));
   if (ti < 0) return null;
+  // Sokuji scores Mario Kart Wii too: races worth 73 points between them are a Wii war, whatever the channel last played.
+  const raceSums = all.slice(ti + 3).map((l) => /^(.+?)\s*\|\s*[\d,]+$/.exec(l)).filter((m): m is RegExpExecArray => !!m).map((m) => sokujiScores(m[1])).filter((v) => v.every(Number.isFinite)).map((v) => v.reduce((a, b) => a + b, 0));
+  const game: WarGame = raceSums.length && raceSums.every((t) => t === raceTotal(pointsTable("mkwii", 12)!)) ? "mkwii" : channelGame;
   const size = Number(/(\d)v\d$/.exec(all[ti])![1]);
   const tags = (all[ti + 1] ?? "").split(" - ").map((t) => t.trim().slice(0, 12)).filter(Boolean);
   const teams = 12 / size;
@@ -282,7 +286,7 @@ function usFirst(war: CarryWar, us: string): CarryWar {
 
 // ── GameShuffle's own short form (the check, Fix a race, Continue here) ─────────────────────────
 
-const GAME_NAMES: Record<WarGame, string> = { mk8dx: "Mario Kart 8 Deluxe", mkworld: "Mario Kart World" };
+const GAME_NAMES: Record<WarGame, string> = WAR_GAME_LABELS;
 
 /** One race in the check: "Race 1: 1,4,6,7,8,9 (MKS)", "Race 3: 46-36 points", "Race 1: 1,2,6,9 / 3,4,7,12 / 5,8,10,11", "Race 2: 1,2,6,9 · 38-26-18 points". */
 function raceText(r: CarryRace, war: CarryWar): string {
@@ -309,9 +313,9 @@ export function carryBlock(war: CarryWar): string {
 /** Reads the check's block back (after Fix a race, or for Continue here). */
 export function readBlock(text: string): CarryRead {
   const all = text.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
-  const head = /^From (Quaxly|Toad Bot|Kiwi|Sokuji) · (Mario Kart 8 Deluxe|Mario Kart World) · (\d{1,2})v\d{1,2}(?: · (\d{1,2}) teams)? · (\d{1,2}) races$/.exec(all[0] ?? "");
+  const head = /^From (Quaxly|Toad Bot|Kiwi|Sokuji) · (Mario Kart 8 Deluxe|Mario Kart World|Mario Kart Wii) · (\d{1,2})v\d{1,2}(?: · (\d{1,2}) teams)? · (\d{1,2}) races$/.exec(all[0] ?? "");
   if (!head) return { ok: false, error: "The first line has to stay as it was: From …, the game, the format and the races." };
-  const game: WarGame = head[2] === "Mario Kart World" ? "mkworld" : "mk8dx";
+  const game: WarGame = head[2] === "Mario Kart World" ? "mkworld" : head[2] === "Mario Kart Wii" ? "mkwii" : "mk8dx";
   const format: WarFormat = { size: Number(head[3]), teams: head[4] ? Number(head[4]) : 2 };
   const problem = formatProblem(game, format);
   if (problem) return { ok: false, error: problem };

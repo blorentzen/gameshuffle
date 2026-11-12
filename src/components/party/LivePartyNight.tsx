@@ -5,7 +5,8 @@ import Link from "next/link";
 import QRCode from "qrcode";
 import { Accordion, Alert, Badge, Button, Chip, Input, Progress, Select, Switch } from "@empac/cascadeds";
 import { IconCheck, IconCopy, IconDice5, IconPlayCard } from "@tabler/icons-react";
-import { NIGHT_GAMES, nightGame, placePoints, unitLabel } from "@/lib/nights/games";
+import { nightGame, openNightGames, placePoints, unitLabel } from "@/lib/nights/games";
+import { useNightGates } from "@/components/nights/useNightGates";
 import { ULTIMATE } from "@/data/smash/ultimate";
 import { useToast } from "@/components/toast/ToastProvider";
 import { ChatBrainAsk } from "@/components/chatbrain/ChatBrainAsk";
@@ -16,6 +17,8 @@ import { MostLikelyPanel } from "@/components/party/MostLikelyPanel";
 import { TierWarsPanel } from "@/components/party/TierWarsPanel";
 import { DraftPanel, DraftPools } from "@/components/party/DraftPanel";
 import { BingoPanel } from "@/components/party/BingoPanel";
+import { BrainTablePanel } from "@/components/party/BrainTablePanel";
+import { CoopPanel, isCoopView } from "@/components/party/CoopPanel";
 import { EVENTS, track } from "@/lib/analytics/events";
 import { AiRecapButton } from "@/components/ai/AiRecapButton";
 import { useConfirm } from "@/components/confirm/ConfirmProvider";
@@ -90,6 +93,12 @@ const ERR: Record<string, string> = {
   no_bounty: "That bounty is gone.",
   rate_limited: "You've posted a lot just now. Try again in a minute.",
   need_three: "Odd One Out needs at least three people in seats.",
+  not_open: "Chat Brain at the table opens when Chat Brain launches.",
+  no_boards: "There are no Chat Brain boards left to play tonight.",
+  blocked_text: "That answer isn't allowed. Try another.",
+  bad_guess: "Type an answer first.",
+  need_players: "This needs at least two people in seats.",
+  not_an_answer: "That isn't an answer for this round. Five Letters takes five-letter words on our list.",
   round_open: "Finish this round first.",
   voting_closed: "Voting for this round has closed.",
   no_votes: "Nobody has voted yet.",
@@ -114,7 +123,7 @@ const consequenceOf = (id: string) => (id.startsWith("wc-h-") ? "Handicap" : id.
 const FORMAT_NAME = { gauntlet: "The Gauntlet", chaoscup: "Chaos Cup" } as const;
 
 /** Activity actions that record a game's results (recordResults "activity"). */
-const ACTIVITY_FINISH = new Set(["oo_finish", "ml_finish", "tw_finish", "bg_finish"]);
+const ACTIVITY_FINISH = new Set(["oo_finish", "ml_finish", "tw_finish", "bg_finish", "cb_finish", "co_finish"]);
 
 function keyName(code: string) { return `gs-party-seat:${code}`; }
 function readKey(code: string): string | null { try { return localStorage.getItem(keyName(code)); } catch { return null; } }
@@ -129,6 +138,7 @@ export function LivePartyNight({ code }: { code: string }) {
   const [names, setNames] = useState<Record<number, string>>({});
   const [qr, setQr] = useState<string | null>(null);
   const keyRef = useRef<string | null>(null);
+  const gates = useNightGates();
 
   // Host controls
   const [chanceN, setChanceN] = useState("2");
@@ -327,6 +337,10 @@ export function LivePartyNight({ code }: { code: string }) {
             ? <DraftPanel activity={view.activity} me={me} seatName={seatName} busy={busy} act={act} />
             : view.activity.slug === "number-bingo"
               ? <BingoPanel activity={view.activity} me={me} seatName={seatName} busy={busy} act={act} gameDone={current?.status === "done"} />
+            : view.activity.slug === "chat-brain"
+              ? <BrainTablePanel activity={view.activity} me={me} seatName={seatName} busy={busy} act={act} gameDone={current?.status === "done"} />
+            : isCoopView(view.activity)
+              ? <CoopPanel activity={view.activity} me={me} busy={busy} act={act} gameDone={current?.status === "done"} />
             : <OddOneOutPanel activity={view.activity} me={me} seatName={seatName} busy={busy} act={act} gameDone={current?.status === "done"} />)}
 
       {!ended && view.pools && !(isAct && view.activity?.slug === "draft-night") && (
@@ -583,7 +597,7 @@ export function LivePartyNight({ code }: { code: string }) {
 
           {me.isHost && !ended && (
             <span className="party-row">
-              <Select floatingLabel="Add a game" value={addPick} onChange={(v) => setAddPick(String(v))} options={NIGHT_GAMES.map((g) => ({ value: g.slug, label: g.short }))} />
+              <Select floatingLabel="Add a game" value={addPick} onChange={(v) => setAddPick(String(v))} options={openNightGames(gates).map((g) => ({ value: g.slug, label: g.short }))} />
               <Button variant="secondary" size="small" disabled={busy || !addPick} onClick={async () => { if (await act({ action: "add", slug: addPick })) setAddPick(""); }}>Add</Button>
             </span>
           )}

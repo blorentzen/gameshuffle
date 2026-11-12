@@ -1,7 +1,7 @@
 // Signed addresses and webhook signatures. Must match the site's src/lib/speedrun/tokens.ts byte for byte
 // (shared test vectors in test/tokens.test.ts). Web Crypto only, so it runs in Workers and Node alike.
 
-export type TokenKind = "timer" | "overlay";
+export type TokenKind = "timer" | "overlay" | "room";
 
 export interface TokenInfo {
   kind: TokenKind;
@@ -9,12 +9,12 @@ export interface TokenInfo {
   version: number;
 }
 
-const PREFIX: Record<TokenKind, string> = { timer: "t1", overlay: "o1" };
-const KIND_OF: Record<string, TokenKind> = { t1: "timer", o1: "overlay" };
+const PREFIX: Record<TokenKind, string> = { timer: "t1", overlay: "o1", room: "r1" };
+const KIND_OF: Record<string, TokenKind> = { t1: "timer", o1: "overlay", r1: "room" };
 const SIG_LENGTH = 22;
 
 export const RELAY_ID_RE = /^[A-Za-z0-9]{16}$/;
-const TOKEN_RE = /^(t1|o1)\.([A-Za-z0-9]{16})\.([1-9][0-9]{0,8})\.([A-Za-z0-9_-]{22})$/;
+const TOKEN_RE = /^(t1|o1|r1)\.([A-Za-z0-9]{16})\.([1-9][0-9]{0,8})\.([A-Za-z0-9_-]{22})$/;
 
 const encoder = new TextEncoder();
 const keys = new Map<string, Promise<CryptoKey>>();

@@ -1,19 +1,22 @@
 /**
  * The outline a page shows the moment it's tapped, while it loads (tap feedback picks, 2026-11-09, all as
- * recommended): the page's own header, then grey blocks where its content will land. A page's loading.tsx renders it;
- * pages with a BrowseHero pass the same header settings their page uses (a `hero.ts` beside the page), so the header
- * never jumps when the page arrives. Without a header, `band` draws a plain one in the page's place (Home, a game
- * space, a profile). Blocks are CDS Skeletons. One screen reader line says it's loading; the blocks are hidden.
+ * recommended): a plain header band in the page's place, then grey blocks where its content will land. A page's
+ * loading.tsx renders it. Blocks are CDS Skeletons. One screen reader line says it's loading; the blocks are hidden.
  *
- * Loading screens stream before the page, so a page whose own code redirects or answers "not found" would lose its
- * true status: give an outline only to pages that don't (time trials redirects old links, so it has none).
+ * Only signed-in or noindex pages get an outline (Home, Games, a game space, Comms, a profile, a lounge comparison).
+ * A loading screen streams before the page, for crawlers too: on an indexed page the HTML would open on the outline
+ * and "Loading the page" instead of the page's own heading (SEO check-in, 2026-11-10). It also wraps every page below
+ * it, so an outline never draws a page's own header or an h1: that heading would sit on top of other pages.
+ *
+ * A page whose own code redirects or answers "not found" would lose its true status under a loading screen, so those
+ * get none either (time trials redirects old links).
  */
 
 import type { ReactNode } from "react";
 import { Container, Skeleton } from "@empac/cascadeds";
 import "@/styles/page-outline.css";
 
-export type OutlineBody = "daily" | "cards" | "list" | "space" | "profile" | "home" | "lounge";
+export type OutlineBody = "cards" | "list" | "space" | "profile" | "home" | "lounge";
 
 const lines = (widths: string[]) => widths.map((w, i) => <Skeleton key={i} variant="text" width={w} className="outline__line" />);
 
@@ -31,13 +34,6 @@ function CardRow({ count = 3 }: { count?: number }) {
 }
 
 const BODIES: Record<OutlineBody, ReactNode> = {
-  daily: (
-    <>
-      <div className="outline__pills">{[0, 1, 2, 3].map((i) => <Skeleton key={i} variant="rectangular" className="outline__pill" />)}</div>
-      <Skeleton variant="rectangular" className="outline__panel" />
-      <div className="outline__text">{lines(["60%", "85%", "40%"])}</div>
-    </>
-  ),
   cards: (
     <>
       <Skeleton variant="text" width="14rem" className="outline__heading" />
@@ -110,19 +106,16 @@ const BODIES: Record<OutlineBody, ReactNode> = {
   ),
 };
 
-export function PageOutline({ body, hero, band, className }: {
+export function PageOutline({ body, band, className }: {
   body: OutlineBody;
-  /** The page's own header (its BrowseHero with the page's settings). */
-  hero?: ReactNode;
-  /** No header of its own: a plain dark band in its place ("tall" for Home's welcome). */
+  /** A plain dark band where the page's header goes ("tall" for Home's welcome). */
   band?: "short" | "tall";
   className?: string;
 }) {
   return (
     <main className={`page-outline${className ? ` ${className}` : ""}`}>
       <p className="sr-only" role="status">Loading the page</p>
-      {hero}
-      {!hero && band && (
+      {band && (
         <div className={`outline__band outline__band--${band}`} aria-hidden="true">
           <Container className="outline__band-inner">
             {band === "tall" ? (

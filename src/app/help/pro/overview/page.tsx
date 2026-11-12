@@ -50,11 +50,11 @@ export default function Page() {
       <p><strong>Cross-platform sessions.</strong> Run one game night across Twitch and Discord from the Hub, with the chat bot, chat commands, and a session lifecycle that fans out announcements automatically.</p>
       <p><strong>Arcade Token economy.</strong> A closed-loop currency your chat plays for, with prediction markets, awards, bounties, and three-layer leaderboards. Tokens are never bought with money and never cashed out.</p>
       <p><strong>Stream tools on your overlay.</strong> The free tools go live on your OBS overlay: spin the wheel, roll dice, flip a coin, run a poll, bingo, a tier list, a countdown timer, and a raffle on screen, driven by chat commands and channel-point rewards.</p>
-      <p><strong>Live tournament control.</strong> Advance the current race and it updates your overlay, your <code>/live</code> page, and chat at once. Run a <a href="/help/tournaments/multi-crew-tournaments">multi-crew battle</a> with crew standings on your overlay too.</p>
+      <p><strong>Tournament control from chat.</strong> You and your mods step through races with <code>!gs-tourney</code>, and your overlay and <code>/live</code> page follow. Run a <a href="/help/tournaments/multi-crew-tournaments">multi-crew battle</a> with crew standings on your overlay too. Running races from the manage page is free for every organizer.</p>
       <p><strong>Picks, bans, and modules.</strong> Participant-driven drafts and engagement modules your viewers vote and play through in real time.</p>
       <p><strong>AI tools.</strong> Make wheels, bingo prompts, tier lists and party game packs from a theme, and write up recaps of your nights and streams, with 60 AI drafts every 30 days. See <a href="/help/apps/ai-tools">AI tools</a>.</p>
       <p><strong>Brand theming.</strong> A brand theme that reskins your overlay, <code>/live</code> page, and public profile in your colors.</p>
-      <p><strong>The essentials too.</strong> The &ldquo;Reroll the Streamer&rsquo;s Pick&rdquo; channel-point reward, the public lobby viewer, and Discord lounge results with <code>/result</code> on GameShuffle Competitive.</p>
+      <p><strong>The essentials too.</strong> The &ldquo;Reroll the Streamer&rsquo;s Pick&rdquo; channel-point reward and the public lobby viewer.</p>
 
       <h2>Free vs Pro</h2>
       <table>
@@ -65,7 +65,7 @@ export default function Page() {
           <tr><td>Randomizers (Mario Kart, Mario Party, Pokémon, GoldenEye)</td><td><Yes /></td><td><Yes /></td></tr>
           <tr><td>AI setup, Night Planner &amp; tournament helper (3 a day free)</td><td><Yes /></td><td><Yes /></td></tr>
           <tr><td>Free stream &amp; party tools (wheel, dice, bingo, and more)</td><td><Yes /></td><td><Yes /></td></tr>
-          <tr><td>Tournaments &amp; championships</td><td><Yes /></td><td><Yes /></td></tr>
+          <tr><td>Tournaments</td><td><Yes /></td><td><Yes /></td></tr>
           <tr><td>Live scoring</td><td><Yes /></td><td><Yes /></td></tr>
           <tr><td>TCG Companion + collection</td><td><Yes /></td><td><Yes /></td></tr>
           <tr><td>Profiles &amp; social</td><td><Yes /></td><td><Yes /></td></tr>
@@ -74,11 +74,11 @@ export default function Page() {
           <tr><td>Chat bot + channel-point reward</td><td><No /></td><td><Yes /></td></tr>
           <tr><td>Stream tools on your OBS overlay</td><td><No /></td><td><Yes /></td></tr>
           <tr><td>Arcade Token economy (markets, awards, leaderboards)</td><td><No /></td><td><Yes /></td></tr>
-          <tr><td>Live tournament control</td><td><No /></td><td><Yes /></td></tr>
+          <tr><td>Tournament control from chat (<code>!gs-tourney</code>)</td><td><No /></td><td><Yes /></td></tr>
           <tr><td>Picks, bans &amp; modules</td><td><No /></td><td><Yes /></td></tr>
           <tr><td>AI content packs &amp; recaps (60 every 30 days)</td><td><No /></td><td><Yes /></td></tr>
           <tr><td>Brand theming (overlay, /live, profile)</td><td><No /></td><td><Yes /></td></tr>
-          <tr><td>Discord <code>/result</code> (GameShuffle Competitive)</td><td><No /></td><td><Yes /></td></tr>
+          <tr><td>Discord <code>/result</code> (GameShuffle Competitive)</td><td><Yes /></td><td><Yes /></td></tr>
         </tbody>
       </table>
       <p>The free tier is great for solo, family, and in-person play. Pro is for streamers running a game night their chat plays along with.</p>

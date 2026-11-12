@@ -33,6 +33,6 @@ export async function GET(req: Request) {
   const shared = code ? await sharePlayer(code) : null;
   // ?fresh=1 (a player who just finished): skip the few seconds the board's top rows are shared.
   const fresh = !!me && url.searchParams.get("fresh") === "1";
-  const view = await boardView({ game, period, day, me, shared, fresh });
+  const view = await boardView({ game, period, day, me, shared, fresh, race: true });
   return NextResponse.json(view, { headers: { "Cache-Control": "private, no-store" } });
 }

@@ -29,14 +29,14 @@ const PLAYERS = [
 
 export type DiscordMockVariant = "card" | "summary" | "poll" | "golive" | "roles" | "ttpanel" | "mmr";
 
-/** GameShuffle Competitive (the /mario-kart-discord-bot page). Its panel and replies mirror
- *  src/lib/discord/ttPanel.ts, commands/timeTrials.ts and commands/mmr.ts: keep the wording in step. */
+/** GameShuffle Competitive (the /mario-kart-discord-bot page). Its panel and record post mirror the time trial cards
+ *  in src/lib/discord/ttCards.ts (panelCard, recordPostCard), and the MMR reply commands/mmr.ts: keep the wording in step. */
 const COMP = "GameShuffle Competitive";
 const COMP_ICON = "/images/discord/comp-icon.png";
 const RECORDS = [
-  { code: "RR", time: "2:24.418", who: "Riley", cat: "150cc, mushrooms" },
-  { code: "TH", time: "2:05.291", who: "Quinn", cat: "150cc, no mushrooms" },
-  { code: "MKS", time: "1:36.673", who: "Quinn", cat: "150cc, mushrooms" },
+  { code: "RR", time: "2:24.418", who: "Riley", cat: "150cc, mushrooms", when: "2 hours ago" },
+  { code: "TH", time: "2:05.291", who: "Quinn", cat: "150cc, no mushrooms", when: "yesterday" },
+  { code: "MKS", time: "1:36.673", who: "Quinn", cat: "150cc, mushrooms", when: "Nov 8" },
 ];
 
 const LABELS: Record<DiscordMockVariant, string> = {
@@ -45,7 +45,7 @@ const LABELS: Record<DiscordMockVariant, string> = {
   poll: "Example Discord message: a live poll, Which cup next?, with a vote button per cup and 214 votes counted from Discord, Twitch chat and the live page.",
   golive: "Example Discord message: the GameShuffle bot announces that a streamer is live on Twitch playing Mario Kart World, with the game's cover art and a link to their live page.",
   roles: "Example Discord message: a role menu where members tap buttons to pick their games and game night pings. A reply only the member sees confirms the role was added.",
-  ttpanel: `Example Discord channel: GameShuffle Competitive's pinned time trial panel for Kart Club, Mario Kart 8 Deluxe, 17 times from 5 players this month, with the newest server records (${RECORDS.map((r) => `${r.code} ${r.time} by ${r.who}`).join(", ")}) and buttons to add a time, see a top ten, see your times or open the server board. Below it, a post: new server record on Rainbow Road, Riley 2:24.418, was 2:25.905 by Quinn, with Verify and Report.`,
+  ttpanel: `Example Discord channel: GameShuffle Competitive's pinned time trial panel for Kart Club, Mario Kart 8 Deluxe, 17 times from 5 players this month, with the newest server records (${RECORDS.map((r) => `${r.code} ${r.time} by ${r.who}`).join(", ")}) and buttons to add a time, see a top ten, see your times or open the server board. Below it, a post: new server record on Rainbow Road, Riley 2:24.418, was 2:25.905 by Quinn, with the result screenshot as proof, Vouch, Report and the full board, and Verify for server managers.`,
   mmr: "Example Discord message: Riley used /mmr, and GameShuffle Competitive replied with Sam's Mario Kart World lounge numbers: MMR 7,912, Gold, 88 to Platinum, world rank 1,240, season peak 8,040 and the last ten events, with the Gold medal.",
 };
 
@@ -148,12 +148,19 @@ export function DiscordMock({ variant }: { variant: DiscordMockVariant }) {
               <div className="dmock__content">
                 <BotHead name={COMP} time="Pinned" />
                 <div className="dmock__container dmock__container--comp">
-                  <p className="dmock__title dmock__title--big">Time trials in Kart Club</p>
-                  <p className="dmock__text">Mario Kart 8 Deluxe · 17 times from 5 players this month</p>
+                  <div className="dmock__lines">
+                    <p className="dmock__title dmock__title--big">Time trials in Kart Club</p>
+                    <span className="dmock__sub">Mario Kart 8 Deluxe · 17 times from 5 players this month</span>
+                  </div>
                   <hr className="dmock__rule" />
                   <div className="dmock__lines">
-                    <b>Newest server records</b>
-                    {RECORDS.map((r) => <span key={r.code}><code>{r.code}</code> <b>{r.time}</b> · {r.who} · {r.cat}</span>)}
+                    <b className="dmock__label">Newest server records</b>
+                    {RECORDS.map((r) => (
+                      <span key={r.code} className="dmock__record">
+                        <span><code>{r.code}</code> <b>{r.time}</b> · {r.who}</span>
+                        <span className="dmock__sub">{r.cat} · {r.when}</span>
+                      </span>
+                    ))}
                   </div>
                   <hr className="dmock__rule" />
                   <span className="dmock__btns">
@@ -170,22 +177,41 @@ export function DiscordMock({ variant }: { variant: DiscordMockVariant }) {
               <img className="dmock__av dmock__av--comp" src={COMP_ICON} alt="" width={40} height={40} />
               <div className="dmock__content">
                 <BotHead name={COMP} time="Today at 8:41 PM" />
-                <div className="dmock__embed dmock__embed--comp">
+                <div className="dmock__container dmock__container--gold">
                   <div className="dmock__live">
-                    <div className="dmock__live-copy">
-                      <p className="dmock__title">New server record on Rainbow Road (RR)</p>
-                      <p className="dmock__desc"><b>Riley</b> · 2:24.418 · 150cc, mushrooms<br />Was 2:25.905 by Quinn · 212th on GameShuffle</p>
+                    <div className="dmock__lines">
+                      <p className="dmock__title dmock__title--big">New server record</p>
+                      <span>Rainbow Road (RR) · 150cc, mushrooms</span>
                     </div>
                     {/* eslint-disable-next-line @next/next/no-img-element -- course art in an illustration */}
-                    <img className="dmock__thumb dmock__thumb--wide" src="https://cdn.empac.co/gameshuffle/images/mk8dx/courses/special/rainbow-road.webp" alt="" width={160} height={90} loading="lazy" />
+                    <img className="dmock__thumb dmock__thumb--square" src="https://cdn.empac.co/gameshuffle/images/mk8dx/courses/special/rainbow-road.webp" alt="" width={76} height={76} loading="lazy" />
                   </div>
-                  <p className="dmock__foot">Time trials · gameshuffle.co/time-trials</p>
+                  <hr className="dmock__rule" />
+                  <div className="dmock__lines">
+                    <p className="dmock__title">🇺🇸 Riley · 2:24.418</p>
+                    <span className="dmock__sub">Was 2:25.905 by Quinn · 212th on GameShuffle</span>
+                  </div>
+                  <hr className="dmock__rule" />
+                  <span className="dmock__sub">Proof · result screenshot</span>
+                  <span className="dmock__shot" aria-hidden="true">
+                    <span className="dmock__shot-card">
+                      <span>Lap 1</span><span>47.802</span>
+                      <span>Lap 2</span><span>48.115</span>
+                      <span>Lap 3</span><span>48.501</span>
+                      <b>Total</b><b>2:24.418</b>
+                    </span>
+                  </span>
+                  <hr className="dmock__rule" />
+                  <span className="dmock__btns">
+                    <span className="dmock__btn">Vouch</span>
+                    <span className="dmock__btn">Report</span>
+                    <span className="dmock__btn">Full board</span>
+                  </span>
+                  <span className="dmock__mgr">
+                    <span className="dmock__sub">Server managers can check this time for Kart Club.</span>
+                    <span className="dmock__btn">Verify</span>
+                  </span>
                 </div>
-                <span className="dmock__btns">
-                  <span className="dmock__btn dmock__btn--go">Verify</span>
-                  <span className="dmock__btn">Report</span>
-                  <span className="dmock__btn">Full board</span>
-                </span>
               </div>
             </div>
           </>

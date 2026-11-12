@@ -56,7 +56,8 @@ eq(speedrunTonightLine([{ result: "reset", final_ms: 5_000, pb: false, splits: [
 
 // Settings.
 eq(readCompSpeedrun(undefined), EMPTY_COMP_SPEEDRUN, "settings: none is everything off");
-eq(readCompSpeedrun({ speedrun: { pbs: true, pace: "yes", paceRole: "12345678" } }), { pbs: true, pace: false, paceRole: "12345678" }, "settings: only real values count");
+eq(readCompSpeedrun({ speedrun: { pbs: true, pace: "yes", paceRole: "12345678" } }), { pbs: true, pace: false, paceRole: "12345678", races: false }, "settings: only real values count");
+eq(readCompSpeedrun({ speedrun: { races: true } }).races, true, "settings: race posts switch");
 eq(readCompSpeedrun({ speedrun: { paceRole: "@everyone" } }).paceRole, null, "settings: a role must be an id");
 
 console.log(`speedrun discord: ${pass} passed, ${fail} failed`);

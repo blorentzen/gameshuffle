@@ -54,6 +54,8 @@ export interface CanvasProps {
   backdrop?: boolean;
   /** Chat's "PB this run" prediction (GS Pro), when one is in play or just ended. */
   prediction?: SpeedrunPredictionView | null;
+  /** A race the runner is in (src/components/races/RaceOverlays.tsx), drawn beside the panel in the same look. */
+  race?: ReactNode;
 }
 
 // ── Pieces ────────────────────────────────────────────────────────────────
@@ -369,7 +371,7 @@ function Strip({ st, receivedAt, look, game, category, moment, still, prediction
 
 // ── The canvas ────────────────────────────────────────────────────────────
 
-export function SpeedrunCanvas({ state, receivedAt, look, game, category, moment = null, still = false, backdrop = false, prediction = null }: CanvasProps) {
+export function SpeedrunCanvas({ state, receivedAt, look, game, category, moment = null, still = false, backdrop = false, prediction = null, race = null }: CanvasProps) {
   // A reset shows the run as it stood, dimmed, until the moment is over.
   // Plain split names (LiveSplit's group marks read, each split keeping its group), the moment's too.
   const shown = shownState(moment?.kind === "reset" && moment.before ? moment.before : state);
@@ -384,6 +386,7 @@ export function SpeedrunCanvas({ state, receivedAt, look, game, category, moment
       <div className={`sr-cv ${speedrunClasses(look)}`} style={speedrunVars(look) as CSSProperties}>
         {backdrop && <><div className="sr-game" style={art ? { backgroundImage: `url(${art})` } : undefined} /><div className={`sr-game-shade sr-game-shade--${look.layout}`} /></>}
         {look.layout === "strip" ? <Strip {...props} /> : <Column {...props} />}
+        {race}
       </div>
     </div>
   );

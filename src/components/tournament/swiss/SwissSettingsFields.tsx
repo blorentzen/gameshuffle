@@ -9,7 +9,7 @@
 
 import { ChoiceRow } from "@/components/tournament/ChoiceRow";
 import { DECK_FORMATS, type DeckFormat } from "@/lib/tcg/deckList";
-import { AFTER_CHOICES, WHEN_CHOICES, type DeckListAfter, type DeckListSettings, type DeckListWhen } from "@/lib/tournaments/deckLists";
+import { AFTER_CHOICES, TEAM_AFTER_CHOICES, TEAM_WHEN_CHOICES, WHEN_CHOICES, teamAfterHelp, type DeckListAfter, type DeckListSettings, type DeckListWhen, type ListKind } from "@/lib/tournaments/deckLists";
 import { SWISS_MAX_ROUNDS, SWISS_MIN_PLAYERS, describeStructure, structureFor, type BestOf, type SwissSettings, type TopCut } from "@/lib/tournaments/swiss";
 import { TtEventSettingsFields } from "@/components/tournament/tt/TtEventSettingsFields";
 import type { TtEventSettings } from "@/lib/tournaments/tt/event";
@@ -80,12 +80,29 @@ export function SwissSettingsFields({ value, onChange, players, disabled, timeTr
   );
 }
 
-export function DeckListSettingsFields({ value, onChange, swiss, disabled }: {
+export function DeckListSettingsFields({ value, onChange, swiss, disabled, kind = "deck" }: {
   value: DeckListSettings;
   onChange: (next: DeckListSettings) => void;
   swiss: boolean;
   disabled?: boolean;
+  /** Team lists (Pokémon Champions): sent before round 1, checked against the season's list, and they can be open. */
+  kind?: ListKind;
 }) {
+  if (kind === "team") {
+    const when = value.when === "join" ? "start" : value.when;
+    return (
+      <div className="swiss-fields swiss-fields--decks">
+        <ChoiceRow<DeckListWhen> label="When players send their team" value={when} disabled={disabled} onPick={(w) => onChange({ ...value, when: w })} choices={TEAM_WHEN_CHOICES} />
+        {when !== "off" && (
+          <>
+            <p className="swiss-fields__help">Each player sends four to six Pokémon from this season&apos;s list before round 1, built in the team builder on the tournament page. Teams are checked as they&apos;re sent and lock when the event starts.</p>
+            <ChoiceRow<DeckListAfter> label="Who sees the teams" value={value.after} disabled={disabled} onPick={(after) => onChange({ ...value, after })} choices={TEAM_AFTER_CHOICES(swiss)} />
+            <p className="swiss-fields__help">{teamAfterHelp(value.after)}</p>
+          </>
+        )}
+      </div>
+    );
+  }
   return (
     <div className="swiss-fields swiss-fields--decks">
       <ChoiceRow<DeckListWhen> label="When players send their list" value={value.when} disabled={disabled} onPick={(when) => onChange({ ...value, when })} choices={WHEN_CHOICES} />

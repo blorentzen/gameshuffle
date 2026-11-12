@@ -1,6 +1,9 @@
 import { compAppLive } from "@/lib/discord/appIds";
 import type { Interest } from "@/lib/interests/rules";
-import { DAILY_DEX_PUBLIC, DUEL_PUBLIC, FIRE_ROUND_PUBLIC, ROAD_PUBLIC, N64_PARTY_PUBLIC, FRLG_PUBLIC, GOLDENEYE_PUBLIC, GUIDES_PUBLIC, KIRBY_PUBLIC, STADIUM_PUBLIC, SMASH_PUBLIC, SPLATOON_PUBLIC, MK64_PUBLIC, PERFECT_DARK_PUBLIC, OVERWATCH_PUBLIC, MARVEL_RIVALS_PUBLIC, SONIC_PUBLIC } from "@/lib/games-visibility";
+import { DAILY_DEX_PUBLIC, DUEL_PUBLIC, FIRE_ROUND_PUBLIC, ROAD_PUBLIC, N64_PARTY_PUBLIC, FRLG_PUBLIC, GOLDENEYE_PUBLIC, GUIDES_PUBLIC, KIRBY_PUBLIC, STADIUM_PUBLIC, SMASH_PUBLIC, SPLATOON_PUBLIC, MK64_PUBLIC, MKWII_PUBLIC, PERFECT_DARK_PUBLIC, OVERWATCH_PUBLIC, MARVEL_RIVALS_PUBLIC, SONIC_PUBLIC } from "@/lib/games-visibility";
+import { MELEE_PUBLIC } from "@/lib/games-visibility";
+import { WONDER_PUBLIC } from "@/lib/games-visibility";
+import { DOUBLE_DASH_PUBLIC, MARIO_KART_7_PUBLIC, MARIO_KART_DS_PUBLIC, SUPER_MARIO_KART_PUBLIC } from "@/lib/games-visibility";
 /**
  * The five worlds: the single source of truth for GameShuffle's information architecture (menus and account picks
  * 2026-11-05, https://claude.ai/artifact/FVgHcSgixdcLaGZisgsd97, 1A): Play, Pokémon, Compete, Host, Stream. The same
@@ -126,6 +129,7 @@ export const PILLARS: Pillar[] = [
           ...(MARVEL_RIVALS_PUBLIC ? [{ label: "Marvel Rivals randomizer", href: "/randomizers/marvel-rivals", blurb: "Hero roulette, Team-Up teams and a random map.", secondary: true }] : []),
           ...(KIRBY_PUBLIC ? [{ label: "Kirby Air Riders randomizer", href: "/randomizers/kirby-air-riders", blurb: "Riders, machines, courses and City Trial Stadiums for up to 8 players.", secondary: true }] : []),
           ...(SONIC_PUBLIC ? [{ label: "Sonic Racing: CrossWorlds randomizer", href: "/randomizers/sonic-racing-crossworlds", blurb: "Racers, machines, Gadget Plates and races for up to 12 players.", secondary: true }] : []),
+          ...(WONDER_PUBLIC ? [{ label: "Super Mario Bros. Wonder randomizer", href: "/randomizers/super-mario-bros-wonder", blurb: "A character and badge each, a level by world and challenge rules for up to 4.", secondary: true }] : []),
           ...(N64_PARTY_PUBLIC ? [
             { label: "Mario Party randomizer", href: "/randomizers/mario-party", blurb: "The N64 original: 8 boards and 50 minigames.", secondary: true },
             { label: "Mario Party 2 randomizer", href: "/randomizers/mario-party-2", blurb: "Six lands and 65 minigames.", secondary: true },
@@ -133,6 +137,12 @@ export const PILLARS: Pillar[] = [
           ] : []),
           ...(GOLDENEYE_PUBLIC ? [{ label: "GoldenEye 007 randomizer", href: "/randomizers/goldeneye-007", blurb: "Scenario, map, weapons and characters for 2 to 4 players.", secondary: true }] : []),
           ...(MK64_PUBLIC ? [{ label: "Mario Kart 64 randomizer", href: "/randomizers/mario-kart-64", blurb: "A different character for up to 4, tracks and battle courses.", secondary: true }] : []),
+          ...(MELEE_PUBLIC ? [{ label: "Super Smash Bros. Melee randomizer", href: "/randomizers/super-smash-bros-melee", blurb: "A fighter and costume for up to 4, a legal stage or any of the 29.", secondary: true }] : []),
+          ...(MKWII_PUBLIC ? [{ label: "Mario Kart Wii randomizer", href: "/randomizers/mario-kart-wii", blurb: "A character and a kart or bike in their size class, tracks and battle arenas.", secondary: true }] : []),
+          ...(DOUBLE_DASH_PUBLIC ? [{ label: "Mario Kart Double Dash randomizer", href: "/randomizers/mario-kart-double-dash", blurb: "A driver, an item thrower and a kart that fits them, cups and battles.", secondary: true }] : []),
+          ...(MARIO_KART_DS_PUBLIC ? [{ label: "Mario Kart DS randomizer", href: "/randomizers/mario-kart-ds", blurb: "A character and a kart from your save, cups, battles and Mission Mode.", secondary: true }] : []),
+          ...(MARIO_KART_7_PUBLIC ? [{ label: "Mario Kart 7 randomizer", href: "/randomizers/mario-kart-7", blurb: "A character and a body, tires and glider from your save, cups and battles.", secondary: true }] : []),
+          ...(SUPER_MARIO_KART_PUBLIC ? [{ label: "Super Mario Kart randomizer", href: "/randomizers/super-mario-kart", blurb: "A racer for each of two players, cups and battle courses.", secondary: true }] : []),
           ...(PERFECT_DARK_PUBLIC ? [{ label: "Perfect Dark randomizer", href: "/randomizers/perfect-dark", blurb: "Scenario, arena, weapons and simulants for a Combat Simulator match.", secondary: true }] : []),
           ...(OVERWATCH_PUBLIC ? [{ label: "Overwatch hero randomizer", href: "/randomizers/overwatch", blurb: "Hero roulette with role queue, no repeats and a random map.", secondary: true }] : []),
           ...(SPLATOON_PUBLIC ? [{ label: "Splatoon 3 randomizer", href: "/randomizers/splatoon-3", blurb: "Weapon kits, battles, Salmon Run stages and teams for up to 8 players.", secondary: true }] : []),

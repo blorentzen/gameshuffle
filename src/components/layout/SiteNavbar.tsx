@@ -37,6 +37,7 @@ import { MESSAGING_ON } from "@/lib/social/messagingOn";
  *  aurora heroes and dark image/video heroes alike), then pins on scroll. All
  *  forward-facing marketing + app/tool landing pages, for one consistent nav. */
 const HERO_ROUTES = new Set([
+  "/speedrun/splits",
   "/",
   "/home",
   "/welcome",
@@ -74,13 +75,20 @@ const HERO_ROUTES = new Set([
   "/randomizers/super-mario-party-jamboree",
   "/randomizers/kirby-air-riders",
   "/randomizers/sonic-racing-crossworlds",
+  "/randomizers/super-mario-bros-wonder",
   "/randomizers/splatoon-3",
   "/randomizers/super-smash-bros-ultimate",
+  "/randomizers/super-smash-bros-melee",
   "/randomizers/pokemon",
   "/randomizers/pokemon-stadium",
   "/randomizers/goldeneye-007",
   "/randomizers/pokemon-firered-leafgreen",
   "/randomizers/mario-kart-64",
+  "/randomizers/mario-kart-wii",
+  "/randomizers/mario-kart-double-dash",
+  "/randomizers/mario-kart-ds",
+  "/randomizers/mario-kart-7",
+  "/randomizers/super-mario-kart",
   "/randomizers/perfect-dark",
   "/randomizers/overwatch",
   "/randomizers/marvel-rivals",
@@ -127,6 +135,10 @@ const HERO_DETAIL: { prefix: string; notIds: Set<string> }[] = [
   { prefix: "/games/", notIds: new Set() },
   // A community (/c/<slug>): it opens on its banner band (the solid nav sat on top of it, a bar of blue over the art).
   { prefix: "/c/", notIds: new Set() },
+  // A speedrun race (/races/<code>); its restream link (/races/<code>/obs) is an OBS page with no nav.
+  { prefix: "/races/", notIds: new Set() },
+  // A game's speedrun splits (/speedrun/splits/<game>).
+  { prefix: "/speedrun/splits/", notIds: new Set() },
 ];
 
 function isHeroPath(pathname: string): boolean {

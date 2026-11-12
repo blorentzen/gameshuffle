@@ -5,7 +5,7 @@ import { FaqList } from "@/components/marketing/FaqList";
 import { FeatureCard } from "@/components/marketing/FeatureCard";
 import { MoreRandomizers } from "@/components/marketing/MoreRandomizers";
 import { type RandomizerLanding as Landing } from "@/data/randomizer-landings";
-import { randomizerCatalog } from "@/data/randomizer-catalog";
+import { linkSuffix, randomizerCatalog } from "@/data/randomizer-catalog";
 import { SITE_URL } from "@/lib/seo";
 
 /**
@@ -37,7 +37,7 @@ export function RandomizerLanding({
     ...(mine ? mine.entries.filter((e) => e.slug !== l.slug).slice(0, 3) : []),
     ...groups.filter((g) => g !== mine).map((g) => g.entries[0]),
   ].filter(Boolean).slice(0, 5)
-    .map((e) => ({ slug: e.slug, href: e.href, title: e.short ?? e.title, image: e.image, art: e.art, isNew: e.isNew }));
+    .map((e) => ({ slug: e.slug, href: e.href, title: e.short ?? e.title, suffix: linkSuffix(e), image: e.image, art: e.art, isNew: e.isNew }));
 
   return (
     <>

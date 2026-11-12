@@ -79,6 +79,8 @@ const TIER_CAPABILITIES = {
     // paywall. Gate stays capability-based so it can be re-gated to Pro
     // later by moving this line back to the `pro` list only.
     "companion.collection",
+    // Discord /result (GameShuffle Competitive): free like the app's other posts (picks 2026-11-11).
+    "gs-result-command",
   ] as const,
   pro: [
     // All free capabilities — explicit, no inheritance
@@ -324,6 +326,14 @@ export function circuitGrantsPro(
   if (circuitTier === "circuit_256") return true;
   if (circuitTier === "circuit_64" && hasProAddon) return true;
   return false;
+}
+
+/** True while a paid GS Circuit plan (64 or 256) is live. Circuit 64 includes
+ *  unlimited active tournaments (picks 2026-11-11), like GS Pro. A subscription,
+ *  never the preview: free Circuit while billing is off doesn't lift the cap.
+ *  The database mirror is gs_tournament_free_limit (supabase/tournament-limit-circuit-m1.sql). */
+export function circuitPlanActive(circuitTier: string | null | undefined, circuitStatus: string | null | undefined): boolean {
+  return (circuitTier === "circuit_64" || circuitTier === "circuit_256") && isActiveBillingStatus(circuitStatus);
 }
 
 /** Raw account state the Pro resolver reads. All fields optional/nullable so

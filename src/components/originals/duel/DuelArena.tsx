@@ -184,7 +184,7 @@ function Scoreline({ rows, reveal, trainer, onLog }: { rows: ScoreRow[]; reveal:
   );
 }
 
-export function DuelArena({ run, play, motion, busy, staging, offset, onNext, onBring, onTurn, onTip, onTool, onZoom, onSkip, askBody = "You'll lose today's solo bonus: 150 points off your score." }: {
+export function DuelArena({ run, play, motion, busy, staging, offset, onNext, onBring, onTurn, onTip, onTool, onZoom, onSkip, askBody = "You'll lose today's solo bonus: 150 points off your score.", noHelp = false, battle = false, title }: {
   run: DuelRunView;
   /** The picture to draw (an exchange's beats first, then the new turn). */
   play: DuelPlayView;
@@ -207,6 +207,12 @@ export function DuelArena({ run, play, motion, busy, staging, offset, onNext, on
   onSkip: () => void;
   /** What asking the professor costs, in the check (Trainer Road: this duel's bonus). */
   askBody?: string;
+  /** A duel against friends: no professor (duels pick 5A). */
+  noHelp?: boolean;
+  /** A trainer battle: the other side is a player (their team is theirs to bring from; no "leads" until they pick). */
+  battle?: boolean;
+  /** What this duel is called (the heading and the end screen's kicker): "Tag team duel". */
+  title?: string;
 }) {
   const confirm = useConfirm();
   const toast = useToast();
@@ -345,7 +351,7 @@ export function DuelArena({ run, play, motion, busy, staging, offset, onNext, on
   else if (shown === "weather" && weather) noticeView = { tile: <WeatherTile kind={weather.kind} size="lg" />, kicker: "On now", title: WEATHER_CHIP[weather.kind].word, text: `${WEATHER_CHIP[weather.kind].line}, ${turnsLeft(weather.turnsLeft)}`, next: false };
   else if (shown === "next" && forecast) noticeView = { tile: <EventTile event={forecast} picture={run.trainer.picture} size="lg" next />, kicker: "Next turn", title: forecast.title, text: forecast.short, next: true };
 
-  const barProps = { turn: play.turn, event: play.over ? null : play.event, forecast: play.over ? null : play.forecast, later: play.over ? null : play.later ?? null, weather: play.over ? null : weather, outcome, hint, picture: run.trainer.picture, staging };
+  const barProps = { turn: play.turn, event: play.over ? null : play.event, forecast: play.over ? null : play.forecast, later: play.over ? null : play.later ?? null, weather: play.over ? null : weather, outcome, hint, picture: run.trainer.picture, staging, battle };
 
   // The whole turn in full sentences for screen readers (once the beats are done): what happened,
   // the event that flipped and what it did, then what to do now.
@@ -382,7 +388,7 @@ export function DuelArena({ run, play, motion, busy, staging, offset, onNext, on
       }}
       onPointerDown={() => { byKey.current = false; if (staging) onSkip(); }}
     >
-      <h2 className="sr-only">{run.official ? "Today's duel" : "Practice duel"} against {trainer}</h2>
+      <h2 className="sr-only">{title ?? (battle ? "Trainer battle" : run.official ? "Today's duel" : "Practice duel")} against {trainer}</h2>
       <p className="sr-only" aria-live="polite">{announce}</p>
       <div className="duel-arena__body" inert={picker || play.over !== null ? true : undefined}>
         <DuelEventsBar {...barProps} onShow={showNotice} turnRef={turnRef} />
@@ -538,9 +544,9 @@ export function DuelArena({ run, play, motion, busy, staging, offset, onNext, on
           hint={hint}
           bar={<DuelEventsBar {...barProps} inWindow />}
           tools={onTool && run.bag && play.tools ? <DuelTools key={stage} play={play} bag={run.bag} busy={busy || confirming} onTool={(st) => void playTool(st)} /> : null}
-          event={play.event && !play.over ? <DuelEventCard event={play.event} text={play.event.kind === "advice" ? (run.level === "hard" ? "You're on your own in Hard: no tip." : play.event.short) : eventNowText(play.event, outcome, hint)} picture={run.trainer.picture} /> : null}
+          event={play.event && !play.over ? <DuelEventCard event={play.event} text={play.event.kind === "advice" ? (noHelp ? "No tips in a duel against friends." : run.level === "hard" ? "You're on your own in Hard: no tip." : play.event.short) : eventNowText(play.event, outcome, hint)} picture={run.trainer.picture} /> : null}
           busy={busy}
-          ask={{ show: !hint && run.level !== "hard", costs, busy: tipBusy, onAsk: () => void askProfessor(), escape: !confirming }}
+          ask={{ show: !hint && run.level !== "hard" && !noHelp, costs, busy: tipBusy, onAsk: () => void askProfessor(), escape: !confirming }}
           onUse={pickUse}
           onAttach={pickCard}
           onNext={() => { touched.current = true; if (play.swaps.length) setWin({ turn: play.turn, open: true, step: 2 }); else closeWin(); }}
@@ -553,7 +559,7 @@ export function DuelArena({ run, play, motion, busy, staging, offset, onNext, on
       )}
 
       {picker && play.needsBring && (
-        <DuelBringPicker play={play} trainer={trainer} headingRef={pickRef} busy={busy} onBring={(cards) => { touched.current = true; onBring(cards); }} onZoom={(c) => onZoom(c, "Your")} onZoomFoe={(c) => onZoom(c, their)} />
+        <DuelBringPicker play={play} trainer={trainer} battle={battle} headingRef={pickRef} busy={busy} onBring={(cards) => { touched.current = true; onBring(cards); }} onZoom={(c) => onZoom(c, "Your")} onZoomFoe={(c) => onZoom(c, their)} />
       )}
       {picker && !play.needsBring && (
         <DuelPicker play={play} trainer={trainer} hard={run.level === "hard"} headingRef={pickRef} busy={busy} onPick={(i) => { touched.current = true; onNext(i); }} onZoom={(c) => onZoom(c, "Your")} />
@@ -562,7 +568,7 @@ export function DuelArena({ run, play, motion, busy, staging, offset, onNext, on
       {play.over && (
         <div className="duel-overlay duel-overlay--over" role="status">
           <div>
-            <p className="duel-overlay__kicker">{run.official ? "Today's duel" : "Practice"}</p>
+            <p className="duel-overlay__kicker">{title ?? (battle ? "Trainer battle" : run.official ? "Today's duel" : "Practice")}</p>
             <h3 className="duel-overlay__title">{play.over === "won" ? `You beat ${trainer}!` : `${trainer} wins this one`}</h3>
           </div>
         </div>
@@ -584,9 +590,11 @@ export function DuelArena({ run, play, motion, busy, staging, offset, onNext, on
  * is a toggle (aria-pressed); Bring these N sends them once exactly N are picked. The picker's own
  * drawing like DuelPicker (CascadeDS has no picture toggle grid: on the CDS fix list).
  */
-function DuelBringPicker({ play, trainer, headingRef, busy, onBring, onZoom, onZoomFoe }: {
+function DuelBringPicker({ play, trainer, battle = false, headingRef, busy, onBring, onZoom, onZoomFoe }: {
   play: DuelPlayView;
   trainer: string;
+  /** A trainer battle: the other player brings some of their team too, and picks their own lead. */
+  battle?: boolean;
   headingRef: React.RefObject<HTMLHeadingElement | null>;
   busy: boolean;
   onBring: (cards: number[]) => void;
@@ -605,14 +613,16 @@ function DuelBringPicker({ play, trainer, headingRef, busy, onBring, onZoom, onZ
       <div className="duel-pick">
         <h3 className="duel-overlay__title" ref={headingRef} tabIndex={-1}>Pick {n} to bring</h3>
         <p className="duel-overlay__text duel-pick__across">
-          <span>{trainer} brings <b>{play.foe.length}</b>: {team}</span>
+          {battle
+            ? <span>{trainer} picks <b>{n}</b> of: {team}</span>
+            : <span>{trainer} brings <b>{play.foe.length}</b>: {team}</span>}
         </p>
-        <ul className="duel-pick__foes" aria-label={`${trainer}'s team, in the order they come out`}>
+        <ul className="duel-pick__foes" aria-label={battle ? `${trainer}'s team` : `${trainer}'s team, in the order they come out`}>
           {play.foe.map((c, i) => (
             <li key={c.index} className="duel-pick__foe">
-              <CardThumb card={c} size="sm" onPress={() => onZoomFoe(c)} label={`See ${trainer}'s ${c.name} card${i === 0 ? ", it leads" : ""}`} />
+              <CardThumb card={c} size="sm" onPress={() => onZoomFoe(c)} label={`See ${trainer}'s ${c.name} card${i === 0 && !battle ? ", it leads" : ""}`} />
               <span className="duel-pick__foefacts" aria-hidden="true">
-                {i === 0 ? <span className="duel-team__lead">Leads</span> : null}
+                {i === 0 && !battle ? <span className="duel-team__lead">Leads</span> : null}
                 <span>{c.weak ? <>Weak <EnergyDot t={c.weak} size="xs" /></> : "No Weakness"}</span>
               </span>
             </li>
@@ -646,7 +656,7 @@ function DuelBringPicker({ play, trainer, headingRef, busy, onBring, onZoom, onZ
         <Button variant="primary" size="large" className="duel-bring__go" disabled={!full || busy} onClick={() => onBring([...picked].sort((a, b) => a - b))}>
           {full ? `Bring these ${n}` : `Pick ${n - picked.length} more`}
         </Button>
-        <p className="duel-overlay__text">Then pick who leads. The other {play.you.length - n} sit this one out.</p>
+        <p className="duel-overlay__text">{battle ? `Then you both pick a lead, and a coin flip decides who goes first.${play.you.length - n === 1 ? " Your other card sits this one out." : play.you.length - n > 1 ? ` Your other ${play.you.length - n} sit this one out.` : ""}` : `Then pick who leads. The other ${play.you.length - n} sit this one out.`}</p>
       </div>
     </div>
   );

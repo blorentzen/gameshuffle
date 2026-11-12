@@ -26,7 +26,14 @@ const CODES: Record<string, GameKey> = {
   mkworld24p: "mario-kart-world",
   mkw: "mario-kart-world",
   mk64: "mario-kart-64",
+  // Mario Kart Wii is always "mkwii" in our codes (wars): "mkw" above stays Mario Kart World.
+  mkwii: "mario-kart-wii",
+  mkdd: "mario-kart-double-dash",
+  mkds: "mario-kart-ds",
+  mk7: "mario-kart-7",
+  smk: "super-mario-kart",
   ssbu: "super-smash-bros-ultimate",
+  ssbm: "super-smash-bros-melee",
   kar: "kirby-air-riders",
 };
 

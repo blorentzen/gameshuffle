@@ -19,6 +19,7 @@ import { createServiceClient } from "@/lib/supabase/admin";
 import { createNotification } from "@/lib/social/notifications";
 import { describePlayers } from "@/lib/daily/boards";
 import { compRest } from "@/lib/discord/compRest";
+import { playerNoteCard, timeDetails, type PlayerNote } from "@/lib/discord/ttCards";
 import { SITE_URL } from "@/lib/seo";
 import { timeById, type TtTimeRow } from "./store";
 import { formatTime } from "./rules";
@@ -52,10 +53,11 @@ function shortLabel(t: Pick<TtTimeRow, "game" | "track" | "timeMs">): string {
 }
 
 /**
- * A Discord-only player ("i:<identity>") hears from the competitive bot. Production only: the dev database holds real
- * players' Discord ids, and a test ask must never reach them (as the ladders' penalty messages).
+ * A Discord-only player ("i:<identity>") hears from the competitive bot: a small card with the title, the time in
+ * small print, the reviewer's words as a quote and Open your time (picks 2026-11-12, 15A). Production only: the dev
+ * database holds real players' Discord ids, and a test ask must never reach them (as the ladders' penalty messages).
  */
-async function messageOnDiscord(player: string, content: string): Promise<boolean> {
+async function messageOnDiscord(player: string, note: PlayerNote): Promise<boolean> {
   const devDatabase = (process.env.NEXT_PUBLIC_SUPABASE_URL ?? "").includes("rbtdomefinsrclgubpuf");
   const live = !devDatabase && (process.env.VERCEL_ENV ? process.env.VERCEL_ENV === "production" : process.env.NODE_ENV === "production");
   if (!live || !player.startsWith("i:")) return false;
@@ -64,18 +66,22 @@ async function messageOnDiscord(player: string, content: string): Promise<boolea
   if (ident?.platform !== "discord" || !ident.platform_id) return false;
   const dm = await compRest<{ id: string }>("POST", "/users/@me/channels", { recipient_id: ident.platform_id });
   if (!dm.ok) return false;
-  const sent = await compRest("POST", `/channels/${dm.data.id}/messages`, { content: content.slice(0, 1900), allowed_mentions: { parse: [] } });
+  const sent = await compRest("POST", `/channels/${dm.data.id}/messages`, playerNoteCard({ ...note, note: note.note?.slice(0, 1500) ?? null }));
   return sent.ok;
 }
 
+/** What a time's player is told. `message` is the account notification's text; a Discord message is built from the
+ *  title, `details` (the time's track, category and time unless given), the reviewer's `note` and a `line` after it. */
+export interface Tell { title: string; message: string; note: string | null; line: string | null; act: boolean; details?: string }
+
 /** Tell a time's player: a notification on their account, else a Discord message. The link opens the time itself. */
-export async function tellPlayer(t: TtTimeRow, title: string, message: string): Promise<void> {
+export async function tellPlayer(t: TtTimeRow, tell: Tell): Promise<void> {
   const link = timePath(t);
   if (t.userId) {
-    await createNotification({ userId: t.userId, type: "system", title, message: message.slice(0, 300), link }).catch(() => undefined);
+    await createNotification({ userId: t.userId, type: "system", title: tell.title, message: tell.message.slice(0, 300), link }).catch(() => undefined);
     return;
   }
-  await messageOnDiscord(t.player, `**${title}**\n${message}\n${SITE_URL}${link}`).catch(() => false);
+  await messageOnDiscord(t.player, { title: tell.title, details: tell.details ?? timeDetails(t), note: tell.note, line: tell.line, act: tell.act, url: `${SITE_URL}${link}` }).catch(() => false);
 }
 
 async function openAskId(timeId: string): Promise<{ id: string; state: AskState } | null> {
@@ -105,8 +111,12 @@ export async function noteReviewerFix(t: TtTimeRow, reviewerUserId: string, chan
   const what = `Changed ${changed}${verified ? " and verified it" : ""}.`;
   const body = note ? `${what} ${note}` : what;
   const told = `${ttTrack(t.game, t.track)?.name ?? "A track"}: a reviewer changed ${changed}${verified ? " and verified it" : ""}.${note ? ` "${note}"` : ""} If that's wrong, reply from the time.`;
-  const title = "A reviewer fixed your time";
-  if (!(await asksReady())) { await tellPlayer(t, title, told); return; }
+  const tell: Tell = {
+    title: "A reviewer fixed your time", message: told, act: false,
+    details: `${timeDetails(t, "now ")}${verified ? ", verified" : ""}`,
+    note, line: `They changed ${changed}. If that's wrong, reply from the time.`,
+  };
+  if (!(await asksReady())) { await tellPlayer(t, tell); return; }
   const db = createServiceClient();
   const now = new Date().toISOString();
   const open = await openAskId(t.id);
@@ -122,7 +132,7 @@ export async function noteReviewerFix(t: TtTimeRow, reviewerUserId: string, chan
     id = (data as { id: string } | null)?.id ?? null;
   }
   if (id) await db.from("tt_report_messages").insert({ report_id: id, author: `staff:${reviewerUserId}`, author_user: reviewerUserId, role: "reviewer", body: body.slice(0, 1000) });
-  await tellPlayer(t, title, told);
+  await tellPlayer(t, tell);
 }
 
 /**
@@ -134,7 +144,7 @@ export async function askForUpdate(t: TtTimeRow, reviewerUserId: string, note: s
   const now = new Date().toISOString();
   await db.from("tt_times").update({ video_status: "rejected", video_checked_by: reviewerUserId, video_checked_at: now, video_note: note }).eq("id", t.id);
   if (!(await asksReady())) {
-    await tellPlayer(t, "Your clip didn't match your time", `${shortLabel(t)}: ${note}. You can add another clip.`);
+    await tellPlayer(t, { title: "Your clip didn't match your time", message: `${shortLabel(t)}: ${note}. You can add another clip.`, note, line: "You can add another clip.", act: true });
     return;
   }
   const { data, error } = await db.from("tt_reports").upsert(
@@ -143,7 +153,7 @@ export async function askForUpdate(t: TtTimeRow, reviewerUserId: string, note: s
   ).select("id").single();
   if (error || !data) { console.error("[tt] ask failed:", error?.message); return; }
   await db.from("tt_report_messages").insert({ report_id: (data as { id: string }).id, author: `staff:${reviewerUserId}`, author_user: reviewerUserId, role: "reviewer", body: note });
-  await tellPlayer(t, "A reviewer asked you to update a time", `${shortLabel(t)}: "${note}"`);
+  await tellPlayer(t, { title: "A reviewer asked you to update a time", message: `${shortLabel(t)}: "${note}"`, note, line: null, act: true });
 }
 
 /** The player did something about an open ask (replied with a new clip, a picture, a fixed time): back to reviewers. */
@@ -268,7 +278,10 @@ export async function remindAsks(): Promise<number> {
     if (!Number.isFinite(at) || at > cutoff) continue;
     const t = await timeById(a.time_id);
     if (!t || t.status !== "ok") continue;
-    await tellPlayer(t, "Still waiting on your update", `${shortLabel(t)}: "${a.reason ?? "A reviewer asked for an update"}". Update it or reply to the reviewer.`);
+    await tellPlayer(t, {
+      title: "Still waiting on your update", message: `${shortLabel(t)}: "${a.reason ?? "A reviewer asked for an update"}". Update it or reply to the reviewer.`,
+      note: a.reason, line: a.reason ? "Update it or reply to the reviewer." : "A reviewer asked for an update. Update it or reply to the reviewer.", act: true,
+    });
     await db.from("tt_reports").update({ reminded_at: new Date().toISOString() }).eq("id", a.id);
     sent++;
   }

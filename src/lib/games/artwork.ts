@@ -56,7 +56,13 @@ export const GAME_ARTWORK: Record<string, GameArtworkEntry> = {
   /* Every other game with chat rolls (src/lib/twitch/chatGames.ts), on its
      randomizer header art. */
   "mario-kart-64": { name: "Mario Kart 64", shortName: "MK64", artworkUrl: GAME_ART["mario-kart-64"].hero.src, accent: "#e60012" },
+  "mario-kart-wii": { name: "Mario Kart Wii", shortName: "MKWii", artworkUrl: GAME_ART["mario-kart-wii"].hero.src, accent: "#0a8fd8" },
+  "mario-kart-double-dash": { name: "Mario Kart: Double Dash!!", shortName: "Double Dash", artworkUrl: GAME_ART["mario-kart-double-dash"].hero.src, accent: "#7b3fbf" },
+  "mario-kart-ds": { name: "Mario Kart DS", shortName: "MKDS", artworkUrl: GAME_ART["mario-kart-ds"].hero.src, accent: "#d2202a" },
+  "mario-kart-7": { name: "Mario Kart 7", shortName: "MK7", artworkUrl: GAME_ART["mario-kart-7"].hero.src, accent: "#e8292b" },
+  "super-mario-kart": { name: "Super Mario Kart", shortName: "SMK", artworkUrl: GAME_ART["super-mario-kart"].hero.src, accent: "#2a6fdb" },
   "super-smash-bros-ultimate": { name: "Super Smash Bros. Ultimate", shortName: "Smash", artworkUrl: GAME_ART["super-smash-bros-ultimate"].hero.src, accent: "#d33a2c" },
+  "super-smash-bros-melee": { name: "Super Smash Bros. Melee", shortName: "Melee", artworkUrl: GAME_ART["super-smash-bros-melee"].hero.src, accent: "#c8102e" },
   "super-mario-party-jamboree": { name: "Super Mario Party Jamboree", shortName: "Jamboree", artworkUrl: "https://cdn.empac.co/gameshuffle/images/mario-party-jamboree/mario-party-jamboree-hero.avif", accent: "#e8a317" },
   "mario-party-superstars": { name: "Mario Party Superstars", shortName: "Superstars", artworkUrl: "https://cdn.empac.co/gameshuffle/images/mario-party-superstars/mario-party-superstars-hero.jpg", accent: "#e8a317" },
   "mario-party": { name: "Mario Party", shortName: "MP1", artworkUrl: GAME_ART["mario-party"].hero.src, accent: "#e8a317" },
@@ -66,6 +72,7 @@ export const GAME_ARTWORK: Record<string, GameArtworkEntry> = {
   "marvel-rivals": { name: "Marvel Rivals", shortName: "Rivals", artworkUrl: GAME_ART["marvel-rivals"].hero.src, accent: "#d4303d" },
   "splatoon-3": { name: "Splatoon 3", shortName: "Splatoon", artworkUrl: GAME_ART["splatoon-3"].hero.src, accent: "#b9e02a" },
   "kirby-air-riders": { name: "Kirby Air Riders", shortName: "Air Riders", artworkUrl: GAME_ART["kirby-air-riders"].hero.src, accent: "#f08bb4" },
+  "super-mario-bros-wonder": { name: "Super Mario Bros. Wonder", shortName: "Wonder", artworkUrl: GAME_ART["super-mario-bros-wonder"].hero.src, accent: "#6d3fd1" },
   "goldeneye-007": { name: "GoldenEye 007", shortName: "GoldenEye", artworkUrl: GAME_ART["goldeneye-007"].hero.src, accent: "#8a7a3a" },
   "perfect-dark": { name: "Perfect Dark", shortName: "Perfect Dark", artworkUrl: GAME_ART["perfect-dark"].hero.src, accent: "#8a1c2b" },
   "pokemon-stadium": { name: "Pokémon Stadium", shortName: "Stadium", artworkUrl: GAME_ART["pokemon-stadium"].hero.src, accent: "#d9502a" },

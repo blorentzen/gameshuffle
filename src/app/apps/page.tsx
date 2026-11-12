@@ -9,7 +9,10 @@ import { DarkBand } from "@/components/marketing/DarkBand";
 import { MarketingHeroCurve } from "@/components/marketing/MarketingHeroCurve";
 import { AuthAwareCTA } from "@/components/marketing/AuthAwareCTA";
 import { MarketingHeroField } from "@/components/marketing/MarketingHeroField";
-import { N64_PARTY_PUBLIC, FRLG_PUBLIC, GOLDENEYE_PUBLIC, SMASH_PUBLIC, STADIUM_PUBLIC, MK64_PUBLIC, PERFECT_DARK_PUBLIC, OVERWATCH_PUBLIC, MARVEL_RIVALS_PUBLIC, KIRBY_PUBLIC, SPLATOON_PUBLIC, SONIC_PUBLIC } from "@/lib/games-visibility";
+import { N64_PARTY_PUBLIC, FRLG_PUBLIC, GOLDENEYE_PUBLIC, SMASH_PUBLIC, STADIUM_PUBLIC, MK64_PUBLIC, MKWII_PUBLIC, PERFECT_DARK_PUBLIC, OVERWATCH_PUBLIC, MARVEL_RIVALS_PUBLIC, KIRBY_PUBLIC, SPLATOON_PUBLIC, SONIC_PUBLIC } from "@/lib/games-visibility";
+import { MELEE_PUBLIC } from "@/lib/games-visibility";
+import { WONDER_PUBLIC } from "@/lib/games-visibility";
+import { DOUBLE_DASH_PUBLIC, MARIO_KART_7_PUBLIC, MARIO_KART_DS_PUBLIC, SUPER_MARIO_KART_PUBLIC } from "@/lib/games-visibility";
 import { ImageComingSoon } from "@/components/ImageComingSoon";
 import { GAME_ART } from "@/data/game-art";
 import { EVENTS, tagged } from "@/lib/analytics/events";
@@ -165,6 +168,78 @@ export default function AppsPage() {
               linkTitle
             />
             )}
+            {MKWII_PUBLIC && (
+            <AppCard
+              title="Mario Kart Wii Randomizer"
+              description="A character and a kart or bike in their size class for up to 12 players, all 32 tracks and battle arenas."
+              imageSrc={GAME_ART["mario-kart-wii"].hero.src}
+              imageAlt={GAME_ART["mario-kart-wii"].hero.alt}
+              href="/randomizers/mario-kart-wii"
+              ctaLabel="Open randomizer"
+              isNew
+              linkTitle
+            />
+            )}
+            {DOUBLE_DASH_PUBLIC && (
+            <AppCard
+              title="Mario Kart Double Dash Randomizer"
+              description="A driver, an item thrower and a kart that fits them for every kart, two to a kart, cups and battles."
+              imageSrc={GAME_ART["mario-kart-double-dash"].hero.src}
+              imageAlt={GAME_ART["mario-kart-double-dash"].hero.alt}
+              href="/randomizers/mario-kart-double-dash"
+              ctaLabel="Open randomizer"
+              isNew
+              linkTitle
+            />
+            )}
+            {MARIO_KART_DS_PUBLIC && (
+            <AppCard
+              title="Mario Kart DS Randomizer"
+              description="A character and a kart from your save for up to 8 players, cups, battles and Mission Mode challenges."
+              imageSrc={GAME_ART["mario-kart-ds"].hero.src}
+              imageAlt={GAME_ART["mario-kart-ds"].hero.alt}
+              href="/randomizers/mario-kart-ds"
+              ctaLabel="Open randomizer"
+              isNew
+              linkTitle
+            />
+            )}
+            {MARIO_KART_7_PUBLIC && (
+            <AppCard
+              title="Mario Kart 7 Randomizer"
+              description="A character and a body, tires and glider from your save for up to 8 players, cups and battles."
+              imageSrc={GAME_ART["mario-kart-7"].hero.src}
+              imageAlt={GAME_ART["mario-kart-7"].hero.alt}
+              href="/randomizers/mario-kart-7"
+              ctaLabel="Open randomizer"
+              isNew
+              linkTitle
+            />
+            )}
+            {SUPER_MARIO_KART_PUBLIC && (
+            <AppCard
+              title="Super Mario Kart Randomizer"
+              description="A different racer for each of two players, cups, race lists and battle courses for the SNES original."
+              imageSrc={GAME_ART["super-mario-kart"].hero.src}
+              imageAlt={GAME_ART["super-mario-kart"].hero.alt}
+              href="/randomizers/super-mario-kart"
+              ctaLabel="Open randomizer"
+              isNew
+              linkTitle
+            />
+            )}
+            {MELEE_PUBLIC && (
+            <AppCard
+              title="Super Smash Bros. Melee Randomizer"
+              description="A fighter and costume for up to four players, then a stage from the legal list or any of the 29."
+              imageSrc={GAME_ART["super-smash-bros-melee"].hero.src}
+              imageAlt={GAME_ART["super-smash-bros-melee"].hero.alt}
+              href="/randomizers/super-smash-bros-melee"
+              ctaLabel="Open randomizer"
+              isNew
+              linkTitle
+            />
+            )}
             {PERFECT_DARK_PUBLIC && (
             <AppCard
               title="Perfect Dark Randomizer"
@@ -219,6 +294,18 @@ export default function AppsPage() {
               description="A racer, machine and full Gadget Plate for up to 12 players, then races with their CrossWorlds or a Grand Prix."
               media={<ImageComingSoon />}
               href="/randomizers/sonic-racing-crossworlds"
+              ctaLabel="Open randomizer"
+              isNew
+              linkTitle
+            />
+            )}
+            {WONDER_PUBLIC && (
+            <AppCard
+              title="Super Mario Bros. Wonder Randomizer"
+              description="A character and a badge for up to 4 players, a level from any world, and rules that turn a co-op night into a challenge."
+              imageSrc={GAME_ART["super-mario-bros-wonder"].hero.src}
+              imageAlt={GAME_ART["super-mario-bros-wonder"].hero.alt}
+              href="/randomizers/super-mario-bros-wonder"
               ctaLabel="Open randomizer"
               isNew
               linkTitle

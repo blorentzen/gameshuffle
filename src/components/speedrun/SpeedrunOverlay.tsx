@@ -11,6 +11,7 @@ import { momentFor } from "@/lib/speedrun/rules";
 import type { RelayState, SpeedrunLook, SpeedrunPredictionView } from "@/lib/speedrun/types";
 import { SpeedrunCanvas, type SpeedrunMoment } from "./SpeedrunCanvas";
 import { useRelayWatch } from "./useRelayWatch";
+import { OverlayRace } from "@/components/races/RaceOverlays";
 
 const MOMENT_MS: Record<SpeedrunMoment["kind"], number> = { gold: 4500, pb: 8000, reset: 4500 };
 /** How often the prediction is asked for: while a run is going or a prediction shows, and otherwise. */
@@ -26,9 +27,11 @@ interface Props {
   category: string | null;
   /** /api/speedrun/prediction/<token>, or null when the runner has no prediction switched on. */
   predictionUrl?: string | null;
+  /** /api/speedrun/race/<token>: the race the runner is in, if any (shown beside the panel). */
+  raceUrl?: string | null;
 }
 
-export function SpeedrunOverlay({ socketUrl, initial, look, game, category, predictionUrl = null }: Props) {
+export function SpeedrunOverlay({ socketUrl, initial, look, game, category, predictionUrl = null, raceUrl = null }: Props) {
   const [snap, setSnap] = useState<{ state: RelayState; at: number }>({ state: initial, at: 0 });
   const [moment, setMoment] = useState<SpeedrunMoment | null>(null);
   const live = useRef<{ state: RelayState; at: number }>({ state: initial, at: 0 });
@@ -87,6 +90,7 @@ export function SpeedrunOverlay({ socketUrl, initial, look, game, category, pred
   }, [moment]);
 
   return (
-    <SpeedrunCanvas state={snap.state} receivedAt={snap.at} look={look} game={game} category={category} moment={moment} prediction={prediction} />
+    <SpeedrunCanvas state={snap.state} receivedAt={snap.at} look={look} game={game} category={category} moment={moment} prediction={prediction}
+      race={raceUrl ? <OverlayRace raceUrl={raceUrl} look={look} /> : null} />
   );
 }

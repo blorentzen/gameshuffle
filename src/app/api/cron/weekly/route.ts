@@ -6,10 +6,10 @@
  *
  * Reveals last week's Weekly Challenge (scores + ranks), makes sure this
  * week's exists, then posts its card (with Play buttons, see
- * src/lib/discord/commands/weekly.ts) to every streamer's Discord that routes the
- * "Weekly Challenge" category. Opt-in: no route, no post (no fallback to the
- * default channel). The week's post is claimed first (discord_posted_at) so a
- * retried run can't post twice.
+ * src/lib/discord/commands/weekly.ts) to every Discord server that turned the
+ * Weekly card on in Channels and posts (free, the default channel) or routed
+ * the "Weekly Challenge" category (GS Pro). Opt-in: neither, no post. The
+ * week's post is claimed first (discord_posted_at) so a retried run can't post twice.
  *
  * Auth: Vercel Cron sends `Authorization: Bearer <CRON_SECRET>`.
  */
@@ -17,6 +17,7 @@
 import { NextResponse } from "next/server";
 import { createServiceClient } from "@/lib/supabase/admin";
 import { postComponentsToCategory } from "@/lib/adapters/discord";
+import { optInOwners } from "@/lib/discord/optInPosts";
 import { addWeeks, weekOf } from "@/lib/originals/weekly";
 import { WeeklyNotReady, ensureWeek, leaderboard, revealDue } from "@/lib/weekly/store";
 import { weeklyCardMessage } from "@/lib/discord/commands/weekly";
@@ -50,10 +51,9 @@ export async function GET(request: Request) {
     const message = weeklyCardMessage(week, { footerLine });
     const topic = await weekTopic(week);
 
-    const { data: routes } = await admin.from("discord_channel_routes").select("user_id").eq("category", "weekly").limit(5000);
     let posted = 0;
-    // Routes are one row per server: post once per owner (postComponentsToCategory covers each of their servers).
-    const owners = [...new Set(((routes ?? []) as { user_id: string }[]).map((r) => r.user_id))];
+    // Owners who routed it (GS Pro) or turned it on for a server (free, default channel): once per owner.
+    const owners = await optInOwners("weekly");
     for (const ownerUserId of owners) {
       const res = await postComponentsToCategory({
         ownerUserId, category: "weekly", requireRoute: true,

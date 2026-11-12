@@ -3,6 +3,7 @@ import Link from "next/link";
 import { HelpArticle } from "@/components/help/HelpArticle";
 import { HelpToolLinks } from "@/components/help/HelpToolLinks";
 import { findArticle } from "@/lib/help/manifest";
+import { DOUBLE_DASH_PUBLIC } from "@/lib/games-visibility";
 
 const HREF = "/help/apps/mario-kart-64-randomizer";
 const meta = findArticle(HREF)!;
@@ -22,6 +23,8 @@ export default function Page() {
       <HelpToolLinks links={[{ href: "/randomizers/mario-kart-64", label: "Mario Kart 64 randomizer" }]} />
       {/* Search sends some Mario Kart World players here (SEO pass, pick 4A). */}
       <p>Playing Mario Kart World or Mario Kart 8 Deluxe? Use the <Link href="/randomizers/mario-kart-world">Mario Kart World randomizer</Link> or the <Link href="/randomizers/mario-kart-8-deluxe">Mario Kart 8 Deluxe randomizer</Link>.</p>
+      {/* Mario Kart 64 shares the Retro Mario Kart space with Double Dash (picks 2026-11-12). */}
+      {DOUBLE_DASH_PUBLIC && <p>Playing the GameCube sequel? Use the <Link href="/randomizers/mario-kart-double-dash">Mario Kart Double Dash randomizer</Link>.</p>}
       <p>
         The <Link href="/randomizers/mario-kart-64">Mario Kart 64 randomizer</Link>{" "}picks a character for up to four players,
         a race list from all 16 tracks, battle courses for Battle mode and an item set. It follows the N64 game: there are no

@@ -200,6 +200,8 @@ export interface RoadProgressView {
   encounter: RoadEncounterView | null;
   /** Story battles won: a mark on the card per villain team. */
   marks: { region: string; name: string; picture: DuelPicture | null }[];
+  /** Trainer battles against friends (battle pick 14): wins and losses, once there's one. */
+  battles?: { won: number; lost: number } | null;
 }
 
 /** What a finished duel did to a player's path: XP, tokens, level, card color and the milestones it earned. */

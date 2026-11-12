@@ -8,6 +8,7 @@ import "server-only";
 
 import { createServiceClient } from "@/lib/supabase/admin";
 import type { WarGame } from "./rules";
+import { mkcGame } from "./mkcTeams";
 
 export interface WarTeam { tag: string; name: string | null; logo: string | null; source: "mkcentral" | "played" }
 
@@ -28,7 +29,7 @@ export async function searchRegistry(q: string, game: WarGame): Promise<WarTeam[
   const res = await fetch(`${MKC}/api/registry/teams?name_or_tag=${encodeURIComponent(text)}`, { signal: AbortSignal.timeout(2000) }).catch(() => null);
   if (!res?.ok) return hit?.teams ?? [];
   const body = (await res.json().catch(() => null)) as { teams?: RegistryTeam[] } | null;
-  const want = game === "mk8dx" ? "mk8dx" : "mkworld";
+  const want = mkcGame(game);
   const teams: WarTeam[] = [];
   for (const t of body?.teams ?? []) {
     const rosters = (t.rosters ?? []).filter((r) => r.game === want && r.is_active);

@@ -54,7 +54,7 @@ const SECTIONS: LegalSection[] = [
           <li><strong>ARIA where appropriate.</strong> Custom widgets (tabs, modals, accordions, the cookie consent banner) include the ARIA roles, states, and properties expected by screen readers.</li>
           <li><strong>Color contrast.</strong> Text and interactive elements meet or exceed WCAG 2.1 AA contrast ratios via our design system tokens.</li>
           <li><strong>Form labels and errors.</strong> Form fields have associated labels, and validation errors are announced through accessible alert regions.</li>
-          <li><strong>Reduced motion respect.</strong> Animations honor the user's <code>prefers-reduced-motion</code> setting where applicable.</li>
+          <li><strong>Reduced motion respect.</strong> Animations honor the user’s <code>prefers-reduced-motion</code> setting where applicable.</li>
           <li><strong>Responsive design.</strong> The site is usable at 200% zoom and on small viewports without loss of functionality.</li>
           <li><strong>Multiple sign-in options.</strong> Email/password, magic link, Discord, and Twitch sign-in let users pick the method that works best for their setup.</li>
         </ul>

@@ -1,6 +1,7 @@
 "use client";
 
 import { DailiesAfter } from "@/components/originals/DailiesAfter";
+import { DailiesGroups } from "@/components/originals/DailiesGroups";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Accordion, Alert, Badge, Button, Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@empac/cascadeds";
 import { useToast } from "@/components/toast/ToastProvider";
@@ -443,6 +444,7 @@ export function DailyShuffle() {
             <DailiesNextButton current="shuffle" onPick={activity?.pickDaily} />
           </div>
           <DailiesYours current="shuffle" only />
+          <DailiesGroups current="shuffle" />
           <DailiesAfter current="shuffle" />
           <DailiesInvite current="shuffle" nudge={false} />
           {account && !account.signedIn && (

@@ -6,7 +6,8 @@
  *   player [name] [game]                         → a player's bests
  * A new best is posted to the channel with Verify (Manage Server only), Report and the track's board.
  * Everything defers (lookups and saves can outrun Discord's 3 seconds); the add itself answers
- * privately, and only a new best goes public.
+ * privately, and only a new best goes public. Every message with more than one fact is a card built in ../ttCards.ts
+ * (picks 2026-11-12); a card changed in place stays a card.
  */
 
 import { after } from "next/server";
@@ -18,32 +19,34 @@ import { discordActor, type TtActor } from "@/lib/timeTrials/players";
 import { addTime, attachShot, boardFor, findPlayers, noteGuildPlayer, playerBests, removeOwnTime, setVideo, timeById, ttReady, unprovenTime, verifyTime, type AddTimeResult, type TtBest } from "@/lib/timeTrials/store";
 import { readScreenshot, storeScreenshot, MAX_SCREENSHOT_BYTES } from "@/lib/timeTrials/read";
 import { reportFromDiscord } from "@/lib/timeTrials/review";
-import { categoryText, vehicleFor, vehicleLabel, type TtItems, type TtVehicle } from "@/lib/timeTrials/categories";
-import { partsText, type TtParts } from "@/lib/timeTrials/parts";
-import { COMMUNITY_VOUCHES, formatGap, formatLap, formatTime, ordinal, parseTime, videoProof, type ProofKind } from "@/lib/timeTrials/rules";
+import { vehicleFor, type TtItems, type TtVehicle } from "@/lib/timeTrials/categories";
+import type { TtParts } from "@/lib/timeTrials/parts";
+import { COMMUNITY_VOUCHES, formatGap, formatTime, ordinal, parseTime, videoProof, type ProofKind } from "@/lib/timeTrials/rules";
 import { lapsAgainst, recordLaps, setVouch } from "@/lib/timeTrials/detail";
 import { rateLimit } from "@/lib/ratelimit";
 import { vouchCounts } from "@/lib/timeTrials/status";
-import { isClassFor, isTtGame, searchTracks, trackFromKey, trackKey, trackPath, ttTrack, ttTracks, TT_GAMES, type TtClass, type TtGame, type TtTrack } from "@/lib/timeTrials/tracks";
+import { isClassFor, isTtGame, searchTracks, trackFromKey, trackKey, ttTrack, TT_GAMES, type TtClass, type TtGame, type TtTrack } from "@/lib/timeTrials/tracks";
 import { trackCode, trackTitle, tracksByCode } from "@/lib/timeTrials/codes";
 import { playerPagePath } from "@/lib/timeTrials/playerPath";
 import { botTokenFor } from "../apps";
 import { appOfApplicationId, commandName } from "../appIds";
 import { describePlayers } from "@/lib/daily/boards";
 import { serverRecord, type ServerTime } from "@/lib/timeTrials/server";
-import { COMP_COLOR, panelFor, postToPanelChannel, refreshPanels } from "../ttPanel";
+import { panelFor, postToPanelChannel, refreshPanels } from "../ttPanel";
 import { handleTtPanelCommand } from "./ttPanelActions";
+import {
+  addReplyCard, boardCard, boardUrl, catText, checkCard, clipForm, countedCard, esc, flagEmoji, flagged, lapLines, lapsTitle, lineInPlace, lineMessage,
+  modalParts, onCard, playerCard, recordPostCard, statusWord, EPHEMERAL, LINK_LINE, LINK_URL, V2, type BoardLine, type CheckDraft, type Message,
+  TT_CLIP_MODAL_PREFIX, TT_CLIP_PREFIX, TT_EVENT_PREFIX, TT_NO_PREFIX, TT_OK_PREFIX, TT_REPORT_PREFIX, TT_UNDO_PREFIX, TT_VERIFY_PREFIX, TT_VOUCH_PREFIX,
+} from "../ttCards";
+
+// The custom ids, flag and link lines live with the cards (ttCards.ts); the handler and older imports read them here.
+export { boardUrl, flagEmoji, LINK_LINE, LINK_URL, TT_CLIP_MODAL_PREFIX, TT_CLIP_PREFIX, TT_EVENT_PREFIX, TT_NO_PREFIX, TT_OK_PREFIX, TT_REPORT_PREFIX, TT_UNDO_PREFIX, TT_VERIFY_PREFIX, TT_VOUCH_PREFIX };
 import { countryOf, isCountryCode, noteAsked, pickCountry, shouldAskCountry } from "@/lib/timeTrials/countries";
 import { countryCodes } from "@/lib/lounge/flags";
 import { countInEvent, eventsForBoardTimeAll } from "@/lib/tournaments/tt/countIn";
 import { countryName } from "@/lib/lounge/countries";
 
-/** A country's flag as emoji (Discord draws these on every platform). */
-export function flagEmoji(code: string | null | undefined): string {
-  if (!code || !/^[a-z]{2}$/i.test(code)) return "";
-  return String.fromCodePoint(...code.toUpperCase().split("").map((c) => 0x1f1e6 + c.charCodeAt(0) - 65));
-}
-const flagged = (code: string | null | undefined) => (code ? `${flagEmoji(code)} ` : "");
 const COUNTRY_CODES = countryCodes().filter((c) => /^[a-z]{2}$/.test(c));
 
 /** Countries matching what's typed (name or code), for /tt country and /tt track's country option. */
@@ -60,45 +63,55 @@ function countryChoices(q: string, clear: boolean): { name: string; value: strin
 /** The time trial command as typed in the app this interaction came from: /gs-tt in GameShuffle, /tt in GameShuffle Competitive. */
 const ttCmd = (appId: string) => `/${commandName(appOfApplicationId(appId), "tt")}`;
 
-export const TT_OK_PREFIX = "ttok:";
-export const TT_NO_PREFIX = "ttno:";
-export const TT_VERIFY_PREFIX = "ttv:";
-export const TT_REPORT_PREFIX = "ttr:";
-export const TT_UNDO_PREFIX = "ttu:";
-/** Vouch for a time from the bot's record posts (anyone in Discord, never your own time; picks 2026-11-04, 20A). */
-export const TT_VOUCH_PREFIX = "ttw:";
-/** "Add clip" on a top-ten time, and the form it opens (round 2). */
-export const TT_CLIP_PREFIX = "ttclip:";
-export const TT_CLIP_MODAL_PREFIX = "ttclipm:";
-/** "Count it in <event>": a /tt add time also counts in a time trial event the player is running (events pick 10A). */
-export const TT_EVENT_PREFIX = "tteva:";
-
-const COLOR = 0x2b52d6;
-/** Where "Link to GameShuffle" goes, and the line beside it (picks 2026-10-29, 3A). */
-export const LINK_URL = `${SITE_URL}/time-trials/link`;
-export const LINK_LINE = "Link your GameShuffle account so these times sit with your site times and show on your profile.";
-const EPHEMERAL = 64;
-const FOOTER = { text: "Time trials · gameshuffle.co/time-trials" };
 const UNDO_MINUTES = 15;
 
 type Opt = { name: string; value?: string | number | boolean; focused?: boolean; options?: Opt[] };
 export type Attachment = { url: string; content_type?: string; size: number; filename?: string };
 
-const link = (label: string, url: string) => ({ type: 2, style: 5, label, url });
-const btn = (label: string, customId: string, style: 1 | 2 | 3 | 4 = 2) => ({ type: 2, style, label, custom_id: customId });
-const row = (...components: unknown[]) => ({ type: 1, components });
-const reply = (data: Record<string, unknown>, ephemeral: boolean) =>
-  Response.json({ type: 4, data: { ...data, allowed_mentions: { parse: [] }, ...(ephemeral ? { flags: EPHEMERAL } : {}) } });
+const reply = (data: Record<string, unknown>, ephemeral: boolean) => {
+  const flags = (Number(data.flags) || 0) | (ephemeral ? EPHEMERAL : 0);
+  return Response.json({ type: 4, data: { ...data, allowed_mentions: { parse: [] }, ...(flags ? { flags } : {}) } });
+};
 const deferred = (ephemeral: boolean) => Response.json({ type: 5, data: ephemeral ? { flags: EPHEMERAL } : {} });
+/** A button that changes its own card later (type 6); on an older message (from before the cards) the answer goes in a
+ *  new private message instead, since a message can't switch formats in place. */
+export const deferInPlace = (interaction: Record<string, unknown>) => Response.json(onCard(interaction) ? { type: 6 } : { type: 5, data: { flags: EPHEMERAL } });
 
+const WEBHOOKS = "https://discord.com/api/v10/webhooks";
+let cardFallbackLogged = false;
+
+/**
+ * Fills a deferred reply, or changes the message a deferred button press came from. Not confirmed: whether Discord
+ * lets a deferred reply become a card; if it refuses one, the card goes out as a follow-up instead and the empty
+ * original is removed (logged once per server instance).
+ */
 export async function editOriginal(appId: string, token: string, data: Record<string, unknown>): Promise<void> {
-  const res = await fetch(`https://discord.com/api/v10/webhooks/${appId}/${token}/messages/@original`, {
+  const res = await fetch(`${WEBHOOKS}/${appId}/${token}/messages/@original`, {
     method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ allowed_mentions: { parse: [] }, ...data }),
   }).catch(() => null);
-  if (res && !res.ok) console.error("[tt] edit failed:", res.status, await res.text().catch(() => ""));
+  if (!res || res.ok) return;
+  const why = await res.text().catch(() => "");
+  if (res.status !== 400 || !((Number(data.flags) || 0) & V2)) { console.error("[tt] edit failed:", res.status, why); return; }
+  if (!cardFallbackLogged) { cardFallbackLogged = true; console.warn("[tt] a card edit was refused; sending it as a follow-up:", why.slice(0, 300)); }
+  await cardAsFollowUp(appId, token, data);
 }
+
+async function cardAsFollowUp(appId: string, token: string, data: Record<string, unknown>): Promise<void> {
+  const original = await fetch(`${WEBHOOKS}/${appId}/${token}/messages/@original`).then((r) => (r.ok ? r.json() : null)).catch(() => null) as { id?: string; flags?: number } | null;
+  // Unknown counts as private: the safe side for a reply nobody else should see.
+  const ephemeral = ((original?.flags ?? EPHEMERAL) & EPHEMERAL) !== 0;
+  const res = await fetch(`${WEBHOOKS}/${appId}/${token}`, {
+    method: "POST", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ allowed_mentions: { parse: [] }, ...data, flags: ((Number(data.flags) || 0) | (ephemeral ? EPHEMERAL : 0)) }),
+  }).catch(() => null);
+  if (!res?.ok) { console.error("[tt] card follow-up failed:", res?.status, await res?.text().catch(() => "")); return; }
+  const sent = await res.json().catch(() => null) as { id?: string } | null;
+  // The first follow-up can take the deferred message's place; only remove the original when it's still a separate one.
+  if (original?.id && sent?.id && sent.id !== original.id) await fetch(`${WEBHOOKS}/${appId}/${token}/messages/@original`, { method: "DELETE" }).catch(() => null);
+}
+
 async function postFollowUp(appId: string, token: string, data: Record<string, unknown>): Promise<void> {
-  const res = await fetch(`https://discord.com/api/v10/webhooks/${appId}/${token}`, {
+  const res = await fetch(`${WEBHOOKS}/${appId}/${token}`, {
     method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ allowed_mentions: { parse: [] }, ...data }),
   }).catch(() => null);
   if (res && !res.ok) console.error("[tt] follow-up failed:", res.status, await res.text().catch(() => ""));
@@ -133,9 +146,6 @@ function trackLabel(t: TtTrack): string {
   const c = trackCode(t);
   return `${c ? `${c} · ` : ""}${t.name} · ${TT_GAMES[t.game].short}`;
 }
-export function boardUrl(t: TtTrack, cc: TtClass, items: TtItems = "shrooms", vehicle: TtVehicle = "any"): string {
-  return `${SITE_URL}${trackPath(t, cc, { items, vehicle })}`;
-}
 function classText(t: TtTrack, cc: TtClass): string {
   return TT_GAMES[t.game].classes.length > 1 ? ` (${cc}cc)` : "";
 }
@@ -157,54 +167,30 @@ export function ttAutocomplete(interaction: Record<string, unknown>): Response {
   return Response.json({ type: 8, data: { choices } });
 }
 
-function resultLines(t: TtTrack, cc: TtClass, timeMs: number, res: Extract<AddTimeResult, { ok: true }>, items: TtItems = "shrooms", vehicle: TtVehicle = "any"): string[] {
-  const lines = [`**${formatTime(timeMs)}** on ${trackTitle(t)}, ${categoryText(t.game, cc, items, vehicle, TT_GAMES[t.game].classes.length > 1)}.`];
-  if (res.best && res.previousMs != null) lines.push(`New best, ${formatGap(res.previousMs - timeMs)} faster than before.`);
-  else if (res.best) lines.push("Your first time on this track.");
-  else if (res.previousMs != null) lines.push(`Your best is still ${formatTime(res.previousMs)}.`);
-  const where = [`${ordinal(res.place)} of ${res.total} on GameShuffle`];
-  if (res.server) where.unshift(`${ordinal(res.server.place)} of ${res.server.total} in this server`);
-  lines.push(where.join(", ") + ".");
-  return lines;
-}
-
 /**
- * "New server record on …" in the server's time trial panel channel, when a new time beats the record that stood before
+ * "New server record" in the server's time trial panel channel, when a new time beats the record that stood before
  * it (pick 3A: only a fallen record is posted for everyone). Shared by /tt and the War room's Time trials tab.
+ * A gold card: the time as the heading, the screenshot full width, Verify on its own line for server managers.
  */
 export async function postServerRecord(a: {
   guildId: string; actor: TtActor; track: TtTrack; cc: TtClass; items: TtItems; vehicle: TtVehicle; timeMs: number;
   prior: ServerTime; res: Extract<AddTimeResult, { ok: true }>;
+  /** The result screenshot, shown full width as the proof. */
+  proofUrl?: string | null;
 }): Promise<boolean> {
   const { guildId, actor, track, cc, timeMs, prior, res } = a;
   if (timeMs >= prior.timeMs || res.again) return false;
   const was = prior.player === actor.player
     ? `Beat their own ${formatTime(prior.timeMs)}`
-    : `Was ${formatTime(prior.timeMs)} by ${(await describePlayers([prior.player])).get(prior.player)?.name ?? "a player"}`;
-  const country = (await countryOf(actor.player))?.country ?? null;
-  return postToPanelChannel(guildId, track.game, {
-    embeds: [{
-      title: `New server record on ${trackTitle(track)}`,
-      description: [
-        `${flagged(country)}**${actor.name}** · ${formatTime(timeMs)} · ${categoryText(track.game, cc, a.items, a.vehicle, TT_GAMES[track.game].classes.length > 1)}`,
-        `${was}${a.vehicle === "any" ? ` · ${ordinal(res.place)} on GameShuffle` : ""}`,
-      ].join("\n"),
-      color: COMP_COLOR,
-      ...(track.image ? { thumbnail: { url: track.image } } : {}),
-      footer: FOOTER,
-    }],
-    components: [row(btn("Verify", `${TT_VERIFY_PREFIX}${res.timeId}`, 3), btn("Vouch", `${TT_VOUCH_PREFIX}${res.timeId}`, 2), btn("Report", `${TT_REPORT_PREFIX}${res.timeId}`, 2), link("Full board", boardUrl(track, cc, a.items, "any")))],
-  });
-}
-
-/** Each lap beside the record's (or the fastest time with laps): "Lap 2 · 0:37.540 · record 0:37.591 · −0.051". */
-function lapLines(mine: number[], vs: { name: string; laps: number[]; record: boolean }): string[] {
-  return mine.map((lap, i) => {
-    const other = vs.laps[i];
-    if (other == null) return `Lap ${i + 1} · ${formatLap(lap)}`;
-    const gap = lap - other;
-    return `Lap ${i + 1} · ${formatLap(lap)} · ${vs.record ? "record" : vs.name} ${formatLap(other)} · ${gap === 0 ? "even" : `${gap < 0 ? "−" : "+"}${formatGap(Math.abs(gap))}`}`;
-  });
+    : `Was ${formatTime(prior.timeMs)} by ${esc((await describePlayers([prior.player])).get(prior.player)?.name ?? "a player")}`;
+  const [country, server] = await Promise.all([countryOf(actor.player).then((c) => c?.country ?? null), guildName(guildId)]);
+  return postToPanelChannel(guildId, track.game, recordPostCard({
+    kind: "record", track, category: catText(track.game, cc, a.items, a.vehicle),
+    who: `${flagged(country)}${esc(actor.name)}`, timeMs,
+    details: [was, ...(a.vehicle === "any" ? [`${ordinal(res.place)} on GameShuffle`] : [])],
+    proofUrl: a.proofUrl ?? null, timeId: res.timeId,
+    board: { label: "Full board", url: boardUrl(track, cc, a.items, "any") }, server,
+  }));
 }
 
 async function saveAndAnswer(args: {
@@ -226,67 +212,51 @@ async function saveAndAnswer(args: {
     proof: args.proof, proofUrl: args.proofUrl, readByAi: args.readByAi, source: "discord", guildId,
     laps: args.laps ?? null, readMs: args.readMs ?? null, readLaps: args.laps ?? null, parts: args.parts ?? null,
   });
+  // The reply is a card from here on (it may be replacing the check, which is one), errors included.
   if (!res.ok) {
     const why = res.error === "not_ready" ? "Time trials aren't open yet. Try again soon."
       : res.error === "faster_than_record" ? `That's faster than the world record on ${trackTitle(track)}. Check the time.`
       : "That time couldn't be saved. Try again in a moment.";
-    await editOriginal(appId, token, { content: why, components: [] });
+    await editOriginal(appId, token, lineMessage(why));
     return;
   }
   if (args.clip) await setVideo(actor.player, res.timeId, args.clip);
-  // A Discord player without a GameShuffle account gets the Link button on this private reply (3A).
+  // A Discord player without a GameShuffle account gets the Link ask on this private reply (3A).
   const unlinked = !actor.userId;
   // A top-ten time shows as Unverified until a reviewer checks a clip of its last 30 seconds (round 2).
   const askClip = res.needsVideo && !args.clip;
-  const clipLine = askClip ? "That's a top-ten time. It shows as Unverified until a reviewer checks a clip of the run's last 30 seconds: press Add clip."
-    : args.clip ? "Your clip is in the review queue. The time shows as Verified once it's checked." : null;
   // A time trial event the player is in, open on this track and board: the bot asks whether to count it there too.
   const events = actor.userId && args.proof === "screenshot" && !res.again
     ? (await eventsForBoardTimeAll(actor.userId, { game: track.game, track: track.id, cc, items: args.items, vehicle: res.vehicle }).catch(() => [])).slice(0, 3)
     : [];
-  const eventLine = events.length ? `You're in ${events.length === 1 ? events[0].title : `${events.length} time trial events`} on this track. Count this run there too?` : null;
   // Splits in Discord (doc asks pick 4, 2026-11-10): each lap against the record's, when both have laps.
   const vs = res.best && args.laps?.length
     ? await lapsAgainst({ timeId: res.timeId, game: track.game, track: track.id, cc, items: args.items, board: args.vehicle, laps: args.laps }).catch(() => null)
     : null;
-  const splitTitle = vs ? (vs.record ? "Laps against the record" : `Laps against ${vs.name}'s ${formatTime(vs.timeMs)}`) : null;
+  const laps = vs && args.laps ? { title: lapsTitle(vs), lines: lapLines(args.laps, vs) } : null;
   // Asked once in Discord (round 4 pick 1A): a player with no country.
   const askCountry = await shouldAskCountry(actor.player, "discord");
-  const countryLine = askCountry ? `Add your country with ${ttCmd(appId)} country, so your times count on your country's records.` : null;
-  await editOriginal(appId, token, {
-    content: [...resultLines(track, cc, timeMs, res, args.items, args.vehicle), ...(vs && args.laps ? [`${splitTitle}:`, ...lapLines(args.laps, vs)] : []), ...(eventLine ? [eventLine] : []), ...(clipLine ? [clipLine] : []), ...(countryLine ? [countryLine] : []), ...(unlinked ? [LINK_LINE] : [])].join("\n"),
-    components: [
-      ...(events.length ? [row(...events.map((e) => btn(`Count it in ${e.title}`.slice(0, 80), `${TT_EVENT_PREFIX}${res.timeId}:${e.id}`, 1)))] : []),
-      row(
-        ...(askClip ? [btn("Add clip", `${TT_CLIP_PREFIX}${res.timeId}`, 1)] : []),
-        btn("Undo", `${TT_UNDO_PREFIX}${res.timeId}`, 2),
-        link("Track board", boardUrl(track, cc, args.items, args.vehicle)),
-        ...(unlinked ? [link("Link to GameShuffle", LINK_URL)] : []),
-      ),
-    ],
-  });
+  const category = catText(track.game, cc, args.items, args.vehicle);
+  await editOriginal(appId, token, addReplyCard({
+    track, category, timeMs, timeId: res.timeId, best: res.best, previousMs: res.previousMs, place: res.place, total: res.total, server: res.server,
+    laps, askClip, clipSent: !!args.clip, events: events.map((e) => ({ id: e.id, title: e.title })),
+    countryCmd: askCountry ? `${ttCmd(appId)} country` : null, unlinked, boardUrl: boardUrl(track, cc, args.items, args.vehicle),
+  }));
   if (askCountry) await noteAsked(actor.player, "discord");
-  const recordPosted = guildId && prior ? await postServerRecord({ guildId, actor, track, cc, items: args.items, vehicle: args.vehicle, timeMs, prior, res }) : false;
+  const shot = args.proof === "screenshot" ? args.proofUrl : null;
+  const recordPosted = guildId && prior ? await postServerRecord({ guildId, actor, track, cc, items: args.items, vehicle: args.vehicle, timeMs, prior, res, proofUrl: shot }) : false;
   if (guildId) await refreshPanels(guildId, track.game).catch((err) => console.error("[tt panel] refresh failed:", err));
   if (res.best && !res.again && guildId && !args.panel && !recordPosted) {
-    const fields = [
-      ...(res.server ? [{ name: "This server", value: `${ordinal(res.server.place)} of ${res.server.total}`, inline: true }] : []),
-      { name: "GameShuffle", value: `${ordinal(res.place)} of ${res.total}`, inline: true },
-      ...(args.proof !== "none" ? [{ name: "Proof", value: args.proof === "video" ? "Video" : "Screenshot", inline: true }] : []),
-      ...(vs && args.laps ? [{ name: splitTitle!, value: lapLines(args.laps, vs).join("\n").slice(0, 1024), inline: false }] : []),
-    ];
-    await postFollowUp(appId, token, {
-      embeds: [{
-        title: `New best on ${trackTitle(track)} · ${categoryText(track.game, cc, args.items, args.vehicle, TT_GAMES[track.game].classes.length > 1)}`,
-        description: `${actor.name} · **${formatTime(timeMs)}**${res.previousMs != null ? `, ${formatGap(res.previousMs - timeMs)} faster than before` : ""}`,
-        color: COLOR,
-        fields,
-        ...(track.image ? { thumbnail: { url: track.image } } : {}),
-        ...(args.proof === "screenshot" && args.proofUrl ? { image: { url: args.proofUrl } } : {}),
-        footer: FOOTER,
-      }],
-      components: [row(btn("Verify", `${TT_VERIFY_PREFIX}${res.timeId}`, 3), btn("Vouch", `${TT_VOUCH_PREFIX}${res.timeId}`, 2), btn("Report", `${TT_REPORT_PREFIX}${res.timeId}`, 2), link("Track board", boardUrl(track, cc, args.items, args.vehicle)))],
-    });
+    await postFollowUp(appId, token, recordPostCard({
+      kind: "best", track, category, who: esc(actor.name), timeMs,
+      details: [
+        res.previousMs != null ? `${formatGap(res.previousMs - timeMs)} faster than before` : "First time on this track",
+        ...(res.server ? [`${ordinal(res.server.place)} of ${res.server.total} in this server`] : []),
+        `${ordinal(res.place)} of ${res.total} on GameShuffle`,
+      ],
+      laps, proofUrl: shot, timeId: res.timeId,
+      board: { label: "Track board", url: boardUrl(track, cc, args.items, args.vehicle) }, server: await guildName(guildId),
+    }));
   }
 }
 
@@ -360,22 +330,17 @@ export async function handleGsTt(interaction: Record<string, unknown>): Promise<
             // The vehicle the screen names picks the board when the vehicle option was left out (picks 2026-11-04).
             const fromShot = !vehicleGiven && read.read.board && read.read.board !== "any" ? vehicleFor(track.game, read.read.board) : null;
             const useVehicle = fromShot ?? vehicle;
-            const { data: draft } = await createServiceClient().from("tt_drafts").insert({
-              player: actor.player, discord_id: user.id, guild_id: guildId,
-              payload: { game: track.game, track: track.id, cc: readCc, timeMs: readMs, proofUrl, name: actor.name, items, vehicle: useVehicle, clip: video, readMs, laps: read.read.laps, parts: read.read.parts },
-            }).select("id").single();
+            // The screenshot looks like another track: a warning on the check, with Change track below it (pick 13).
+            const otherTrack = read.read.trackId && read.read.trackId !== track.id ? ttTrack(read.read.game ?? track.game, read.read.trackId) : null;
+            const payload: CheckDraft & Record<string, unknown> = {
+              game: track.game, track: track.id, cc: readCc, timeMs: readMs, proofUrl, name: actor.name, items, vehicle: useVehicle, clip: video, readMs, laps: read.read.laps, parts: read.read.parts,
+              shotTrack: otherTrack ? { game: otherTrack.game, id: otherTrack.id } : null,
+            };
+            const { data: draft } = await createServiceClient().from("tt_drafts").insert({ player: actor.player, discord_id: user.id, guild_id: guildId, payload }).select("id").single();
             const draftId = (draft as { id: string } | null)?.id;
             if (!draftId) { await editOriginal(appId, token, { content: "Something went wrong saving that. Try again." }); return; }
-            const otherTrack = read.read.trackId && read.read.trackId !== track.id ? ttTrack(read.read.game ?? track.game, read.read.trackId) : null;
-            await editOriginal(appId, token, {
-              content: [
-                `From your screenshot: **${formatTime(readMs)}** on ${trackTitle(track)}${classText(track, readCc)}. Is that right?`,
-                ...(read.read.laps?.length ? [`Laps: ${read.read.laps.map(formatLap).join(" · ")}`] : []),
-                ...(read.read.parts ? [`Vehicle: ${partsText(read.read.parts)}${fromShot ? `, so it goes on the ${vehicleLabel(fromShot)} board` : ""}.`] : []),
-                ...(otherTrack ? [`(The screenshot looks like ${trackTitle(otherTrack)}. If so, run ${ttCmd(appId)} add again with that track.)`] : []),
-              ].join("\n"),
-              components: [row(btn("Add it", `${TT_OK_PREFIX}${draftId}`, 3), btn("Cancel", `${TT_NO_PREFIX}${draftId}`, 2))],
-            });
+            // One check for /tt add and the panel: Add it, Change track, Change time, Cancel.
+            await editOriginal(appId, token, checkCard(draftId, payload));
             return;
           }
         }
@@ -450,21 +415,18 @@ export async function handleGsTt(interaction: Record<string, unknown>): Promise<
           scope = "everyone";
           board = await boardFor({ game: track.game, track: track.id, cc, items, vehicle, scope, viewer: actor.player, limit: 10 });
         }
-        const lines = board.rows.map((r) => `${r.rank}. ${flagged(r.country)}${r.name} · **${formatTime(r.timeMs)}**${r.video === "checked" ? " · ✓ Verified" : r.sheet ? " · Legacy" : r.vouches >= COMMUNITY_VOUCHES ? " · Community verified" : ""}${r.verifiedIn.length ? " · vouched for here" : ""}`);
-        if (board.mine) lines.push(`…\n${board.mine.rank}. ${flagged(board.mine.country)}${board.mine.name} · **${formatTime(board.mine.timeMs)}**`);
+        const line = (r: typeof board.rows[number]): BoardLine => ({ rank: r.rank, name: r.name, country: r.country, timeMs: r.timeMs, status: statusWord(r) });
         // Splits (doc asks pick 4): the record's laps under the board, when it has them.
-        const rec = lines.length && !country ? await recordLaps({ game: track.game, track: track.id, cc, items, board: vehicle }).catch(() => null) : null;
-        if (rec) lines.push(`\nThe record's laps (${rec.name}, ${formatTime(rec.timeMs)}): ${rec.laps.map(formatLap).join(" · ")}`);
-        await editOriginal(appId, token, {
-          embeds: [{
-            title: `${trackTitle(track)} · ${categoryText(track.game, cc, items, vehicle, TT_GAMES[track.game].classes.length > 1)}`,
-            description: lines.length ? lines.join("\n") : `No times yet. Be the first: ${ttCmd(appId)} add`,
-            color: COLOR,
-            ...(track.image ? { thumbnail: { url: track.image } } : {}),
-            footer: { text: `${country ? `Players from ${countryName(country)}` : scope === "server" ? "This server" : "Everyone on GameShuffle"} · ${board.total} ${board.total === 1 ? "player" : "players"} · gameshuffle.co/time-trials` },
-          }],
-          components: [row(link("Full board", `${boardUrl(track, cc, items, vehicle)}${country ? `${boardUrl(track, cc, items, vehicle).includes("?") ? "&" : "?"}country=${country}` : ""}`))],
-        });
+        const rec = board.rows.length && !country ? await recordLaps({ game: track.game, track: track.id, cc, items, board: vehicle }).catch(() => null) : null;
+        const full = boardUrl(track, cc, items, vehicle);
+        await editOriginal(appId, token, boardCard({
+          track, cc, items, vehicle, total: board.total,
+          scopeLabel: country ? `Players from ${countryName(country)}` : scope === "server" ? "This server" : "Everyone on GameShuffle",
+          rows: board.rows.map(line), mine: board.mine ? line(board.mine) : null,
+          recordLaps: rec ? { name: rec.name, laps: rec.laps } : null,
+          empty: `No times yet. Be the first: ${ttCmd(appId)} add`,
+          fullUrl: `${full}${country ? `${full.includes("?") ? "&" : "?"}country=${country}` : ""}`,
+        }));
       } catch (err) {
         console.error("[tt] board failed:", err);
         await editOriginal(appId, token, { content: "That board couldn't load. Try again in a moment." });
@@ -538,11 +500,12 @@ export async function handleGsTt(interaction: Record<string, unknown>): Promise<
 }
 
 /**
- * The /gs-tt player reply (picks 2026-10-30): one game (the game option, else the one with the most
- * times), grouped by speed, a code per line, best places first; counts are tracks per speed out of the
- * game's own list. Null when there's nothing to show.
+ * The /gs-tt player reply (picks 2026-10-30; a card since 2026-11-12): one game (the game option, else the one with
+ * the most times), the totals at the top, a label per speed, a code per line, best places first; counts are tracks per
+ * speed out of the game's own list. `mine`: My times on the panel (private, Post here first). Null when there's
+ * nothing to show.
  */
-export function playerReply(who: string, allGames: TtBest[], game: TtGame | null, player: string, profile: string | null): Record<string, unknown> | null {
+export function playerReply(who: string, allGames: TtBest[], game: TtGame | null, player: string, profile: string | null, mine: { post: string; unlinked: boolean } | null = null): Message | null {
   // Discord's /tt is Mario Kart only: Kirby Air Riders times stay on the site.
   const all = allGames.filter((b) => isTtGame(b.game));
   const counts = new Map<TtGame, number>();
@@ -552,9 +515,7 @@ export function playerReply(who: string, allGames: TtBest[], game: TtGame | null
   if (!g || !bests.length) return null;
   const classes = TT_GAMES[g].classes;
   const per = classes.length > 1 ? 8 : 12;
-  const total = ttTracks(g).length;
-  const sections: string[] = [];
-  const fields: { name: string; value: string; inline: boolean }[] = [];
+  const speeds: { cc: TtClass; lines: string[]; more: number; tracks: number }[] = [];
   for (const cc of classes) {
     const rows = bests.filter((b) => b.cc === cc).sort((a, b) => a.place - b.place || a.timeMs - b.timeMs);
     if (!rows.length) continue;
@@ -562,21 +523,12 @@ export function playerReply(who: string, allGames: TtBest[], game: TtGame | null
       const t = ttTrack(b.game, b.track)!;
       return `\`${trackCode(t) ?? t.name}\` **${formatTime(b.timeMs)}** · ${ordinal(b.place)} of ${b.total}`;
     });
-    if (rows.length > per) lines.push(`*and ${rows.length - per} more*`);
-    sections.push(`${classes.length > 1 ? `**${cc}cc**\n` : ""}${lines.join("\n")}`);
-    fields.push({ name: classes.length > 1 ? `${cc}cc` : "Tracks", value: `${new Set(rows.map((r) => r.track)).size} of ${total}`, inline: true });
+    speeds.push({ cc, lines, more: Math.max(0, rows.length - per), tracks: new Set(rows.map((r) => r.track)).size });
   }
-  fields.push({ name: "Records", value: String(bests.filter((b) => b.place === 1).length), inline: true });
-  return {
-    embeds: [{
-      title: `${who}'s time trials · ${TT_GAMES[g].short}`,
-      description: sections.join("\n\n"),
-      color: COLOR,
-      fields,
-      footer: { text: "Mushrooms · gameshuffle.co/time-trials" },
-    }],
-    components: [row(link("All times", `${SITE_URL}${playerPagePath(player, profile)}?game=${g}`))],
-  };
+  return playerCard({
+    who, game: g, speeds, records: bests.filter((b) => b.place === 1).length,
+    allUrl: `${SITE_URL}${playerPagePath(player, profile)}?game=${g}`, mine,
+  });
 }
 
 /** The "Add your clip" form: the link goes to the review queue (round 2). */
@@ -584,8 +536,8 @@ export async function handleTtClipModal(interaction: Record<string, unknown>, cu
   const user = getDiscordUser(interaction);
   if (!user?.id) return reply({ content: "Couldn't tell who you are." }, true);
   const timeId = customId.slice(TT_CLIP_MODAL_PREFIX.length);
-  const rows = ((interaction.data as { components?: { components?: { custom_id?: string; value?: string }[] }[] } | undefined)?.components ?? []);
-  const raw = rows.flatMap((r) => r.components ?? []).find((c) => c.custom_id === "url")?.value ?? "";
+  // Either form style: the labeled one (since 2026-11-12) or the older rows of inputs still open on someone's screen.
+  const raw = String(modalParts(interaction).get("url")?.value ?? "");
   const url = videoProof(raw);
   if (!url) return reply({ content: "That link isn't one we take. Use a link from YouTube, Twitch, Streamable, Medal, X, Bluesky, TikTok or Instagram." }, true);
   const actor = await discordActor(user);
@@ -611,21 +563,23 @@ export async function handleTtButton(interaction: Record<string, unknown>, custo
     const fromPanel = draft.payload.via === "panel";
     if (ok && (!draft.payload.track || !draft.payload.timeMs)) return reply({ content: "Pick the track and add the time first." }, true);
     await db.from("tt_drafts").delete().eq("id", draftId);
-    if (!ok) return Response.json({ type: 7, data: { content: "Cancelled. Nothing was saved.", components: [] } });
-    if (new Date(draft.expires_at).getTime() < Date.now()) return Response.json({ type: 7, data: { content: fromPanel ? "That waited too long. Press Add a time on the panel again." : `That waited too long. Run ${ttCmd(appId)} add again.`, components: [] } });
+    // The check is a card, so its one-line answers are too (an older plain check gets plain lines).
+    if (!ok) return Response.json({ type: 7, data: lineInPlace(interaction, "Cancelled. Nothing was saved.") });
+    if (new Date(draft.expires_at).getTime() < Date.now()) return Response.json({ type: 7, data: lineInPlace(interaction, fromPanel ? "That waited too long. Press Add a time on the panel again." : `That waited too long. Run ${ttCmd(appId)} add again.`) });
     const track = ttTrack(draft.payload.game, draft.payload.track!);
-    if (!track) return Response.json({ type: 7, data: { content: "That track isn't on our list any more.", components: [] } });
+    if (!track) return Response.json({ type: 7, data: lineInPlace(interaction, "That track isn't on our list any more.") });
     const timeMs = draft.payload.timeMs!;
     after(async () => {
       const actor = await discordActor(user);
       await saveAndAnswer({
         appId, token, actor, guildId: draft.guild_id, track, cc: draft.payload.cc, timeMs,
-        proof: draft.payload.proofUrl ? "screenshot" : "none", proofUrl: draft.payload.proofUrl, readByAi: fromPanel ? draft.payload.read === true : true,
+        // Read by AI unless the time was typed: the panel says which; /tt add's read is AI's until Change time sets read false.
+        proof: draft.payload.proofUrl ? "screenshot" : "none", proofUrl: draft.payload.proofUrl, readByAi: draft.payload.read ?? !fromPanel,
         items: draft.payload.items ?? "shrooms", vehicle: draft.payload.vehicle ?? "any", clip: draft.payload.clip ?? null,
         panel: fromPanel, laps: draft.payload.laps ?? null, readMs: draft.payload.readMs ?? null, parts: draft.payload.parts ?? null,
       });
     });
-    return Response.json({ type: 6 });
+    return deferInPlace(interaction);
   }
 
   if (customId.startsWith(TT_EVENT_PREFIX)) {
@@ -636,13 +590,13 @@ export async function handleTtButton(interaction: Record<string, unknown>, custo
       const r = await countInEvent(eventId, actor.userId, timeId);
       if (!r.ok) { await editOriginal(appId, token, { content: r.message }); return; }
       const t = ttTrack(r.game, r.track);
-      const where = r.kind === "match"
-        ? `Counted in ${r.title}. ${r.settled ? (r.won > r.lost ? `You won the match, ${r.won} to ${r.lost} in tracks.` : `You lost the match, ${r.won} to ${r.lost} in tracks.`) : r.held ? `${r.won > r.lost ? "You won" : "You lost"} ${r.won} to ${r.lost} in tracks. It counts once the clips are checked.` : r.won > r.lost ? `You lead ${r.won} to ${r.lost} in tracks.` : r.won < r.lost ? `You trail ${r.won} to ${r.lost} in tracks.` : `Level at ${r.won} to ${r.lost} in tracks.`}`
-        : r.runoff ? `Counted as your run-off time in ${r.title}.` : `Counted in ${r.title}: ${ordinal(r.place)} of ${r.total} on ${t ? trackTitle(t) : "this track"} so far.`;
-      const clipAsk = !r.needsClip ? "" : r.kind === "event"
-        ? " The organizer asks for a clip of this run's last 30 seconds before the results are final: add it on the event page."
-        : " The organizer asks for a clip of this run's last 30 seconds before your match counts: add it on the tournament page.";
-      await editOriginal(appId, token, { content: where + clipAsk, components: [row(link("Open the event", `${SITE_URL}/tournament/${eventId}`))] });
+      const detail = r.kind === "match"
+        ? r.settled ? (r.won > r.lost ? `You won the match, ${r.won} to ${r.lost} in tracks.` : `You lost the match, ${r.won} to ${r.lost} in tracks.`) : r.held ? `${r.won > r.lost ? "You won" : "You lost"} ${r.won} to ${r.lost} in tracks. It counts once the clips are checked.` : r.won > r.lost ? `You lead ${r.won} to ${r.lost} in tracks.` : r.won < r.lost ? `You trail ${r.won} to ${r.lost} in tracks.` : `Level at ${r.won} to ${r.lost} in tracks.`
+        : r.runoff ? "As your run-off time." : `${ordinal(r.place)} of ${r.total} on ${t ? trackTitle(t) : "this track"} so far.`;
+      const clipAsk = !r.needsClip ? null : r.kind === "event"
+        ? "The organizer asks for a clip of this run's last 30 seconds before the results are final: add it on the event page."
+        : "The organizer asks for a clip of this run's last 30 seconds before your match counts: add it on the tournament page.";
+      await editOriginal(appId, token, countedCard({ title: r.title, detail, clipAsk, eventUrl: `${SITE_URL}/tournament/${eventId}` }));
     });
     return Response.json({ type: 5, data: { flags: 64 } });
   }
@@ -650,11 +604,7 @@ export async function handleTtButton(interaction: Record<string, unknown>, custo
   const timeId = customId.slice(customId.indexOf(":") + 1);
 
   if (customId.startsWith(TT_CLIP_PREFIX)) {
-    return Response.json({ type: 9, data: {
-      custom_id: `${TT_CLIP_MODAL_PREFIX}${timeId}`,
-      title: "Add your clip",
-      components: [{ type: 1, components: [{ type: 4, custom_id: "url", label: "Clip of the run's last 30 seconds", style: 1, placeholder: "YouTube, Twitch, Medal, X, TikTok or Instagram link", required: true, max_length: 300 }] }],
-    } });
+    return Response.json({ type: 9, data: clipForm(timeId) });
   }
 
   if (customId.startsWith(TT_UNDO_PREFIX)) {
@@ -663,7 +613,7 @@ export async function handleTtButton(interaction: Record<string, unknown>, custo
     if (!t || t.player !== actor.player) return reply({ content: "That isn't your time." }, true);
     if (Date.now() - new Date(t.createdAt).getTime() > UNDO_MINUTES * 60_000) return reply({ content: "Too late to undo here. Remove it on gameshuffle.co/time-trials instead." }, true);
     const removed = await removeOwnTime(actor.player, timeId);
-    return Response.json({ type: 7, data: { content: removed ? "Removed. That time isn't on any board." : "That time was already removed.", components: [] } });
+    return Response.json({ type: 7, data: lineInPlace(interaction, removed ? "Removed. That time isn't on any board." : "That time was already removed.") });
   }
 
   if (customId.startsWith(TT_VERIFY_PREFIX)) {

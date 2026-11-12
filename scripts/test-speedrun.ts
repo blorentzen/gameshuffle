@@ -28,6 +28,9 @@ import { lssFileName, lssTime, readLss, writeLss } from "../src/lib/speedrun/lss
 import { FRLG_GYMS, buildTemplate, numberedSplits, templatesFor } from "../src/lib/speedrun/templates";
 import { cleanImportedRun } from "../src/lib/speedrun/rules";
 import frlgRun from "../src/data/pokemon/frlg-run.json";
+import { SPEEDRUN_ROSTER } from "../src/data/speedrun/roster";
+import { SPLIT_NAME_MAX } from "../src/lib/speedrun/rules";
+import { gameEntry } from "../src/lib/games/key";
 
 let pass = 0, fail = 0;
 const eq = (a: unknown, b: unknown, m: string) => {
@@ -44,6 +47,10 @@ async function main() {
   const overlay = await signToken(SECRET, "overlay", ID, 1);
   eq(timer, "t1.AbCdEfGh12345678.1.4Wg53LFG6THcL-65ru8oQI", "timer vector");
   eq(overlay, "o1.AbCdEfGh12345678.1.Owqqi3mshHyOYbuNt0Z_Zk", "overlay vector");
+  const roomTok = await signToken(SECRET, "room", ID, 1);
+  eq(roomTok, "r1.AbCdEfGh12345678.1.dqF0YB_KU0q9vuJ9l1563w", "room vector");
+  eq(await verifyToken(SECRET, roomTok, "room"), { kind: "room", relayId: ID, version: 1 }, "room verifies as room");
+  eq(await verifyToken(SECRET, roomTok, "overlay"), null, "a room token isn't an overlay token");
   eq(await signBody(SECRET, JSON.stringify({ relayId: ID, event: "start" })), "83b9b2aecc2ac281c8a93bd563a3b04d7a2aa8f16f1e52dfae81c177a6a139f0", "webhook vector");
   eq(await signBody(SECRET, '{"relayId":"AbCdEfGh12345678","event":"start"}'), "83b9b2aecc2ac281c8a93bd563a3b04d7a2aa8f16f1e52dfae81c177a6a139f0", "webhook vector, raw body");
 
@@ -476,7 +483,7 @@ async function main() {
   eq([frlg.count, frlg.category, frlg.names.map(shownName).at(-1)], [13, "Any%", "Champion"], "Fire Red Any%");
   const leaders = (frlgRun as { segments: { milestone?: { type?: string; leader?: string } }[] }).segments.filter((x) => x.milestone?.type === "gym").map((x) => x.milestone!.leader);
   eq(FRLG_GYMS, leaders, "the Gym Leaders match the Fire Red run's data");
-  eq(templatesFor("Super Mario Odyssey"), null, "no list for other games");
+  eq(templatesFor("Tetris"), null, "no list for other games");
   eq(numberedSplits({ name: "Kingdom", from: 1, to: 3, last: "Bowser's Kingdom" }), ["Kingdom 1", "Kingdom 2", "Kingdom 3", "Bowser's Kingdom"], "the number builder");
   eq([numberedSplits({ name: "", from: 1, to: 3 }), numberedSplits({ name: "W", from: 5, to: 2 }), numberedSplits({ name: "W", from: 1, to: 600 })], [null, null, null], "the builder refuses what can't be made");
 
@@ -499,6 +506,28 @@ async function main() {
   eq(cleanImportedRun({ segments: r.segments, game: r.game, category: r.category, attempts: r.attempts })?.segments.length, 3, "an imported run is taken");
   eq([cleanImportedRun({ segments: [] }), cleanImportedRun({ segments: [{ name: "" }] }), cleanImportedRun(null)], [null, null, null], "an empty or nameless run is refused");
   eq(cleanImportedRun({ segments: [{ name: "A", pbMs: -5, bestMs: "x" }], attempts: -2 }), { segments: [{ name: "A", pbMs: null, bestMs: null }], game: null, category: null, attempts: 0 }, "bad times become no time");
+
+  // ── The speedrun roster (roster picks 2026-11-11): every list is usable as a template, in LiveSplit and on its page ──
+  eq(SPEEDRUN_ROSTER.length, 10, "ten roster games");
+  for (const g of SPEEDRUN_ROSTER) {
+    ok(!!gameEntry(g.key), `${g.key} is in the catalog`);
+    eq(templatesFor(g.title)?.game, g.key, `${g.title} (as runners name it) finds its templates`);
+    eq(templatesFor(g.key)?.templates.length, g.categories.length, `${g.key}: a template per category`);
+    ok(g.categories.length >= 1 && g.categories.length <= 2, `${g.key}: one or two categories`);
+    for (const c of g.categories) {
+      const all = c.groups.flatMap((x) => x.names);
+      ok(all.length >= 5, `${g.key} ${c.name}: at least 5 splits`);
+      ok(all.every((n) => n.length > 0 && n.length <= SPLIT_NAME_MAX && !/[—–]/.test(n) && !/^[-{]/.test(n)), `${g.key} ${c.name}: plain names that fit`);
+      ok(c.groups.every((x) => x.names.length > 0), `${g.key} ${c.name}: no empty group`);
+      ok(c.sources.length >= 1 && c.sources.every((u) => /^https:\/\//.test(u)), `${g.key} ${c.name}: sources`);
+      ok(!/[—–]/.test(c.notes), `${g.key} ${c.name}: notes without dashes`);
+      const built = buildTemplate(templatesFor(g.key)!.templates.find((t) => t.id === c.id)!);
+      eq(built.count, all.length, `${g.key} ${c.name}: the template has every split`);
+      eq(namesToGroups(built.names).map((x) => x.names).flat(), all, `${g.key} ${c.name}: group marks read back to the same names`);
+      const back = readLss(writeLss({ game: g.title, category: c.name, names: built.names }))!;
+      eq(back.segments.map((x) => x.name), built.names, `${g.key} ${c.name}: the LiveSplit file reads back`);
+    }
+  }
 
   console.log(`speedrun: ${pass} passed, ${fail} failed`);
   if (fail) process.exit(1);

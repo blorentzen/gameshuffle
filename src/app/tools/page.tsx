@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { RANDOMIZER_LINKS } from "@/data/randomizer-landings";
-import { randomizerPublic } from "@/lib/games-visibility";
+import { POKEMON_CHAMPIONS_PUBLIC, randomizerPublic } from "@/lib/games-visibility";
 import Link from "next/link";
 import { Button, Container, Icon, Stack, type IconName } from "@empac/cascadeds";
 import { DarkBand } from "@/components/marketing/DarkBand";
@@ -49,6 +49,8 @@ const TOOL_TILES: { icon: IconName; label: string; desc: string; href: string; f
   { icon: "checks", label: "Yes or No?", desc: "Tap for a quick decision", href: "/yes-no", family: "party" },
   { icon: "flame", label: "Truth or Dare", desc: "Endless party prompts", href: "/truth-or-dare", family: "party" },
   { icon: "list", label: "Name Every Pokémon", desc: "How many of the 1,025 can you name?", href: "/name-every-pokemon", family: "party" },
+  // Once the Pokémon Champions space opens (POKEMON_CHAMPIONS_PUBLIC).
+  ...(POKEMON_CHAMPIONS_PUBLIC ? [{ icon: "users" as IconName, label: "Pokémon Champions Team Builder", desc: "Pick six from this season's list and see the weak spots", href: "/pokemon-champions-team-builder", family: "board" as const }] : []),
   { icon: "calendar", label: "The Daily Shuffle", desc: "Guess today's Smash, Mario Kart or Mario Party character", href: "/daily", family: "party" },
   { icon: "award", label: "The Weekly Challenge", desc: "Answer this week's question and guess the crowd's top three", href: "/weekly", family: "party" },
   { icon: "pencil", label: "Trivia Team Names", desc: "Funny, gaming and office team names", href: "/trivia/team-names", family: "party" },

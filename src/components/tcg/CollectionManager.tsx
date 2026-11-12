@@ -5,7 +5,7 @@ import { MY_CARDS_FREE_LIMIT } from "@/lib/subscription";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Badge, Button, EmptyState, Input } from "@empac/cascadeds";
 import { useToast } from "@/components/toast/ToastProvider";
-import { EVENTS, tagged, track } from "@/lib/analytics/events";
+import { EVENTS, track } from "@/lib/analytics/events";
 import { CardImage } from "./CardImage";
 import { CardGridSkeleton } from "./CardGridSkeleton";
 import { FeaturedShowcaseEditor } from "./FeaturedShowcaseEditor";
@@ -121,7 +121,7 @@ export function CollectionManager({ isPro, unlimited = false }: {
         toast.error(`Your collection is full on Free (${MY_CARDS_FREE_LIMIT} cards). GS Pro removes the cap.`);
         return;
       }
-      toast.error("Adding cards to your collection is a GS Pro feature.");
+      toast.error("Sign in to add cards to your collection.");
       return;
     }
     if (!res.ok) {
@@ -266,8 +266,8 @@ export function CollectionManager({ isPro, unlimited = false }: {
                     Add
                   </Button>
                 ) : (
-                  <a href="/gs-pro?from=collection" className={`tcg-card-cell__pro ${tagged(EVENTS.upgradeClicked, { from: "collection" })}`}>
-                    Pro to collect
+                  <a href="/login?redirect=/account/pokemon?tab=my-cards" className="tcg-card-cell__pro">
+                    Sign in to collect
                   </a>
                 )}
               </div>
@@ -313,11 +313,11 @@ export function CollectionManager({ isPro, unlimited = false }: {
         ) : !isPro ? (
           <EmptyState
             variant="bordered"
-            title="Collections are a GS Pro feature"
-            description="Browse cards free. Upgrade to attach the cards you own to your account and build decks from them."
+            title="Collections need a free account"
+            description="Browse cards without one. Sign in to keep the cards you own and build decks from them; GS Pro lifts the 250-card cap."
             action={
-              <a href="/gs-pro?from=collection" className={tagged(EVENTS.upgradeClicked, { from: "collection" })}>
-                <Button variant="primary">See GS Pro</Button>
+              <a href="/login?redirect=/account/pokemon?tab=my-cards">
+                <Button variant="primary">Sign in</Button>
               </a>
             }
           />

@@ -19,7 +19,7 @@ import { LoadingLines } from "@/components/loading/LoadingLines";
 import { AdminPanel, AdminSection, SaveStatus } from "@/components/account/admin/AdminKit";
 import { useAutosave } from "@/lib/hooks/useAutosave";
 import { KnowTheChannelPanel } from "@/components/account/KnowTheChannelPanel";
-import { BREAK_GAMES, BREAK_GAME_IDS, DEFAULT_LINEUP, type BreakGameId, type BreakView } from "@/lib/break/types";
+import { BREAK_GAMES, BREAK_GAME_IDS, DEFAULT_LINEUP, LINEUP_PRESETS, type BreakGameId, type BreakView } from "@/lib/break/types";
 import { everyVisible } from "@/lib/hooks/everyVisible";
 
 interface Settings { lineup: BreakGameId[]; show: "panel" | "full"; championTokens: number; bountyTokens?: number; bountyReady?: boolean }
@@ -187,6 +187,20 @@ export function BreakModeTab() {
       )}
 
       <AdminSection title="Lineup" intro="Games play in this order and loop until you're back." actions={<SaveStatus status={status} />}>
+        <div className="break-tab__presets" role="group" aria-label="Ready-made lineups">
+          {LINEUP_PRESETS.map((p) => {
+            const using = lineup.length === p.games.length && p.games.every((g, i) => lineup[i] === g);
+            return (
+              <div key={p.id} className="break-tab__preset">
+                <Button size="small" variant={using ? "primary" : "secondary"} aria-pressed={using} disabled={!settings}
+                  onClick={() => settings && setSettings({ ...settings, lineup: [...p.games] })}>
+                  {using ? `Using ${p.name}` : `Use ${p.name}`}
+                </Button>
+                <p className="break-tab__note">{p.blurb}{p.id === "together" && settings?.bountyReady && !settings.bountyTokens ? " The bounty plays once you set an amount below." : ""}</p>
+              </div>
+            );
+          })}
+        </div>
         <ul className="break-tab__games">
           {ORDER.map((id) => (
             <li key={id}>

@@ -1,8 +1,6 @@
 import { after } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { getDiscordUser, resolveDiscordUser } from "../user";
-import { hasCapability, requiredTier, TIER_LABELS } from "@/lib/subscription";
-import { getCapabilityUser } from "@/lib/subscription-server";
 import {
   deferredResponse,
   ephemeralMessage,
@@ -62,16 +60,7 @@ async function handleResultAsync(
     return;
   }
 
-  // Capability gate: gs-result requires Pro. Load a Circuit-aware CapabilityUser
-  // so the Circuit→Pro bundle is honored by the capability check.
-  const capUser = await getCapabilityUser(cmdUser.gsUserId!);
-  if (!capUser || !hasCapability(capUser, "gs-result-command")) {
-    const needed = requiredTier("gs-result-command");
-    await followUp(applicationId, interactionToken, {
-      content: `🔒 This command requires **GameShuffle ${TIER_LABELS[needed]}**.\nYou're currently on the **${TIER_LABELS[cmdUser.tier]}** plan.\nUpgrade at **gameshuffle.co/account?tab=plans**`,
-    });
-    return;
-  }
+  // Free, like every other GameShuffle Competitive post (picks 2026-11-11): a linked account is all it needs.
 
   const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,

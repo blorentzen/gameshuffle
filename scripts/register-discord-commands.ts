@@ -7,6 +7,11 @@
  *   npx tsx scripts/register-discord-commands.ts --app comp
  *                                                        GameShuffle Competitive (NEXT_PUBLIC_DISCORD_COMP_APPLICATION_ID +
  *                                                        DISCORD_COMP_BOT_TOKEN): /tt, /mmr, /room, /result, /war, /cans, Save to GameShuffle…
+ *   npx tsx scripts/register-discord-commands.ts --app comp --ranked
+ *                                                        the same plus /ranked. Leave --ranked off until GS Ranked opens
+ *                                                        (the comp_ladders switch): Discord's reviewers try every command
+ *                                                        in the menu, and /ranked only says it isn't open yet (directory
+ *                                                        kit pick 13, 2026-11-12).
  *
  * GameShuffle Competitive (picks 2026-10-30) gets the competitive commands under short names, built from the
  * main app's definitions below, and can be added to a person's own account as well as to servers. The main
@@ -34,6 +39,8 @@ import { gsDayStart } from "../src/lib/time/gsClock";
 
 const DEV = process.argv.includes("--dev");
 const DRY = process.argv.includes("--dry");
+/** /ranked joins the Competitive menu only once GS Ranked opens (see the usage notes above). */
+const WITH_RANKED = process.argv.includes("--ranked");
 const appArg = process.argv.indexOf("--app");
 /** /tt's vehicle choices: every vehicle board (each time keeps the vehicle only when its game has that board). */
 const TT_VEHICLE_CHOICES = [
@@ -422,7 +429,7 @@ const WAR_COMMAND = {
     { name: "vs", description: "The other team's tag", type: 3, required: true, autocomplete: true, max_length: 12 },
     { name: "us", description: "Your team's tag (the channel remembers it after the first war)", type: 3, required: false, autocomplete: true, max_length: 12 },
     { name: "game", description: "Which game (Mario Kart 8 Deluxe at first; the channel remembers it)", type: 3, required: false, choices: [
-      { name: "Mario Kart 8 Deluxe", value: "mk8dx" }, { name: "Mario Kart World", value: "mkworld" },
+      { name: "Mario Kart 8 Deluxe", value: "mk8dx" }, { name: "Mario Kart World", value: "mkworld" }, { name: "Mario Kart Wii", value: "mkwii" },
     ] },
     { name: "entry", description: "How races go in (the channel remembers it)", type: 3, required: false, choices: [
       { name: "One person adds each race", value: "scorer" }, { name: "Everyone taps the place they finished", value: "taps" },
@@ -634,7 +641,7 @@ const compCommands = [
   ME_COMMAND,
   TEAM_COMMAND,
   RACE_COMMAND,
-  LADDER_COMMAND,
+  ...(WITH_RANKED ? [LADDER_COMMAND] : []),
   PB_COMMAND,
 ];
 

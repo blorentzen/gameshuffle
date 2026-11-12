@@ -13,12 +13,12 @@ import { rateLimit } from "@/lib/ratelimit";
 import { warsReady, endWar } from "@/lib/wars/store";
 import { postCard, editCard } from "@/lib/wars/discord";
 import { roomAction, roomState, roomTeams, roomTracks, type RoomAction } from "@/lib/wars/room";
-import type { WarGame } from "@/lib/wars/rules";
+import { isWarGame } from "@/lib/wars/rules";
 
 export const runtime = "nodejs";
 
 const NO_STORE = { "Cache-Control": "no-store" };
-const isGame = (v: unknown): v is WarGame => v === "mk8dx" || v === "mkworld";
+const isGame = isWarGame;
 
 function viewer(req: Request) {
   const s = sessionFrom(req);

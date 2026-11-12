@@ -358,11 +358,32 @@ export async function handleBetCommand(
   const adapter = adapterForCtx(ctx, econ);
   const parts = args.trim().split(/\s+/);
 
+  // A speedrun race's "Who wins?" needs no session either: `!bet nova 100` or `!bet 2 100` (src/lib/versus/bets.ts).
+  const { activeRaceMarket, raceMetaOf } = await import("@/lib/versus/bets");
+  const { matchBetOption } = await import("@/lib/versus/rules");
+  const race = await activeRaceMarket(econ.community.id).catch(() => null);
+  const raceMeta = race ? raceMetaOf(race) : null;
+  const raceKey = raceMeta ? matchBetOption(raceMeta.options, parts[0]) : null;
   // A speedrun "PB this run" prediction needs no session: `!bet pb 100` / `!bet no 100` (src/lib/speedrun/prediction).
   const { activeSpeedrunMarket } = await import("@/lib/speedrun/prediction");
   const speedrun = await activeSpeedrunMarket(econ.community.id).catch(() => null);
   let market: { id: string; status: string; lock_at: string | null } | null = null;
-  if (speedrun && (!econ.activeSessionId || ["pb", "no"].includes((parts[0] ?? "").toLowerCase()))) {
+  if (race && raceMeta && (raceKey || (!speedrun && !econ.activeSessionId))) {
+    if (ctx.isBroadcaster) {
+      await adapter.postChatMessage(`🎲 You're racing, so these bets are for chat.`);
+      return;
+    }
+    if (!raceKey) {
+      await adapter.postChatMessage(`🏁 @${ctx.senderDisplayName}, bet on the race with !bet <runner> <amount>: ${raceMeta.options.map((o) => o.option_key).join(", ")}.`);
+      return;
+    }
+    if (race.status !== "open" || (race.lock_at && Date.parse(race.lock_at) <= Date.now())) {
+      await adapter.postChatMessage(`🔒 @${ctx.senderDisplayName}, race bets are locked. They settle at the finish.`);
+      return;
+    }
+    parts[0] = raceKey;
+    market = race;
+  } else if (speedrun && (!econ.activeSessionId || ["pb", "no"].includes((parts[0] ?? "").toLowerCase()))) {
     if (ctx.isBroadcaster) {
       await adapter.postChatMessage(`🎲 You're the runner, so this prediction is for chat.`);
       return;

@@ -9,14 +9,14 @@ import { after } from "next/server";
 import { getDiscordUser } from "../user";
 import { appOfApplicationId } from "../appIds";
 import { SITE_URL } from "@/lib/seo";
-import { trackTitle } from "@/lib/timeTrials/codes";
-import { placesText, readTrack, suggestTracks, spotsCode, spotsFromCode, warTrack, type WarEntry, type WarGame, type WarSide } from "@/lib/wars/rules";
+import { CODE_EXAMPLE, warTrackTitle as trackTitle } from "@/lib/wars/tracks";
+import { isWarGame, placesText, readTrack, suggestTracks, spotsCode, spotsFromCode, WAR_GAME_LABELS, warTrack, type WarEntry, type WarGame, type WarSide } from "@/lib/wars/rules";
 import {
   formatLabel, formatProblem, isDefaultFormat, placesCode, placesExample, placesFromCode, readPlaces, roomOf, teamScores, type WarFormat,
 } from "@/lib/wars/format";
 import {
   addPenalty, addRace, endWar, formatsReady, getWar, liveWar, pendingTrack, rememberChannel, replaceRace, setEntry, setPendingTrack, setTrack,
-  startWar, tapPlace, undoRace, warChannel, warsReady, warTeams, type War, type WarTeamRef,
+  startWar, tapPlace, undoRace, warChannel, warsReady, warTeams, WII_NOT_READY, type War, type WarTeamRef,
 } from "@/lib/wars/store";
 import { playedTeams, registryTeam, searchRegistry } from "@/lib/wars/teams";
 import { serverLogo } from "@/lib/wars/logos";
@@ -38,8 +38,8 @@ const link = (label: string, url: string) => ({ type: 2, style: 5, label, url })
 const row = (...components: unknown[]) => ({ type: 1, components });
 const fromPrivate = (interaction: Record<string, unknown>) => ((((interaction.message as { flags?: number } | undefined)?.flags ?? 0) & EPHEMERAL) !== 0);
 
-const GAMES: Record<WarGame, string> = { mkworld: "Mario Kart World", mk8dx: "Mario Kart 8 Deluxe" };
-const isGame = (v: unknown): v is WarGame => v === "mk8dx" || v === "mkworld";
+const GAMES: Record<WarGame, string> = WAR_GAME_LABELS;
+const isGame = isWarGame;
 const isEntry = (v: unknown): v is WarEntry => v === "scorer" || v === "taps";
 const cleanTag = (v: unknown) => String(v ?? "").trim().replace(/\s+/g, " ").slice(0, 12);
 /** others: more teams' tags, with spaces or commas between. */
@@ -143,7 +143,7 @@ export async function handleWarCommand(interaction: Record<string, unknown>): Pr
       ]);
       const started = await startWar({ guildId, channelId, game, entry, us, them: opp, by: who, format, others, racesTotal });
       if (!started.ok) {
-        await editOriginal(appId, token, { content: started.error === "live" ? "Someone started a war here a moment ago. It's on the card below." : POST_TROUBLE.failed });
+        await editOriginal(appId, token, { content: started.error === "live" ? "Someone started a war here a moment ago. It's on the card below." : started.error === "wii_not_ready" ? WII_NOT_READY : POST_TROUBLE.failed });
         return;
       }
       // The channel remembers a two-team size (a club that always plays 4v4 types it once) and the race count.
@@ -242,13 +242,16 @@ function raceSummary(war: War, race: War["races"][number]): string {
   return placesText(race.spots);
 }
 
+/** Example codes in the track field's description (Mario Kart Wii's own; the other games' as they always read). */
+const trackCodes = (war: War) => (war.game === "mkwii" ? CODE_EXAMPLE.mkwii.few : CODE_EXAMPLE.mk8dx.few);
+
 function raceForm(war: War, n: number, kind: "add" | "fix", places = "", track = ""): Record<string, unknown> {
   return {
     custom_id: `${WAR_MODAL_PREFIX}${kind}:${war.id}:${n}`,
     title: kind === "add" ? `Race ${n}` : `Fix race ${n}`,
     components: [
       placesField(war, places),
-      { type: 18, label: "Track", description: "Its code: SSC, rMMM, bNYM. You can add it later.", component: { type: 4, custom_id: "track", style: 1, required: false, max_length: 10, placeholder: war.game === "mk8dx" ? "SSC" : "PS", ...(track ? { value: track } : {}) } },
+      { type: 18, label: "Track", description: `Its code: ${trackCodes(war)}. You can add it later.`, component: { type: 4, custom_id: "track", style: 1, required: false, max_length: 10, placeholder: CODE_EXAMPLE[war.game].one, ...(track ? { value: track } : {}) } },
     ],
   };
 }
@@ -257,7 +260,7 @@ function trackForm(war: War, n: number, track = ""): Record<string, unknown> {
   return {
     custom_id: `${WAR_MODAL_PREFIX}trk:${war.id}:${n}`,
     title: `Race ${n}'s track`,
-    components: [{ type: 18, label: "Track", description: "Its code: SSC, rMMM, bNYM", component: { type: 4, custom_id: "track", style: 1, required: true, max_length: 10, placeholder: war.game === "mk8dx" ? "SSC" : "PS", ...(track ? { value: track } : {}) } }],
+    components: [{ type: 18, label: "Track", description: `Its code: ${trackCodes(war)}`, component: { type: 4, custom_id: "track", style: 1, required: true, max_length: 10, placeholder: CODE_EXAMPLE[war.game].one, ...(track ? { value: track } : {}) } }],
   };
 }
 
@@ -427,7 +430,7 @@ export async function handleWarComponent(interaction: Record<string, unknown>, c
       const live = await liveWar(war.guildId, war.channelId);
       if (live) return say(`A war is on here already: ${warTitle(live)}.`, [row(btn("Show the card", `${WAR_PREFIX}card:${live.id}`))]);
       const started = await startWar({ guildId: war.guildId, channelId: war.channelId, game: war.game, entry: war.entry, us: war.us, them: war.them, by: who, format: war.format, others: war.others, racesTotal: war.racesTotal });
-      if (!started.ok) return say(started.error === "live" ? "Someone started a war here a moment ago." : POST_TROUBLE.failed);
+      if (!started.ok) return say(started.error === "live" ? "Someone started a war here a moment ago." : started.error === "wii_not_ready" ? WII_NOT_READY : POST_TROUBLE.failed);
       after(async () => { await postCard(started.war.id); });
       return ack();
     }

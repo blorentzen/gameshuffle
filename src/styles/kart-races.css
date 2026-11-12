@@ -1,0 +1,18 @@
+/* The Race and Battle tabs shared by the retro Mario Kart randomizers (KartRaceTabs: Mario Kart DS, Mario Kart 7,
+   Super Mario Kart). The intro card, tiles and tabs come from randomizer.css. */
+
+/* The race list and count choices sit in one row and wrap on phones. */
+.kart-races__actions { flex-wrap: wrap; align-items: center; }
+.kart-races__actions > .empac-select { flex: 0 1 22rem; min-width: min(100%, 16rem); }
+
+.kart-races { text-align: start; }
+.kart-races__title { display: flex; align-items: center; gap: var(--spacing-12); margin: var(--spacing-8) 0 var(--spacing-12); font-size: var(--font-size-24); line-height: 1.2; }
+.kart-races__cup { width: 4.8rem; height: 4.8rem; object-fit: contain; flex: none; }
+
+/* A tile with a note under its name (5 laps, 3 sections, a battle's mode) is taller than the rest of its row: the
+   name takes the spare room, so every picture in the row stays level and every cup sits at the bottom. */
+.kart-races .track-list__course-name,
+.kart-modes + .track-list .track-list__course-name { flex-grow: 1; }
+
+/* The battle modes that came up, each with how it's won. */
+.kart-modes { list-style: none; margin: var(--spacing-8) 0 var(--spacing-16); padding: 0; display: grid; gap: var(--spacing-8); text-align: start; font-size: var(--font-size-16); line-height: 1.4; }

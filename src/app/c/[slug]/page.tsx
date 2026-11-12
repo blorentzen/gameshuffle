@@ -34,6 +34,8 @@ import { listCommunityBattles, getCrewRecord } from "@/lib/communities/battles";
 import { CommunityCrews } from "@/components/communities/CommunityCrews";
 import { CommunityTrivia } from "@/components/communities/CommunityTrivia";
 import { crewTriviaRecord } from "@/lib/trivia/crews";
+import { CommunityDailies } from "@/components/communities/CommunityDailies";
+import { crewDailies } from "@/lib/daily/groupStreaks";
 import { CommunityBattles } from "@/components/communities/CommunityBattles";
 import { listCommunityFeed } from "@/lib/social/feed";
 import { CommunityJoinButton } from "@/components/communities/CommunityJoinButton";
@@ -101,6 +103,9 @@ export default async function CommunityHomePage({ params, searchParams }: { para
   const communityNights = await listNightsForCommunity(community.id).catch(() => []);
   // Trivia nights the crew played as itself (hidden until it has played one).
   const triviaRecord = await crewTriviaRecord(community.id).catch(() => null);
+  // The crew's streaks on the dailies (shown once the crew has solved something).
+  const crewDays = await crewDailies(community.id).catch(() => null);
+  const dailiesRows = crewDays?.some((r) => r.streak.streak > 0 || r.streak.solvedToday > 0) ? crewDays : null;
   const accountBalance = user ? await getAccountBalance(user.id).catch(() => 0) : 0;
   // Raffle (repeatable token sink) — channels only (they carry the economy).
   const raffleRow = community.kind === "channel" ? await getOpenRaffle(community.id).catch(() => null) : null;
@@ -282,6 +287,12 @@ export default async function CommunityHomePage({ params, searchParams }: { para
             viewerId={user?.id ?? ""}
             members={members.map((m) => ({ id: m.userId, name: m.displayName || m.username || "Player" }))}
           />
+        </div>
+      )}
+{/* Dailies together: the crew's solve streaks */}
+      {dailiesRows && !customization.hiddenSections.includes("crews") && (
+        <div style={{ order: orderOf("crews") }}>
+          <CommunityDailies rows={dailiesRows} />
         </div>
       )}
 {/* Trivia record — nights played as the crew */}

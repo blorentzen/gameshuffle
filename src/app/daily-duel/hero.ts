@@ -1,6 +1,6 @@
 import type { BrowseHeroProps } from "@/components/events/BrowseHero";
 
-/** The page's header, shared with its loading outline so the header never jumps when the page arrives. */
+/** The page's header. */
 export const DUEL_HERO: BrowseHeroProps = {
   eyebrow: "A GameShuffle Original",
   title: "The Daily Duel",

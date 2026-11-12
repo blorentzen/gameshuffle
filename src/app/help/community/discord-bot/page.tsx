@@ -61,14 +61,15 @@ export default function Page() {
         <li>The Daily needs no account. Players who link Discord to a GameShuffle account keep one streak across Discord and the site.</li>
         <li>The Weekly counts on a GameShuffle account, so the Activity offers to make one (free, with Discord) the first time.</li>
         <li>With the bot in the server, the channel gets one Daily card a day with everyone&apos;s rows and scores, and a ranking at 9am Pacific.</li>
+        <li>The <strong>Together</strong> tab plays with everyone in the call. Pick <strong>Team up</strong> to play Boss Fight, Five Letters, Four in a Row or Shuffle Dice as one team, 1 to 4 games in a row.</li>
       </ul>
 
       <h2>Slash commands</h2>
       <ul>
         <li><code>/gs-daily</code>: opens today&apos;s Daily Shuffle right in the channel. Works in servers, group chats and DMs. <strong>Free for everyone.</strong></li>
         <li><code>/gs-randomize</code>: rolls for any game GameShuffle has a randomizer for (start typing the game name), with user tagging and per-player re-rolls. Mario Party keeps characters different; Overwatch and Marvel Rivals take a <code>role</code>. <strong>Free for everyone.</strong></li>
-        <li><code>/gs-brain</code>: answer a Chat Brain survey question with one tap and a one-line form. Anyone gets a question just for them; members with Manage Server post one for the whole channel. Route the <strong>Chat Brain</strong> category to get a new question every day. <strong>Free for everyone.</strong></li>
-        <li><code>/gs-weekly</code>: play the <a href="/help/apps/weekly-challenge">Weekly Challenge</a> without leaving Discord. Plays count on the GameShuffle account you sign in to with Discord. Members with Manage Server post the card for the whole channel. <strong>Free for everyone.</strong></li>
+        <li><code>/gs-brain</code>: answer a Chat Brain survey question with one tap and a one-line form. Anyone gets a question just for them; members with Manage Server post one for the whole channel. Turn on <strong>Post a Chat Brain question each day</strong> under Channels and posts to get a new one every morning. <strong>Free for everyone.</strong></li>
+        <li><code>/gs-weekly</code>: play the <a href="/help/apps/weekly-challenge">Weekly Challenge</a> without leaving Discord. Plays count on the GameShuffle account you sign in to with Discord. Members with Manage Server post the card for the whole channel, and <strong>Post the Weekly each Monday</strong> under Channels and posts brings each week&apos;s card on its own. <strong>Free for everyone.</strong></li>
         <li><code>/gs-poll</code>: open or close a <a href="/help/streaming/polls">live poll</a> for your community, with button voting. <strong>GameShuffle Pro, Manage Server permission.</strong></li>
         <li><code>/gs-flip</code>, <code>/gs-roll</code> and <code>/gs-8ball</code>: flip a coin, roll dice (<code>/gs-roll 20</code> for a d20, <code>/gs-roll 2d6</code> for two six-siders) or ask the magic 8-ball. <strong>Free for everyone.</strong></li>
         <li><code>/gs-profile</code>: share your GameShuffle profile in the channel. Needs Discord linked to a public GameShuffle profile. <strong>Free for everyone.</strong></li>
@@ -89,11 +90,11 @@ export default function Page() {
 
       <h2>What the bot can do</h2>
       <p>
-        On the free tier, the bot posts to a single default channel. GameShuffle Pro adds the full
-        toolkit:
+        On the free tier, the bot posts to a single default channel, including the Weekly each Monday and a daily
+        Chat Brain question once you turn them on under Channels and posts. GameShuffle Pro adds the full toolkit:
       </p>
       <ul>
-        <li><strong>Channel routing</strong>: send each type of GameShuffle post to the channel you choose, by drag and drop.</li>
+        <li><strong>Channel routing</strong>: send each type of GameShuffle post to the channel you choose.</li>
         <li><strong>Announcements</strong>: post now or schedule ahead, with optional follow-up reminders.</li>
         <li><strong>Self-assign roles</strong>: reaction, button, or dropdown role pickers your members use themselves.</li>
         <li><strong>Auto-roles</strong>: give new members a role on join, and auto-grant a role to your linked GS Pro members.</li>

@@ -22,6 +22,7 @@ import { listRestrictedAccounts,
 import { listOpenAppeals, resolveAppeal } from "@/lib/moderation/appeals";
 import { writeModerationAudit } from "@/lib/moderation/audit";
 import { keyFromPublicUrl, deleteFromR2 } from "@/lib/storage/r2";
+import { settleLevelReports } from "@/lib/levels/curation";
 
 export const runtime = "nodejs";
 
@@ -55,7 +56,7 @@ export async function GET() {
   });
 }
 
-const ACTIONS = ["dismiss", "clear_display_name", "clear_bio", "clear_banner", "warn", "restrict", "suspend", "ban", "unban"] as const;
+const ACTIONS = ["dismiss", "clear_display_name", "clear_bio", "clear_banner", "warn", "restrict", "suspend", "ban", "unban", "remove_level"] as const;
 type Action = (typeof ACTIONS)[number];
 
 const CAPABILITIES = [
@@ -145,6 +146,19 @@ export async function PUT(req: NextRequest) {
 
   const actor = caller.userId;
   let actionTaken = action as string;
+
+  // A reported level (src/lib/levels/curation.ts): dismissing puts it back on its board, taking it down removes it;
+  // either way every open report on it closes. Account actions below work as for any report.
+  if (action === "remove_level" && !reportId) return NextResponse.json({ error: "bad_request" }, { status: 400 });
+  if (reportId && (action === "dismiss" || action === "remove_level")) {
+    const { data: rep } = await admin.from("reports").select("target_type, target_id").eq("id", reportId).maybeSingle();
+    const r = rep as { target_type: string; target_id: string } | null;
+    if (r?.target_type === "level") {
+      await settleLevelReports(actor, r.target_id, action === "remove_level", notes);
+      return NextResponse.json({ ok: true });
+    }
+    if (action === "remove_level") return NextResponse.json({ error: "bad_request" }, { status: 400 });
+  }
 
   try {
     switch (action) {

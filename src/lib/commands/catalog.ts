@@ -65,7 +65,7 @@ const WHO_FROM_AUTHORITY: Record<string, CommandWho> = { viewer: "everyone", vip
 export async function streamSetup(ownerUserId: string): Promise<StreamSetup> {
   const admin = createServiceClient();
   const since = new Date(Date.now() - 60 * 86_400_000).toISOString();
-  const [sessions, wheels, nights, tourney, speedrun] = await Promise.all([
+  const [sessions, wheels, nights, tourney, speedrun, levels] = await Promise.all([
     admin.from("gs_sessions").select("configured_games, active_game, status, ended_at")
       .eq("owner_user_id", ownerUserId)
       .or(`status.in.(draft,scheduled,ready,active,ending),ended_at.gte.${since}`)
@@ -75,6 +75,8 @@ export async function streamSetup(ownerUserId: string): Promise<StreamSetup> {
     admin.from("tournaments").select("id", { count: "exact", head: true }).eq("organizer_id", ownerUserId).in("status", ["open", "in_progress"]),
     // A missing table (before supabase/speedrun-m1.sql) reads as no speedrun setup.
     admin.from("speedrun_setups").select("user_id", { count: "exact", head: true }).eq("user_id", ownerUserId),
+    // The level queue (supabase/levels-m1.sql); a missing table reads as no queue.
+    admin.from("level_queues").select("owner_user_id", { count: "exact", head: true }).eq("owner_user_id", ownerUserId),
   ]);
   const slugs = new Set<string>();
   for (const s of sessions.data ?? []) {
@@ -93,6 +95,7 @@ export async function streamSetup(ownerUserId: string): Promise<StreamSetup> {
       tournament: (tourney.count ?? 0) > 0,
       wheel: (wheels.count ?? 0) > 0,
       speedrun: (speedrun.count ?? 0) > 0,
+      levels: (levels.count ?? 0) > 0,
     },
   };
 }

@@ -26,7 +26,11 @@ function TrackTile({ track, showCupIcon, reel, unit }: { track: SelectedTrack; s
         src={getImagePath(course.icon || course.img)}
         alt={course.name}
       />
-      <span className="track-list__course-name">{course.name}</span>
+      <span className="track-list__course-name">
+        {course.name}
+        {/* Inside the name, so tiles with and without a note keep their pictures level. */}
+        {track.course.note && !frame && <span className="track-list__note">{track.course.note}</span>}
+      </span>
       {showCupIcon && track.cupImg && !frame && (
         <img
           className="track-list__cup-img"

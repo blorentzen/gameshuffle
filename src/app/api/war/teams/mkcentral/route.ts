@@ -16,14 +16,14 @@ import { rateLimit } from "@/lib/ratelimit";
 import { linkMkc, linksReady, refreshMkc, setLogoSource, unlinkMkc } from "@/lib/wars/cardStore";
 import { redrawSides } from "@/lib/wars/redraw";
 import type { LogoSource } from "@/lib/wars/cards";
-import type { WarGame } from "@/lib/wars/rules";
+import { warGameOr, type WarGame } from "@/lib/wars/rules";
 import { searchMkcView, teamIn, teamsAccess, teamsView } from "@/lib/wars/teamAdmin";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 const fail = (error: string, status: number) => NextResponse.json({ error }, { status });
-const gameOf = (v: unknown): WarGame => (v === "mkworld" ? "mkworld" : "mk8dx");
+const gameOf = (v: unknown): WarGame => warGameOr(v, "mk8dx");
 const SOURCES: LogoSource[] = ["auto", "upload", "mkcentral"];
 
 export async function GET(req: Request) {

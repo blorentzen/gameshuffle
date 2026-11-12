@@ -291,6 +291,19 @@ html.dark .gs-portrait-bg {
 .kart-slot--portrait:only-child { grid-column: 1 / -1; }
 .kart-slot--portrait:only-child .kart-slot__tile { width: 14.4rem; align-items: center; }
 
+/* A small label over a part with a job (KartSlot `tag`: Double Dash's "Drives" and "Throws"). */
+.kart-slot__tag {
+  max-width: 100%;
+  font-size: var(--font-size-12);
+  font-weight: var(--font-weight-semibold, 600);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+  text-align: center;
+}
+
 .kart-slot span {
   /* The rolled part's name: reading text, so 14px (sizing rule, 2026-10-20). */
   font-size: var(--font-size-14);
@@ -438,6 +451,17 @@ html.dark .gs-portrait-bg {
 .track-list__cup-img {
   height: 60px;
   width: auto;
+}
+
+/* A line under a course's name (Double Dash: "7 laps", a battle's mode). */
+.track-list__note {
+  display: block;
+  margin-top: 0.2rem;
+  font-size: var(--font-size-14);
+  font-weight: var(--font-weight-regular, 400);
+  color: var(--text-secondary);
+  text-align: center;
+  line-height: var(--line-height-tight);
 }
 
 /* Race Selector */
@@ -984,7 +1008,8 @@ html.dark .gs-portrait-bg {
   }
 
   .track-list__course-name {
-    font-size: var(--font-size-12);
+    /* Course names are reading text: 14px on phones too (text size floor). */
+    font-size: var(--font-size-14);
     line-height: var(--line-height-tight);
   }
 

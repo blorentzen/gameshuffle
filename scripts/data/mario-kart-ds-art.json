@@ -1,0 +1,526 @@
+{
+ "checkedOn": "2026-11-12",
+ "note": "Mario Kart DS art for the randomizer, all through Super Mario Wiki's file host (mariowiki.com), game assets only: the in-game character mugshots from the character select screen (40px pixel art, drawn at 4x with nearest-neighbour so the pixels stay sharp), the in-game course icons and battle course icons (drawn at 3x the same way), the in-game cup emblems, and the karts and Mission Mode bosses as the game's own 3D models rendered from the game data (the pictures the wiki's kart tables use; the game has no official artwork for most of its 36 karts). The header is the official group artwork of Mario, Peach and Luigi with a Blooper, cropped to 16:9. Run scripts/pull-mario-kart-ds-art.ts.",
+ "characters": [
+  {
+   "name": "Mario",
+   "slug": "mario",
+   "file": "Mario MKDS icon.png"
+  },
+  {
+   "name": "Luigi",
+   "slug": "luigi",
+   "file": "Luigi MKDS icon.png"
+  },
+  {
+   "name": "Peach",
+   "slug": "peach",
+   "file": "Peach MKDS icon.png"
+  },
+  {
+   "name": "Yoshi",
+   "slug": "yoshi",
+   "file": "Yoshi MKDS icon.png"
+  },
+  {
+   "name": "Toad",
+   "slug": "toad",
+   "file": "Toad MKDS icon.png"
+  },
+  {
+   "name": "Donkey Kong",
+   "slug": "donkey-kong",
+   "file": "DK MKDS icon.png"
+  },
+  {
+   "name": "Wario",
+   "slug": "wario",
+   "file": "Wario MKDS icon.png"
+  },
+  {
+   "name": "Bowser",
+   "slug": "bowser",
+   "file": "Bowser MKDS icon.png"
+  },
+  {
+   "name": "Daisy",
+   "slug": "daisy",
+   "file": "Daisy MKDS icon.png"
+  },
+  {
+   "name": "Dry Bones",
+   "slug": "dry-bones",
+   "file": "Dry Bones MKDS icon.png"
+  },
+  {
+   "name": "Waluigi",
+   "slug": "waluigi",
+   "file": "Waluigi MKDS icon.png"
+  },
+  {
+   "name": "R.O.B.",
+   "slug": "rob",
+   "file": "ROB MKDS icon.png"
+  }
+ ],
+ "karts": [
+  {
+   "name": "B Dasher",
+   "slug": "b-dasher",
+   "file": "MKDS B Dasher Model.png"
+  },
+  {
+   "name": "Standard MR",
+   "slug": "standard-mr",
+   "file": "MKDS Standard Kart MR Model.png"
+  },
+  {
+   "name": "Shooting Star",
+   "slug": "shooting-star",
+   "file": "MKDS Shooting Star Model.png"
+  },
+  {
+   "name": "Poltergust 4000",
+   "slug": "poltergust-4000",
+   "file": "MKDS Poltergust 4000 Model.png"
+  },
+  {
+   "name": "Standard LG",
+   "slug": "standard-lg",
+   "file": "MKDS Standard Kart LG Model.png"
+  },
+  {
+   "name": "Streamliner",
+   "slug": "streamliner",
+   "file": "MKDS Streamliner Model.png"
+  },
+  {
+   "name": "Royale",
+   "slug": "royale",
+   "file": "MKDS Royale Model.png"
+  },
+  {
+   "name": "Standard PC",
+   "slug": "standard-pc",
+   "file": "MKDS Standard Kart PC Model.png"
+  },
+  {
+   "name": "Light Tripper",
+   "slug": "light-tripper",
+   "file": "MKDS Light Tripper Model.png"
+  },
+  {
+   "name": "Egg 1",
+   "slug": "egg-1",
+   "file": "MKDS Egg 1 Model.png"
+  },
+  {
+   "name": "Standard YS",
+   "slug": "standard-ys",
+   "file": "MKDS Standard Kart YS Model.png"
+  },
+  {
+   "name": "Cucumber",
+   "slug": "cucumber",
+   "file": "MKDS Cucumber Model.png"
+  },
+  {
+   "name": "Mushmellow",
+   "slug": "mushmellow",
+   "file": "MKDS Mushmellow Model.png"
+  },
+  {
+   "name": "Standard TD",
+   "slug": "standard-td",
+   "file": "MKDS Standard Kart TD Model.png"
+  },
+  {
+   "name": "4-Wheel Cradle",
+   "slug": "4-wheel-cradle",
+   "file": "MKDS 4-Wheel Cradle Model.png"
+  },
+  {
+   "name": "Rambi Rider",
+   "slug": "rambi-rider",
+   "file": "MKDS Rambi Rider Model.png"
+  },
+  {
+   "name": "Standard DK",
+   "slug": "standard-dk",
+   "file": "MKDS Standard Kart DK Model.png"
+  },
+  {
+   "name": "Wildlife",
+   "slug": "wildlife",
+   "file": "MKDS Wildlife Model.png"
+  },
+  {
+   "name": "Brute",
+   "slug": "brute",
+   "file": "MKDS Brute Model.png"
+  },
+  {
+   "name": "Standard WR",
+   "slug": "standard-wr",
+   "file": "MKDS Standard Kart WR Model.png"
+  },
+  {
+   "name": "Dragonfly",
+   "slug": "dragonfly",
+   "file": "MKDS Dragonfly Model.png"
+  },
+  {
+   "name": "Tyrant",
+   "slug": "tyrant",
+   "file": "MKDS Tyrant Model.png"
+  },
+  {
+   "name": "Standard BW",
+   "slug": "standard-bw",
+   "file": "MKDS Standard Kart BW Model.png"
+  },
+  {
+   "name": "Hurricane",
+   "slug": "hurricane",
+   "file": "MKDS Hurricane Model.png"
+  },
+  {
+   "name": "Power Flower",
+   "slug": "power-flower",
+   "file": "MKDS Power Flower Model.png"
+  },
+  {
+   "name": "Standard DS",
+   "slug": "standard-ds",
+   "file": "MKDS Standard Kart DS Model.png"
+  },
+  {
+   "name": "Light Dancer",
+   "slug": "light-dancer",
+   "file": "MKDS Light Dancer Model.png"
+  },
+  {
+   "name": "Banisher",
+   "slug": "banisher",
+   "file": "MKDS Banisher Model.png"
+  },
+  {
+   "name": "Standard DB",
+   "slug": "standard-db",
+   "file": "MKDS Standard Kart DB Model.png"
+  },
+  {
+   "name": "Dry Bomber",
+   "slug": "dry-bomber",
+   "file": "MKDS Dry Bomber Model.png"
+  },
+  {
+   "name": "Gold Mantis",
+   "slug": "gold-mantis",
+   "file": "MKDS Gold Mantis Model.png"
+  },
+  {
+   "name": "Standard WL",
+   "slug": "standard-wl",
+   "file": "MKDS Standard Kart WL Model.png"
+  },
+  {
+   "name": "Zipper",
+   "slug": "zipper",
+   "file": "MKDS Zipper Model.png"
+  },
+  {
+   "name": "ROB-BLS",
+   "slug": "rob-bls",
+   "file": "MKDS ROB-BLS Model.png"
+  },
+  {
+   "name": "Standard RB",
+   "slug": "standard-rb",
+   "file": "MKDS Standard Kart RB Model.png"
+  },
+  {
+   "name": "ROB-LGS",
+   "slug": "rob-lgs",
+   "file": "MKDS ROB-LGS Model.png"
+  }
+ ],
+ "tracks": [
+  {
+   "name": "Figure-8 Circuit",
+   "slug": "figure-8-circuit",
+   "file": "MKDS Figure 8 Circuit Course Icon.png"
+  },
+  {
+   "name": "Yoshi Falls",
+   "slug": "yoshi-falls",
+   "file": "MKDS Yoshi Falls Course Icon.png"
+  },
+  {
+   "name": "Cheep Cheep Beach",
+   "slug": "cheep-cheep-beach",
+   "file": "MKDS Cheep Cheep Beach Course Icon.png"
+  },
+  {
+   "name": "Luigi's Mansion",
+   "slug": "luigis-mansion",
+   "file": "MKDS Luigi's Mansion Course Icon.png"
+  },
+  {
+   "name": "Desert Hills",
+   "slug": "desert-hills",
+   "file": "MKDS Desert Hills Course Icon.png"
+  },
+  {
+   "name": "Delfino Square",
+   "slug": "delfino-square",
+   "file": "MKDS Delfino Square Course Icon.png"
+  },
+  {
+   "name": "Waluigi Pinball",
+   "slug": "waluigi-pinball",
+   "file": "MKDS Waluigi Pinball Course Icon.png"
+  },
+  {
+   "name": "Shroom Ridge",
+   "slug": "shroom-ridge",
+   "file": "MKDS Shroom Ridge Course Icon.png"
+  },
+  {
+   "name": "DK Pass",
+   "slug": "dk-pass",
+   "file": "MKDS DK Pass Course Icon.png"
+  },
+  {
+   "name": "Tick-Tock Clock",
+   "slug": "tick-tock-clock",
+   "file": "MKDS Tick-Tock Clock Course Icon.png"
+  },
+  {
+   "name": "Mario Circuit",
+   "slug": "mario-circuit",
+   "file": "MKDS Mario Circuit Course Icon.png"
+  },
+  {
+   "name": "Airship Fortress",
+   "slug": "airship-fortress",
+   "file": "MKDS Airship Fortress Course Icon.png"
+  },
+  {
+   "name": "Wario Stadium",
+   "slug": "wario-stadium",
+   "file": "MKDS Wario Stadium Course Icon.png"
+  },
+  {
+   "name": "Peach Gardens",
+   "slug": "peach-gardens",
+   "file": "MKDS Peach Gardens Course Icon.png"
+  },
+  {
+   "name": "Bowser Castle",
+   "slug": "bowser-castle",
+   "file": "MKDS Bowser Castle Course Icon.png"
+  },
+  {
+   "name": "Rainbow Road",
+   "slug": "rainbow-road",
+   "file": "MKDS Rainbow Road Course Icon.png"
+  },
+  {
+   "name": "SNES Mario Circuit 1",
+   "slug": "snes-mario-circuit-1",
+   "file": "MKDS SNES Mario Circuit 1 Course Icon.png"
+  },
+  {
+   "name": "N64 Moo Moo Farm",
+   "slug": "n64-moo-moo-farm",
+   "file": "MKDS N64 Moo Moo Farm Course Icon.png"
+  },
+  {
+   "name": "GBA Peach Circuit",
+   "slug": "gba-peach-circuit",
+   "file": "MKDS GBA Peach Circuit Course Icon.png"
+  },
+  {
+   "name": "GCN Luigi Circuit",
+   "slug": "gcn-luigi-circuit",
+   "file": "MKDS GCN Luigi Circuit Course Icon.png"
+  },
+  {
+   "name": "SNES Donut Plains 1",
+   "slug": "snes-donut-plains-1",
+   "file": "MKDS SNES Donut Plains 1 Course Icon.png"
+  },
+  {
+   "name": "N64 Frappe Snowland",
+   "slug": "n64-frappe-snowland",
+   "file": "MKDS N64 Frappe Snowland Course Icon.png"
+  },
+  {
+   "name": "GBA Bowser Castle 2",
+   "slug": "gba-bowser-castle-2",
+   "file": "MKDS GBA Bowser Castle 2 Course Icon.png"
+  },
+  {
+   "name": "GCN Baby Park",
+   "slug": "gcn-baby-park",
+   "file": "MKDS GCN Baby Park Course Icon.png"
+  },
+  {
+   "name": "SNES Koopa Beach 2",
+   "slug": "snes-koopa-beach-2",
+   "file": "MKDS SNES Koopa Beach 2 Course Icon.png"
+  },
+  {
+   "name": "N64 Choco Mountain",
+   "slug": "n64-choco-mountain",
+   "file": "MKDS N64 Choco Mountain Course Icon.png"
+  },
+  {
+   "name": "GBA Luigi Circuit",
+   "slug": "gba-luigi-circuit",
+   "file": "MKDS GBA Luigi Circuit Course Icon.png"
+  },
+  {
+   "name": "GCN Mushroom Bridge",
+   "slug": "gcn-mushroom-bridge",
+   "file": "MKDS GCN Mushroom Bridge Course Icon.png"
+  },
+  {
+   "name": "SNES Choco Island 2",
+   "slug": "snes-choco-island-2",
+   "file": "MKDS SNES Choco Island 2 Course Icon.png"
+  },
+  {
+   "name": "N64 Banshee Boardwalk",
+   "slug": "n64-banshee-boardwalk",
+   "file": "MKDS N64 Banshee Boardwalk Course Icon.png"
+  },
+  {
+   "name": "GBA Sky Garden",
+   "slug": "gba-sky-garden",
+   "file": "MKDS GBA Sky Garden Course Icon.png"
+  },
+  {
+   "name": "GCN Yoshi Circuit",
+   "slug": "gcn-yoshi-circuit",
+   "file": "MKDS GCN Yoshi Circuit Course Icon.png"
+  }
+ ],
+ "battle": [
+  {
+   "name": "Nintendo DS",
+   "slug": "nintendo-ds",
+   "file": "MKDS Nintendo DS Course Icon.png"
+  },
+  {
+   "name": "Twilight House",
+   "slug": "twilight-house",
+   "file": "MKDS Twilight Shore Course Icon.png"
+  },
+  {
+   "name": "Palm Shore",
+   "slug": "palm-shore",
+   "file": "MKDS Palm Shore Course Icon.png"
+  },
+  {
+   "name": "Tart Top",
+   "slug": "tart-top",
+   "file": "MKDS Tart Top Course Icon.png"
+  },
+  {
+   "name": "Block Fort",
+   "slug": "block-fort",
+   "file": "MKDS N64 Block Fort Course Icon.png"
+  },
+  {
+   "name": "Pipe Plaza",
+   "slug": "pipe-plaza",
+   "file": "MKDS GCN Pipe Plaza Course Icon.png"
+  }
+ ],
+ "cups": [
+  {
+   "name": "Mushroom Cup",
+   "slug": "mushroom",
+   "file": "MKDS Mushroom Cup Emblem.png"
+  },
+  {
+   "name": "Flower Cup",
+   "slug": "flower",
+   "file": "MKDS Flower Cup Icon.png"
+  },
+  {
+   "name": "Star Cup",
+   "slug": "star",
+   "file": "MKDS Star Cup Emblem.png"
+  },
+  {
+   "name": "Special Cup",
+   "slug": "special",
+   "file": "MKDS Special Cup Emblem.png"
+  },
+  {
+   "name": "Shell Cup",
+   "slug": "shell",
+   "file": "MKDS Shell Cup Emblem.png"
+  },
+  {
+   "name": "Banana Cup",
+   "slug": "banana",
+   "file": "MKDS Banana Cup Emblem.png"
+  },
+  {
+   "name": "Leaf Cup",
+   "slug": "leaf",
+   "file": "MKDS Leaf Cup Emblem.png"
+  },
+  {
+   "name": "Lightning Cup",
+   "slug": "lightning",
+   "file": "MKDS Lightning Cup Emblem.png"
+  }
+ ],
+ "bosses": [
+  {
+   "name": "Big Bully",
+   "slug": "big-bully",
+   "file": "MKDSBigBullyModel.png"
+  },
+  {
+   "name": "Eyerok",
+   "slug": "eyerok",
+   "file": "MKDSEyerokModel.png"
+  },
+  {
+   "name": "Goomboss",
+   "slug": "goomboss",
+   "file": "MKDSGoombossModel.png"
+  },
+  {
+   "name": "King Boo",
+   "slug": "king-boo",
+   "file": "MKDSKingBooModel.png"
+  },
+  {
+   "name": "Big Bob-omb",
+   "slug": "big-bob-omb",
+   "file": "MKDSKingBob-ombModel.png"
+  },
+  {
+   "name": "Chief Chilly",
+   "slug": "chief-chilly",
+   "file": "MKDSChiefChillyModel.png"
+  }
+ ],
+ "keyart": {
+  "file": "MKDS Mario Peach Luigi and Blooper Artwork.png",
+  "slug": "mario-kart-ds-keyart",
+  "crop": [
+   0,
+   53,
+   2937,
+   1652
+  ]
+ }
+}

@@ -300,12 +300,12 @@ export default async function CompetitiveMarioKartPage() {
             <div>
               <IconTile icon={IconBrandTwitch} tone="blue" />
               <h3>On stream</h3>
-              <p>Chat asks, the bot answers, the overlay shows it.</p>
+              <p>With GS Pro&apos;s Twitch setup, chat asks and the bot answers.</p>
               <ul className="cmk-cmds">
                 <li><code>!mmr</code> your MMR and tonight&apos;s run</li>
                 <li><code>!last10</code> and <code>!tonight</code></li>
-                <li><code>!odds</code> tonight&apos;s room, with GS Pro</li>
-                <li>The MMR card and Tonight&apos;s room on your overlay</li>
+                <li><code>!odds</code> tonight&apos;s room</li>
+                <li>Tonight&apos;s room on your GameShuffle overlay</li>
               </ul>
               <ArrowLink href="/gs-pro#lounge" className={link("gs-pro")}>What GS Pro adds</ArrowLink>
             </div>
@@ -320,7 +320,8 @@ export default async function CompetitiveMarioKartPage() {
               </ul>
               <span className="cmk-links">
                 <ArrowLink href="/competitive/mario-kart-8-deluxe" className={link("live-scoring")}>Start live scoring</ArrowLink>
-                <ArrowLink href="/randomizers/mario-kart-8-deluxe" className={link("randomizer")}>Mario Kart randomizers</ArrowLink>
+                <ArrowLink href="/randomizers/mario-kart-8-deluxe" className={link("randomizer")}>Mario Kart 8 Deluxe randomizer</ArrowLink>
+                <ArrowLink href="/randomizers/mario-kart-world" className={link("randomizer-world")}>Mario Kart World randomizer</ArrowLink>
               </span>
             </div>
           </div>

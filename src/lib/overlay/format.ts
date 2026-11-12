@@ -89,6 +89,8 @@ export const DEFAULT_LAYOUTS: Record<OverlayFormat, Record<string, Partial<Eleme
     // Time trial standings: shows only while the streamer is in a running time trial (tt/overlayServer.ts).
     // Left side: Mario Kart's time trial shows its timer and laps top right.
     time_trial: { anchor: "mid-left", scale: 0.9 },
+    // The level queue (levels picks 2026-11-11): off until the streamer turns it on.
+    level_queue: { anchor: "bottom-right", scale: 0.9, enabled: false },
   },
   portrait: {
     dice: { anchor: "center", scale: 0.9 },
@@ -115,6 +117,7 @@ export const DEFAULT_LAYOUTS: Record<OverlayFormat, Record<string, Partial<Eleme
     war: { anchor: "top-center", scale: 0.9, enabled: false },
     series: { anchor: "top-center", scale: 0.8 },
     time_trial: { anchor: "top-center", scale: 0.8 },
+    level_queue: { anchor: "bottom-center", scale: 0.8, enabled: false },
   },
   square: {},
 };

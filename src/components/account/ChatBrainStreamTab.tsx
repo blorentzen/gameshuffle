@@ -25,6 +25,7 @@ import { ChatBrainSurveyCard } from "./ChatBrainSurvey";
 import { CostreamConsole, CostreamGuestPicker, CostreamInvites, CostreamLobbyCard, respondError, type CostreamAction, type CostreamState, type StreamerHit } from "./ChatBrainCostream";
 import type { SurveyHostView } from "@/lib/chatbrain/survey";
 import { everyVisible } from "@/lib/hooks/everyVisible";
+import { EVENTS, track } from "@/lib/analytics/events";
 
 interface TabData {
   isPro: boolean;
@@ -83,7 +84,9 @@ const ERRORS: Record<string, string> = {
   guest_not_joined: "Your guest hasn't joined yet.",
 };
 
-type Mode = "host" | "speed" | "versus" | "teams" | "costream";
+type Mode = "host" | "speed" | "versus" | "teams" | "costream" | "together";
+/** Modes that invite another streamer (a co-stream). */
+const isInvite = (m: Mode) => m === "costream" || m === "together";
 const isVersus = (m: string | undefined) => m === "versus" || m === "teams";
 
 const secsUntil = (iso: string) => Math.max(0, Math.ceil((Date.parse(iso) - Date.now()) / 1000));
@@ -139,20 +142,26 @@ export function ChatBrainStreamTab() {
       method: "POST", headers: { "Content-Type": "application/json" },
       body: JSON.stringify(mode === "costream"
         ? { mode, guest: guestPick?.id, rounds: Number(rounds), seconds: Number(seconds), familySafe, fromSurvey, prize: Number(prize) }
+        : mode === "together"
+        ? { mode: "costream", style: "together", guest: guestPick?.id, rounds: Number(boards), seconds: Number(seconds), familySafe, fromSurvey, prize: Number(prize) }
         : mode === "host" || mode === "speed"
         ? { boards: Number(boards), seconds: Number(seconds), familySafe, fromSurvey, speed: mode === "speed", prize: Number(prize) }
         : { mode, sides: sidesPayload(mode, sides), rounds: Number(rounds), seconds: Number(seconds), familySafe, chatAdvisor, chatLastSteal, fromSurvey, prize: Number(prize) }),
     });
     const d = await res.json().catch(() => null);
     setBusy(false);
-    if (d?.ok && mode === "costream") { setData((cur) => (cur ? { ...cur, costream: d.costream } : cur)); setGuestPick(null); toast.success("Invite sent. You'll see here when they join."); }
+    if (d?.ok && isInvite(mode)) {
+      setData((cur) => (cur ? { ...cur, costream: d.costream } : cur)); setGuestPick(null); toast.success("Invite sent. You'll see here when they join.");
+      if (mode === "together") track(EVENTS.brainTogetherInvited);
+    }
     else if (d?.ok) { setData((cur) => (cur ? { ...cur, game: d.game } : cur)); toast.success("Game started. The question is in your chat."); }
     else toast.error(ERRORS[d?.error] ?? "Couldn't start the game.");
   };
 
   const act = async (action: "time" | "accept" | "reject" | VersusAction, extra: Record<string, unknown> = {}): Promise<boolean> => {
     const g = data?.game;
-    const versus = isVersus(g?.mode) || g?.mode === "costream";
+    // A co-stream together plays boards like Chat plays (no rounds to skip).
+    const versus = isVersus(g?.mode) || (g?.mode === "costream" && !g?.together);
     const endBody = g?.mode === "costream" ? "Both chats keep the points they have. The final score posts in both chats."
       : versus ? "Both sides keep the points they have. The final score posts in chat." : "Chat keeps the points it has. The final score posts in chat.";
     if (action === "end" && !(await confirm({ title: "End this game?", body: endBody, confirmLabel: "End game", cancelLabel: "Keep playing" }))) return false;
@@ -219,7 +228,7 @@ export function ChatBrainStreamTab() {
         Guess what most people said. In <strong>Chat plays</strong>, chat is one team: whatever most of chat says with <code>!a</code>{" "}is chat&apos;s answer,
         on the board banks its points, anything else is a strike, and three strikes ends the board. In the <strong>speed round</strong>, the first viewer
         to find each answer takes its points. In <strong>1v1</strong>{" "}and <strong>Teams</strong>, two sides
-        on stream play for control of each board while chat plays along. In a <strong>co-stream</strong>, your chat plays another streamer&apos;s chat. Every viewer scores on their own for answers they find.
+        on stream play for control of each board while chat plays along. In a <strong>co-stream</strong>, your chat plays another streamer&apos;s chat, or both chats play as one team. Every viewer scores on their own for answers they find.
         Add the Chat Brain piece in <Link href="/account/streaming?tab=overlay-layout">Overlay ▸ Layout</Link> to show the board on stream.
       </p>
 
@@ -322,6 +331,7 @@ export function ChatBrainStreamTab() {
                 { value: "host", label: "Chat plays (chat is one team)" },
                 { value: "speed", label: "Speed round (first to find each answer scores)" },
                 { value: "costream", label: "Co-stream (your chat against another streamer's chat)" },
+                { value: "together", label: "Co-stream together (both chats on one team)" },
                 { value: "versus", label: "1v1 (two players, chat plays along)" },
                 { value: "teams", label: "Teams (2 to 5 a side, chat plays along)" },
               ]} />
@@ -352,7 +362,16 @@ export function ChatBrainStreamTab() {
                   options={Array.from({ length: COSTREAM_ROUNDS.max - COSTREAM_ROUNDS.min + 1 }, (_, i) => i + COSTREAM_ROUNDS.min).map((n) => ({ value: String(n), label: `${n} rounds${n === COSTREAM_ROUNDS.default ? " (default)" : ""}` }))} />
               </>
             )}
-            {mode === "costream" ? null : mode === "host" || mode === "speed" ? (
+            {mode === "together" && (
+              <>
+                <p className="dbot-muted">
+                  Your chat and another streamer&apos;s chat on one team: both chats answer with <code>!a</code>, what most of both chats say is the answer,
+                  and the score and three strikes are shared. You run the game; they accept the invite on their Chat Brain tab.
+                </p>
+                <CostreamGuestPicker value={guestPick} onChange={setGuestPick} />
+              </>
+            )}
+            {mode === "costream" ? null : mode === "host" || mode === "speed" || mode === "together" ? (
               <Select floatingLabel="Boards" value={boards} onChange={(v) => setBoards(String(v))}
                 options={Array.from({ length: BOARDS_PER_GAME.max }, (_, i) => i + 1).map((n) => ({ value: String(n), label: `${n} board${n === 1 ? "" : "s"}` }))} />
             ) : (
@@ -368,7 +387,7 @@ export function ChatBrainStreamTab() {
             )}
             {mode !== "speed" && (
               <>
-                <Select floatingLabel={mode === "host" ? "Time per guess" : mode === "costream" ? "Time per answer" : "Time for chat to play along each turn"} value={seconds} onChange={(v) => setSeconds(String(v))}
+                <Select floatingLabel={mode === "host" || mode === "together" ? "Time per guess" : mode === "costream" ? "Time per answer" : "Time for chat to play along each turn"} value={seconds} onChange={(v) => setSeconds(String(v))}
                   options={GUESS_SECONDS.map((n) => ({ value: String(n), label: `${n} seconds${n === DEFAULT_GUESS_SECONDS ? " (default)" : ""}` }))} />
                 <p className="dbot-muted">Viewers see the stream a few seconds behind you, so longer guesses give everyone a fair shot. 15 seconds suits low-latency streams.</p>
               </>
@@ -393,7 +412,7 @@ export function ChatBrainStreamTab() {
             {data.surveyBoard && (
               <Switch label="Start with my survey board (the one chat just made)" checked={fromSurvey} onChange={(e) => setFromSurvey(e.target.checked)} />
             )}
-            <div><Button variant="primary" disabled={busy || (available === 0 && !fromSurvey) || ((mode === "versus" || mode === "teams") && !sidesReady(mode, sides)) || (mode === "costream" && !guestPick)} onClick={() => void start()}>{mode === "costream" ? "Send the invite" : "Start the game"}</Button></div>
+            <div><Button variant="primary" disabled={busy || (available === 0 && !fromSurvey) || ((mode === "versus" || mode === "teams") && !sidesReady(mode, sides)) || (isInvite(mode) && !guestPick)} onClick={() => void start()}>{isInvite(mode) ? "Send the invite" : "Start the game"}</Button></div>
           </div>
         </div>
       )}

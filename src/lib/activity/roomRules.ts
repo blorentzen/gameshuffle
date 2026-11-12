@@ -13,6 +13,7 @@
  */
 
 import type { BreakGameId, BreakReveal, BreakRound } from "@/lib/break/types";
+import type { CoopGameId, CoopRecord, CoopResult } from "@/lib/coop/rules";
 import type { ChatRoll } from "@/lib/twitch/chatRoll";
 
 /** Someone counts as here while their screen has checked in within this long. */
@@ -31,7 +32,7 @@ export const MAX_PLAYERS = 40;
 
 export type RoomGame = "quickfire" | "roll" | "party" | "brain";
 
-export type QuickfireSetId = "mixed" | "characters" | "trivia" | "words" | "rush";
+export type QuickfireSetId = "mixed" | "characters" | "trivia" | "words" | "rush" | "coop";
 /** Break games that play well in a call: one round each, no streamer in the loop. */
 export const QUICKFIRE_SETS: Record<QuickfireSetId, { name: string; blurb: string; games: BreakGameId[] }> = {
   mixed: {
@@ -47,6 +48,8 @@ export const QUICKFIRE_SETS: Record<QuickfireSetId, { name: string; blurb: strin
   trivia: { name: "Trivia", blurb: "Questions from the GameShuffle trivia pack.", games: ["trivia-rounds"] },
   words: { name: "Emoji and words", blurb: "Games told in emoji and scrambled names.", games: ["emoji-puzzle", "scramble"] },
   rush: { name: "Roster Rush", blurb: "Name a whole roster together against the clock. Every name is a point.", games: ["roster-rush"] },
+  // Everyone on one side (src/lib/coop/rules.ts): games last several rounds and end as a shared win or loss.
+  coop: { name: "Team up", blurb: "Everyone on one side: take down a boss, find a word, beat GameShuffle at Four in a Row and the house at Shuffle Dice.", games: ["boss-fight", "five-letters", "four-in-a-row", "shuffle-dice"] },
 };
 export const QUICKFIRE_SET_IDS = Object.keys(QUICKFIRE_SETS) as QuickfireSetId[];
 
@@ -62,6 +65,17 @@ export const QUICKFIRE_FOCUS_IDS = Object.keys(QUICKFIRE_FOCUS) as QuickfireFocu
 export const ROUND_COUNTS = [5, 10, 15] as const;
 /** Roster Rush is one long round, so a "game" of it is a few rosters. */
 export const RUSH_ROUNDS = [1, 2, 3] as const;
+/** Team up plays whole games, not rounds: how many games (one of each, or the same one again). */
+export const COOP_COUNTS = [1, 2, 3, 4] as const;
+/** Team up's pick: one game, or "mix" for the four in turn. */
+export type CoopPick = CoopGameId | "mix";
+/** The pause on a co-op reveal before the same game's next round (the last round of a game keeps REVEAL_SECONDS). */
+export const COOP_REVEAL_SECONDS = 4;
+
+/** Team up's games in order: the four shuffled when it's a mix, else the picked game `count` times. */
+export function coopLineup(pick: CoopPick, count: number, rand: () => number = Math.random): BreakGameId[] {
+  return pick === "mix" ? lineupFor("coop", count, rand) : Array.from({ length: count }, () => pick);
+}
 
 /** Each round's game: the set's games in a shuffled order, again and again (no game twice in a row when there's a choice). */
 export function lineupFor(set: QuickfireSetId, rounds: number, rand: () => number = Math.random): BreakGameId[] {
@@ -131,6 +145,26 @@ export interface QuickfireView {
   /** Points from the last reveal, by name. */
   lastPoints: { id: string; name: string; points: number }[];
   oneGuess: boolean;
+  /** Team up: which game of the set this is, how far into it, and how the group has done. */
+  coop: CoopRoomView | null;
+}
+
+export interface CoopRoomView {
+  pick: CoopPick;
+  /** 1-based game of the set, and how many. */
+  gameNo: number;
+  games: number;
+  /** Rounds played in this game so far, and the most it can take. */
+  round: number;
+  maxRounds: number;
+  roundWord: string;
+  /** How the game plays, for players. */
+  how: string;
+  /** The finished games' results, and the tally. */
+  results: CoopResult[];
+  record: CoopRecord;
+  /** This game's result once it's over (shown on its last reveal). */
+  outcome: CoopResult | null;
 }
 
 export interface RollView {

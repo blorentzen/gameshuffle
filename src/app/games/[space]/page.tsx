@@ -23,6 +23,9 @@ import { gsDay } from "@/lib/time/gsClock";
 import { ideasOnly, spaceById, spaceOpen, spaceTabs, SPACE_TAB_LABEL, type GameSpace, type SpaceTab } from "@/lib/games/spaces";
 import { spaceCounts, spaceCrews, spaceEvents, spaceHappening, spaceIdeas, spaceJoined, spacePeople, spaceYou, type SpaceIdeasData, type SpaceYou } from "@/lib/games/spaceData";
 import { SpaceIdeas } from "@/components/games/SpaceIdeas";
+import { LevelsNow, SpaceLevels } from "@/components/levels/SpaceLevels";
+import { spaceBoard } from "@/lib/levels/curation";
+import { levelGameForSpace } from "@/lib/levels/games";
 import { recordsThisWeek, climbersThisWeek } from "@/lib/competitive/hub";
 import { trackSummary, ttGameReady } from "@/lib/timeTrials/store";
 import { ttTrack, trackPath } from "@/lib/timeTrials/tracks";
@@ -45,6 +48,7 @@ import { isProUser } from "@/lib/subscription-server";
 import { NewMemberSheet } from "@/components/games/JoinSheet";
 import { SpaceJoin } from "@/components/games/SpaceJoin";
 import { SpaceTabs, type SpaceTabItem } from "@/components/games/SpaceTabs";
+import { SpaceStrikes } from "@/components/games/SpaceStrikes";
 import { SpaceSubTabs } from "@/components/games/SpaceSubTabs";
 import { SpaceTitleBar } from "@/components/games/SpaceTitleBar";
 import { SpacePosts } from "@/components/games/SpacePosts";
@@ -57,7 +61,7 @@ import { SpaceToday } from "@/components/spaces/SpaceToday";
 import { TtChallengesTile } from "@/components/spaces/SpaceTt";
 import { GhostCard, GhostCards, GhostRows } from "@/components/ui/Ghost";
 import { UserAvatar } from "@/components/UserAvatar";
-import { spaceRoller } from "@/lib/rolls/spaceRoll";
+import { spaceRollGames, spaceRoller } from "@/lib/rolls/spaceRoll";
 import { MerchShelf } from "@/components/store/ShopEntry";
 import { shopVisibleToVisitors } from "@/lib/store/visibility";
 import { PostLines } from "@/components/social/PostLines";
@@ -72,7 +76,7 @@ import "@/styles/home-room.css";
 import "@/styles/game-space.css";
 
 /** The tabs built so far; a space's others (posts, dailies, road, cards, nights) arrive with their steps. */
-const BUILT: SpaceTab[] = ["now", "you", "rolls", "boards", "events", "lounge", "people", "posts", "dailies", "road", "cards", "nights", "ideas"];
+const BUILT: SpaceTab[] = ["now", "you", "rolls", "boards", "events", "lounge", "people", "posts", "dailies", "road", "cards", "nights", "ideas", "levels", "seeds"];
 
 export async function generateMetadata({ params }: { params: Promise<{ space: string }> }): Promise<Metadata> {
   const s = spaceById((await params).space);
@@ -133,10 +137,15 @@ export default async function GameSpacePage({ params, searchParams }: { params: 
   // You sits second, right after Now, so it's in view on a phone (journeys picks 2026-11-06, step 6, 1A); spaceTabs
   // leaves it out where nothing in the game is yours yet, and ideas spaces open on Ideas.
   const ideasData: SpaceIdeasData | null = s.tabs.includes("ideas") ? await spaceIdeas(s, viewerId).catch(() => null) : null;
+  // Levels from players (picks 2026-11-11): the game's board, once supabase/levels-m1.sql has run (null until then);
+  // the curation picks (likes, sorts, picks, level of the week, lists, seeds) once supabase/levels-m2.sql has too.
+  const levelGame = s.tabs.includes("levels") || s.tabs.includes("seeds") ? levelGameForSpace(s.id) : null;
+  const levelsData = levelGame ? await spaceBoard(levelGame, viewerId).catch(() => null) : null;
   const tabs = spaceTabs(s)
     .filter((t) => BUILT.includes(t) && (t !== "lounge" || !!s.lounge?.length) && (t !== "rolls" || !!spaceRoller(s))
       // Ideas need gs_ideas.game (supabase/ideas-game-m1.sql); until it runs the tab stays out.
-      && (t !== "ideas" || !!ideasData?.ready));
+      && (t !== "ideas" || !!ideasData?.ready)
+      && ((t !== "levels" && t !== "seeds") || !!levelsData));
   // Run a tournament and Host a game night start on this space's game.
   const createTour = `/tournament/create?game=${encodeURIComponent(s.primary)}`;
 
@@ -173,7 +182,12 @@ export default async function GameSpacePage({ params, searchParams }: { params: 
     ? await Promise.all([spaceYouTab(s, viewerId).catch(() => null), s.id === "pokemon" ? isProUser(viewerId).catch(() => false) : Promise.resolve(false)])
     : [null, false];
   const rollingCards: RollingCard[] = rolling;
-  const rollFull = { href: s.main.href, label: s.tt ? "Tracks, items and up to 12 racers: the full randomizer" : "The full randomizer" };
+  // A space whose main button isn't the roll (Melee: Run a bracket) names its roll and randomizer in `roll`.
+  const rollTool = s.roll ?? s.main;
+  const rollFull = { href: rollTool.href, label: s.tt ? "Tracks, items and up to 12 racers: the full randomizer" : "The full randomizer" };
+  // A space with more than one game to roll (Retro Mario Kart): the switch on Rolls and in the rail, each with its own
+  // button and randomizer.
+  const rollGames = spaceRollGames(s).map((g) => ({ ...g, full: { href: g.href, label: `The full ${g.short} randomizer` } }));
   const seasonRows: RankRow[] = (season?.rows ?? []).map((r, i) => ({
     key: r.userId, place: i + 1, name: r.name, href: r.username ? `/u/${r.username}` : undefined, you: r.you, line: r.rank,
     value: `${r.points.toLocaleString("en-US")} pts`, pic: <UserAvatar user={r.avatar} size={32} />,
@@ -278,9 +292,9 @@ export default async function GameSpacePage({ params, searchParams }: { params: 
               {now.length < 3 && (
                 <div className="space-cards__item">
                   <GhostCard>
-                    <p><b>Running something?</b> Tournaments and game nights for {s.short} show here.</p>
+                    <p><b>Running something?</b> {s.coop ? "Game nights" : "Tournaments and game nights"} for {s.short} show here.</p>
                     <div className="space-actions">
-                      <Link href={createTour} className="room-btn room-btn--ghost">Run a tournament</Link>
+                      {!s.coop && <Link href={createTour} className="room-btn room-btn--ghost">Run a tournament</Link>}
                       <Link href="/game-nights/create" className="room-btn room-btn--ghost">Host a game night</Link>
                     </div>
                   </GhostCard>
@@ -290,13 +304,25 @@ export default async function GameSpacePage({ params, searchParams }: { params: 
           ) : (
             <GhostCards count={3} notice={<>
               <p>Nothing on in {s.short} this month yet. <b>Start something</b> and it shows here for everyone in the space.</p>
+              {/* A co-op game has no winner: a game night and its own roll instead of a tournament. */}
               <div className="space-actions">
-                <Link href={createTour} className="room-btn">Run a tournament</Link>
-                <Link href="/game-nights/create" className="room-btn room-btn--ghost">Host a game night</Link>
+                {s.coop ? (
+                  <>
+                    <Link href="/game-nights/create" className="room-btn">Host a game night</Link>
+                    <Link href={s.main.href} className="room-btn room-btn--ghost">{s.main.label}</Link>
+                  </>
+                ) : (
+                  <>
+                    <Link href={createTour} className="room-btn">Run a tournament</Link>
+                    <Link href="/game-nights/create" className="room-btn room-btn--ghost">Host a game night</Link>
+                  </>
+                )}
               </div>
             </>} />
           )}
         </section>
+        {/* A Smash space's tournament stages: the starters game 1 is struck from, and that each event sets its own list. */}
+        {s.strikes && <SpaceStrikes game={s.strikes} />}
         {/* Rolls people shared; while there are none, the roll itself sits in the rail (round two pick). */}
         {rollingCards.length > 0 && (
           <section className="room-tile" aria-labelledby="sp-rolling">
@@ -310,12 +336,13 @@ export default async function GameSpacePage({ params, searchParams }: { params: 
       </div>
       <StickyRail blocks={1 + (tools.length ? 1 : 0) + (crews.length ? 1 : 0) + (railRoll ? 1 : 0)}>
         {playingTile}
-        {railRoll && <SpaceRolls only="roll" space={s.id} gameName={s.name} rollLabel={s.main.label} initialPosts={[]} currentUserId={viewerId} full={rollFull} />}
+        {railRoll && <SpaceRolls only="roll" space={s.id} gameName={s.name} rollLabel={rollTool.label} initialPosts={[]} currentUserId={viewerId} full={rollFull} games={rollGames} />}
         {crewsTile("sp-crews")}
         {toolsTile}
       </StickyRail>
-      {(recordRows.length > 0 || climberRows.length > 0 || seasonRows.length > 0 || s.tabs.includes("posts")) && (
+      {(recordRows.length > 0 || climberRows.length > 0 || seasonRows.length > 0 || s.tabs.includes("posts") || !!levelsData) && (
         <div className="room-zone room-zone--main room-grid">
+          {levelGame && levelsData && <LevelsNow game={levelGame} newest={levelsData.newest} extras={levelsData.extras} />}
           {seasonRows.length > 0 && (
             <section className="room-tile" style={{ "--span": 12 } as CSSProperties} aria-labelledby="sp-month">
               <div className="room-tile__head">
@@ -396,8 +423,8 @@ export default async function GameSpacePage({ params, searchParams }: { params: 
   const eventsPanel = (
     <div className="space-stack">
       <div className="space-actions">
-        <Link href={createTour} className="room-btn">Run a tournament</Link>
-        <Link href="/game-nights/create" className="room-btn room-btn--ghost">Host a game night</Link>
+        {!s.coop && <Link href={createTour} className="room-btn">Run a tournament</Link>}
+        <Link href="/game-nights/create" className={s.coop ? "room-btn" : "room-btn room-btn--ghost"}>Host a game night</Link>
       </div>
       {events.length ? cards(events, `space-${s.id}-events`) : <p className="room-tile__note">Nothing coming up in the next month yet.</p>}
     </div>
@@ -468,9 +495,11 @@ export default async function GameSpacePage({ params, searchParams }: { params: 
     cards: <CardsPanel />,
     nights: <NightsPanel nights={events.filter((e) => e.world === "host")} />,
     rolls: roller ? (
-      <SpaceRolls space={s.id} gameName={s.name} rollLabel={s.main.label} initialPosts={rollPosts} currentUserId={viewerId} full={rollFull} />
+      <SpaceRolls space={s.id} gameName={s.name} rollLabel={rollTool.label} initialPosts={rollPosts} currentUserId={viewerId} full={rollFull} games={rollGames} />
     ) : null,
     ideas: ideasData?.ready ? <SpaceIdeas s={s} data={ideasData} /> : null,
+    levels: levelGame && levelsData ? <SpaceLevels space={s.id} game={levelGame} initial={levelsData.levels} more={levelsData.more} sort={levelsData.sort} extras={levelsData.extras} signedIn={!!viewerId} /> : null,
+    seeds: levelGame && levelsData ? <SpaceLevels space={s.id} game={levelGame} initial={levelsData.levels} more={levelsData.more} sort={levelsData.sort} extras={levelsData.extras} signedIn={!!viewerId} /> : null,
   };
   const items: SpaceTabItem[] = tabs.flatMap((t) => (panel[t] ? [{ id: t, label: SPACE_TAB_LABEL[t], content: panel[t] }] : []));
   const signedIn = !!viewerId;
@@ -508,7 +537,7 @@ export default async function GameSpacePage({ params, searchParams }: { params: 
             </div>
             <div className="space-id__acts">
               <SpaceJoin space={s.id} name={s.name} joined={joined} signedIn={signedIn} pitch={joinPitch} />
-              <Link href={roller ? "?tab=rolls" : s.main.href} scroll={false} className="room-btn room-btn--ghost space-id__roll">{s.main.label}</Link>
+              <Link href={roller && !s.roll ? "?tab=rolls" : s.main.href} scroll={false} className="room-btn room-btn--ghost space-id__roll">{s.main.label}</Link>
             </div>
           </div>
           {!open && <p className="space-preview">Staff preview: only staff can see this space until its opening day is set.</p>}

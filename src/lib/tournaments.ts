@@ -1,6 +1,9 @@
 import { createClient } from "@/lib/supabase/client";
-import { effectiveTier, normalizeTier, TOURNAMENT_LIMITS } from "@/lib/subscription";
+import { circuitPlanActive, effectiveTier, normalizeTier, TOURNAMENT_LIMITS } from "@/lib/subscription";
 import { isActiveTournament } from "@/lib/events/lifecycle";
+
+/** What a free account hears at its one active tournament (the database trigger says the same). */
+export const FREE_TOURNAMENT_LIMIT_MESSAGE = "Free accounts can have 1 active tournament at a time. Complete, cancel or archive it, or get unlimited with GS Pro or GS Circuit.";
 
 export async function canCreateTournament(userId: string): Promise<{ allowed: boolean; reason?: string }> {
   const supabase = createClient();
@@ -16,14 +19,15 @@ export async function canCreateTournament(userId: string): Promise<{ allowed: bo
   ]);
 
   const tier = effectiveTier({ tier: normalizeTier(userRes.data?.subscription_tier), role: userRes.data?.role, circuitTier: userRes.data?.circuit_tier ?? null, circuitStatus: userRes.data?.circuit_status ?? null });
-  const limit = TOURNAMENT_LIMITS[tier]; // free: 1 active, pro: unlimited
+  // GS Pro, or a live GS Circuit 64 or 256 plan: unlimited. Same rule as the database trigger.
+  const limit = circuitPlanActive(userRes.data?.circuit_tier, userRes.data?.circuit_status) ? Infinity : TOURNAMENT_LIMITS[tier];
   const active = ((rowsRes.data ?? []) as { status: string; date_time: string | null; archived_at: string | null }[]).filter((t) => isActiveTournament(t)).length;
   if (active >= limit) {
     return {
       allowed: false,
       reason:
         tier === "free"
-          ? "Free accounts can have 1 active tournament at a time. Complete, cancel or archive it, or upgrade to Pro for unlimited."
+          ? FREE_TOURNAMENT_LIMIT_MESSAGE
           : "You've reached your active tournament limit.",
     };
   }

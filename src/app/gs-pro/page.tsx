@@ -68,11 +68,11 @@ const PRO_FEATURES: {
 }[] = [
   {
     icon: "flag",
-    title: "Live tournament control",
+    title: "Tournament control from chat",
     description:
-      "Advance the current race and it updates your OBS overlay, your /live page, and Twitch chat at once, or drive it from chat with !gs-tourney.",
+      "Step through your tournament's races with !gs-tourney in Twitch chat, and your overlay and /live page follow.",
     detail:
-      "You or your mods can step through races from chat.",
+      "Your mods can drive it too. Running races from the manage page is free for every organizer.",
     accent: "#dc2626",
   },
   {
@@ -108,7 +108,7 @@ const PRO_FEATURES: {
     description:
       "Reskin your overlay, /live page, and public profile in your channel's colors.",
     detail:
-      "Pick a brand theme, a profile skin, or write your own CSS.",
+      "Pick a brand theme, a profile skin, or write your own CSS. The $3 Supporter level unlocks these looks too.",
     accent: "#16a34a",
   },
   {
@@ -146,6 +146,42 @@ const PRO_FEATURES: {
     detail:
       "Add quotes with !quote add, and ask chat a question with !cb ask.",
     accent: "#db2777",
+  },
+  {
+    icon: "help-circle",
+    title: "Trivia and live nights on stream",
+    description:
+      "Run a trivia night your chat answers with !a while viewers play on your live page, or bring a live night to stream and let chat vote who gets the next Chance card.",
+    detail:
+      "Hosting trivia and live nights at the table stays free.",
+    accent: "#0891b2",
+  },
+  {
+    icon: "list",
+    title: "Level queue",
+    description:
+      "Viewers send Mario Maker 2 course IDs, Fortnite island codes and Fall Guys share codes with !add, and you play them in order.",
+    detail:
+      "Each result lands on the game's level board, which is free for everyone.",
+    accent: "#9333ea",
+  },
+  {
+    icon: "clock",
+    title: "Speedrun predictions and pace alerts",
+    description:
+      "Chat calls whether this run is a PB, and your Discord hears when you're on PB pace.",
+    detail:
+      "The speedrun overlay, run card and PB posts stay free.",
+    accent: "#d97706",
+  },
+  {
+    icon: "users",
+    title: "Play together and live game nights",
+    description:
+      "Host one Pokémon TCG Companion board on two phones, and give your game nights an attendee list and TV board that update live.",
+    detail:
+      "Your opponent joins Play together free.",
+    accent: "#2563eb",
   },
   {
     icon: "sparkles",
@@ -318,7 +354,7 @@ export default function GsProPage() {
             <ProSpotlight
               eyebrow="On-stream tools"
               title="Every tool, live on your overlay"
-              body="Wheels, polls, Stream Bingo, chat drafts, timers, an 8-ball and tier lists show on your OBS overlay. Viewers spin, roll and vote with chat commands and channel points."
+              body="Wheels, polls, Stream Bingo, chat drafts, raffles, timers, an 8-ball and tier lists show on your OBS overlay, along with your war's score. Viewers spin, roll and vote with chat commands and channel points."
               media={<OverlayShot />}
             />
           </Reveal>
@@ -450,7 +486,7 @@ export default function GsProPage() {
                 <li>Chat rolls, match rolls and viewer battles for every game you stream</li>
                 <li>Live polls, Stream Bingo, Chat Draft and Who Said It?</li>
                 <li>Stream tools on your overlay (wheels, timers, 8-ball, tier lists) + channel point rewards</li>
-                <li>Live tournament control and picks &amp; bans</li>
+                <li>Picks &amp; bans, and tournament control from chat</li>
               </ul>
               <Link href="#everything-in-pro" className="pricing-card__more">See everything in GS Pro</Link>
             </div>

@@ -11,7 +11,7 @@
 import { Accordion, Button, Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@empac/cascadeds";
 import { IconPlus } from "@tabler/icons-react";
 import { AdminRowMenu, AdminTable } from "@/components/account/admin/AdminKit";
-import { SET_BY_LABEL, type MkcPlayerView, type TeamPlayerView, type TeamView } from "@/lib/wars/teamView";
+import { GAME_LABELS, SET_BY_LABEL, type MkcPlayerView, type TeamPlayerView, type TeamView } from "@/lib/wars/teamView";
 
 const teamLabel = (t: TeamView) => t.name ?? t.tags[0];
 
@@ -138,7 +138,7 @@ export function WarTeamPlayers({ team, onAdd, ...actions }: { team: TeamView; on
   return (
     <div className="wt-roster">
       {roster.length === 0 ? (
-        <p className="wt-team__empty">{mkc.name} has no {mkc.game === "mkworld" ? "Mario Kart World" : "Mario Kart 8 Deluxe"} players on MKCentral, so tables use your list alone.</p>
+        <p className="wt-team__empty">{mkc.name} has no {GAME_LABELS[mkc.game]} players on MKCentral, so tables use your list alone.</p>
       ) : (
         <>
           <p className="wt-roster__key">Tables show your list first, then a player&apos;s own card (/me), then MKCentral.</p>

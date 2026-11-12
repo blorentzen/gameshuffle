@@ -552,7 +552,7 @@ export async function tickGame(game: GameRow): Promise<GameRow> {
 
 export interface StreamGameView {
   id: string;
-  /** host = Chat plays; speed = the speed round; versus = 1v1; teams = Teams; costream = two channels' chats (then `versus` has the rest). */
+  /** host = Chat plays; speed = the speed round; versus = 1v1; teams = Teams; costream = two channels' chats (then `versus` has the rest, or `together` when both chats are one team). */
   mode: "host" | "speed" | "versus" | "teams" | "costream";
   status: "playing" | "done" | "cancelled" | "lobby";
   boardIndex: number;
@@ -575,6 +575,8 @@ export interface StreamGameView {
   /** Tokens for the top brains when the game ends (0 = none). */
   prize: number;
   versus?: import("./streamVersus").VersusView;
+  /** A co-stream where both chats are one team (streamTogether.ts): the two chats and how many answered from each this guess. */
+  together?: { chats: { team: number; name: string; guesses: number }[] };
 }
 
 const leanCache = new Map<string, { at: number; value: StreamGameView["leaning"]; guesses: number }>();

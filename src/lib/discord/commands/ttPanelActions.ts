@@ -16,58 +16,57 @@
  * Discord menus hold 25 choices. By track (the default) spreads a game's tracks A to Z over as many menus as it
  * takes (four for Mario Kart 8 Deluxe's 96, two for World's 40); By cup is a cup menu, then that cup's tracks.
  * A form can't open from a form, so the check message carries the buttons that open the next one.
+ *
+ * Every message here is a card (src/lib/discord/ttCards.ts; picks 2026-11-12): the check is the same one /tt add shows,
+ * and a card changed in place stays a card. A private message from before the cards gets a new private card instead.
  */
 
 import { after } from "next/server";
 import { getDiscordUser } from "../user";
 import { canManageGuild } from "../guildOwner";
-import { appOfApplicationId } from "../appIds";
+import { appOfApplicationId, commandName } from "../appIds";
 import { addAppGuild, getAppGuild } from "../appGuilds";
-import { COMP_COLOR, isPanelGame, panelGameLabel, postPanel, TT_PANEL_PREFIX, type PanelGame } from "../ttPanel";
+import { isPanelGame, panelGameLabel, postPanel, type PanelGame } from "../ttPanel";
 import { SITE_URL } from "@/lib/seo";
 import { createServiceClient } from "@/lib/supabase/admin";
 import { accountForDiscord } from "@/lib/daily/results";
 import { discordActor } from "@/lib/timeTrials/players";
 import { boardFor, noteGuildPlayer, playerBests, ttReady } from "@/lib/timeTrials/store";
+import { recordLaps } from "@/lib/timeTrials/detail";
 import { readScreenshot, storeScreenshot } from "@/lib/timeTrials/read";
-import { categoryText, isItems, vehicleFor, vehicleOptions, type TtItems, type TtVehicle } from "@/lib/timeTrials/categories";
-import { COMMUNITY_VOUCHES, formatLap, formatTime, lapsAddUp, parseTime } from "@/lib/timeTrials/rules";
-import { isClassFor, ttCups, ttTrack, ttTracks, TT_GAMES, TT_GAME_ORDER, type TtClass, type TtGame, type TtTrack } from "@/lib/timeTrials/tracks";
-import { trackCode, trackTitle } from "@/lib/timeTrials/codes";
-import { boardUrl, editOriginal, fetchAttachment, guildName, playerReply, LINK_URL, TT_NO_PREFIX, TT_OK_PREFIX, type Attachment } from "./timeTrials";
+import { isItems, vehicleFor, vehicleOptions, type TtItems, type TtVehicle } from "@/lib/timeTrials/categories";
+import { parseTime } from "@/lib/timeTrials/rules";
+import { isClassFor, ttTrack, TT_GAMES, type TtClass, type TtGame } from "@/lib/timeTrials/tracks";
+import { editOriginal, fetchAttachment, guildName, playerReply, type Attachment } from "./timeTrials";
+import {
+  boardCard, boardUrl, checkCard, decodeState, fixPickerCard, gameChoiceCard, lineMessage, modalParts, onCard, onPrivate, pickerCard, privately, statusWord,
+  EPHEMERAL, type BoardLine, type BoardState, type CheckDraft, type Message, type PickBy,
+  TT_BOARD_PREFIX, TT_CUP_PREFIX, TT_FIXTIME_MODAL, TT_FIXTIME_PREFIX, TT_FIXTRACK_PREFIX, TT_MINE_POST, TT_PANEL_MODAL, TT_PANEL_PREFIX, TT_POST_PREFIX, TT_TRACK_PREFIX, TT_VIEW_PREFIX,
+} from "../ttCards";
 
-export const TT_PANEL_MODAL = "ttpm:";
-export const TT_CUP_PREFIX = "ttpc:";
-export const TT_TRACK_PREFIX = "ttpt:";
-export const TT_VIEW_PREFIX = "ttpv:";
-export const TT_BOARD_PREFIX = "ttpb:";
-export const TT_POST_PREFIX = "ttpp:";
-export const TT_MINE_POST = "ttpme:";
-export const TT_FIXTRACK_PREFIX = "ttpk:";
-export const TT_FIXTIME_PREFIX = "ttpx:";
-export const TT_FIXTIME_MODAL = "ttpxm:";
+export { TT_BOARD_PREFIX, TT_CUP_PREFIX, TT_FIXTIME_MODAL, TT_FIXTIME_PREFIX, TT_FIXTRACK_PREFIX, TT_MINE_POST, TT_PANEL_MODAL, TT_POST_PREFIX, TT_TRACK_PREFIX, TT_VIEW_PREFIX };
 
 /** Every button and menu prefix this file answers (the handler routes them here). */
 export const TT_PANEL_COMPONENTS = [TT_PANEL_PREFIX, TT_CUP_PREFIX, TT_TRACK_PREFIX, TT_VIEW_PREFIX, TT_BOARD_PREFIX, TT_POST_PREFIX, TT_MINE_POST, TT_FIXTRACK_PREFIX, TT_FIXTIME_PREFIX];
 export const TT_PANEL_MODALS = [TT_PANEL_MODAL, TT_FIXTIME_MODAL];
 
-const EPHEMERAL = 64;
-const COLOR = COMP_COLOR;
-
-const btn = (label: string, customId: string, style: 1 | 2 | 3 | 4 = 2, disabled = false) => ({ type: 2, style, label, custom_id: customId, ...(disabled ? { disabled: true } : {}) });
 const link = (label: string, url: string) => ({ type: 2, style: 5, label, url });
 const row = (...components: unknown[]) => ({ type: 1, components });
-const say = (data: Record<string, unknown>, ephemeral = true) =>
-  Response.json({ type: 4, data: { allowed_mentions: { parse: [] }, ...data, ...(ephemeral ? { flags: EPHEMERAL } : {}) } });
-const update = (data: Record<string, unknown>) => Response.json({ type: 7, data: { allowed_mentions: { parse: [] }, ...data } });
-/** On a private message, change it in place; on the panel itself, answer with a new private one. */
-const answer = (interaction: Record<string, unknown>, data: Record<string, unknown>) =>
-  ((((interaction.message as { flags?: number } | undefined)?.flags ?? 0) & EPHEMERAL) !== 0 ? update(data) : say(data));
+/** A new private reply: a card stays a card. */
+const say = (data: Record<string, unknown>) => Response.json({ type: 4, data: privately({ allowed_mentions: { parse: [] }, ...data }) });
+/**
+ * On a private card (the picker, the check, a board), change it in place; on the panel itself, or on a private message
+ * from before the cards (a message can't switch formats in place), answer with a new private card.
+ */
+const answer = (interaction: Record<string, unknown>, data: Message) =>
+  (onPrivate(interaction) && onCard(interaction) ? Response.json({ type: 7, data: { allowed_mentions: { parse: [] }, ...data } }) : say(data));
+/** A press whose answer comes later: in place on a private card, else in a new private message. */
+const later = (interaction: Record<string, unknown>) =>
+  Response.json(onPrivate(interaction) && onCard(interaction) ? { type: 6 } : { type: 5, data: { flags: EPHEMERAL } });
 
-/** `read`: the time came from the screenshot (not typed), so it saves as read by AI. */
-type DraftPayload = { game: TtGame; track: string | null; cc: TtClass; timeMs: number | null; read?: boolean; proofUrl: string | null; name: string; items: TtItems; vehicle: TtVehicle; via: "panel";
-  /** Round 3: what the screen showed (the proof checks compare it with what saves) and its laps. */
-  readMs?: number | null; laps?: number[] | null };
+/** A draft from the panel (via "panel") or from /tt add, whose check has Change track and Change time too (pick 13).
+ *  `read`: the time came from the screenshot (not typed), so it saves as read by AI. */
+type DraftPayload = CheckDraft & { name: string; items: TtItems; vehicle: TtVehicle; via?: "panel" };
 type Draft = { player: string; discord_id: string; guild_id: string | null; payload: DraftPayload; expires_at: string };
 
 async function loadDraft(id: string, discordId: string): Promise<Draft | null> {
@@ -79,71 +78,8 @@ async function loadDraft(id: string, discordId: string): Promise<Draft | null> {
 async function saveDraft(id: string, payload: DraftPayload): Promise<void> {
   await createServiceClient().from("tt_drafts").update({ payload }).eq("id", id);
 }
-const GONE = { content: "That's gone stale. Press Add a time on the panel again.", components: [] };
-
-// ── Track menus ─────────────────────────────────────────────────────────────────────────────────
-
-function cupLabel(cup: string): string {
-  return /Mario Kart$/.test(cup) ? `${cup} courses` : `${cup} Cup`;
-}
-
-type PickBy = "track" | "cup";
-
-/** Console prefixes in Mario Kart 8 Deluxe's names, so "N64 Rainbow Road" sorts under R as "Rainbow Road (N64)". */
-const CONSOLE = /^(Wii|GBA|DS|N64|GCN|SNES|3DS|Tour) (.+)$/;
-function alphaName(t: TtTrack): { key: string; label: string } {
-  const m = CONSOLE.exec(t.name);
-  return m ? { key: `${m[2]} ${m[1]}`.toLowerCase(), label: `${m[2]} (${m[1]})` } : { key: t.name.toLowerCase(), label: t.name };
-}
-const letter = (key: string) => key.replace(/^[^a-z0-9]+/, "").charAt(0).toUpperCase();
-
-/** Every track A to Z, in as few menus as Discord's 25-choice limit allows, split evenly. */
-function alphaMenus(mode: "top" | "fix", ref: string, game: TtGame): unknown[] {
-  const all = ttTracks(game).map((t) => ({ t, ...alphaName(t) })).sort((a, b) => a.key.localeCompare(b.key));
-  const count = Math.ceil(all.length / 25), size = Math.ceil(all.length / count);
-  const menus: unknown[] = [];
-  for (let i = 0; i < count; i++) {
-    const part = all.slice(i * size, (i + 1) * size);
-    const from = letter(part[0].key), to = letter(part[part.length - 1].key);
-    menus.push(row({
-      type: 3, custom_id: `${TT_TRACK_PREFIX}${mode}:${ref}:${i}`, placeholder: count === 1 ? "Pick a track" : from === to ? `Tracks: ${from}` : `Tracks: ${from} to ${to}`,
-      options: part.map(({ t, label }) => ({ label: label.slice(0, 100), value: t.id, ...(trackCode(t) ? { description: trackCode(t)! } : {}) })),
-    }));
-  }
-  return menus;
-}
-
-/** The cup menu, and once a cup is picked the menu of its tracks. */
-function cupMenus(mode: "top" | "fix", ref: string, game: TtGame, cupIndex: number | null): unknown[] {
-  const cups = ttCups(game);
-  const menus: unknown[] = [row({
-    type: 3, custom_id: `${TT_CUP_PREFIX}${mode}:${ref}`, placeholder: "Pick a cup",
-    options: cups.map((c, i) => ({ label: cupLabel(c.cup), value: String(i), ...(i === cupIndex ? { default: true } : {}) })),
-  })];
-  if (cupIndex != null && cups[cupIndex]) {
-    menus.push(row({
-      type: 3, custom_id: `${TT_TRACK_PREFIX}${mode}:${ref}`, placeholder: "Pick a track",
-      options: cups[cupIndex].tracks.map((t) => ({ label: t.name.slice(0, 100), value: t.id, ...(trackCode(t) ? { description: trackCode(t)! } : {}) })),
-    }));
-  }
-  return menus;
-}
-
-/** The track picker: its menus, then By track / By cup (and Cancel while fixing a time). At most 5 rows. */
-function trackPicker(mode: "top" | "fix", ref: string, game: TtGame, by: PickBy, cupIndex: number | null = null): unknown[] {
-  const view = (b: PickBy, label: string) => btn(label, `${TT_VIEW_PREFIX}${b}:${mode}:${ref}`, by === b ? 1 : 2, by === b);
-  return [
-    ...(by === "track" ? alphaMenus(mode, ref, game) : cupMenus(mode, ref, game, cupIndex)),
-    row(view("track", "By track"), view("cup", "By cup"), ...(mode === "fix" ? [btn("Cancel", `${TT_NO_PREFIX}${ref}`)] : [])),
-  ];
-}
-
-function gameButtons(kind: "add" | "top"): Record<string, unknown> {
-  return {
-    content: "Which game?",
-    components: [row(...TT_GAME_ORDER.map((g) => btn(TT_GAMES[g].label, `${TT_PANEL_PREFIX}${kind}:${g}`)))],
-  };
-}
+/** A check or picker whose draft is gone (saved, cancelled or too old). */
+const gone = (appId: string) => lineMessage(`That's gone stale. Start over with Add a time on the panel or ${`/${commandName(appOfApplicationId(appId), "tt")}`} add.`);
 
 // ── The Add a time form and the check ───────────────────────────────────────────────────────────
 
@@ -168,45 +104,6 @@ function addForm(game: TtGame): Record<string, unknown> {
   }
   components.push({ type: 18, label: "Time", description: "Leave it empty and it's read from the screenshot", component: { type: 4, custom_id: "time", style: 1, required: false, max_length: 12, placeholder: "1:24.903" } });
   return { custom_id: `${TT_PANEL_MODAL}${game}`, title: "Add a time", components };
-}
-
-/** The private check before a panel time saves. */
-function checkMessage(draftId: string, p: DraftPayload, note: string | null = null): Record<string, unknown> {
-  const track = p.track ? ttTrack(p.game, p.track) : null;
-  const lead = note ? [note] : [];
-  if (!track) {
-    return {
-      content: [...lead, "Which track was it?"].join("\n"),
-      components: trackPicker("fix", draftId, p.game, "track"),
-    };
-  }
-  const cat = categoryText(p.game, p.cc, p.items, p.vehicle, TT_GAMES[p.game].classes.length > 1);
-  const lines = [...lead, p.read ? "From your screenshot:" : "Check it before it saves:", `**${trackTitle(track)} · ${p.timeMs ? formatTime(p.timeMs) : "time not read"}**`, cat.replace(/^./, (c) => c.toUpperCase())];
-  if (p.laps?.length) lines.push(`Laps: ${p.laps.map(formatLap).join(" · ")}${p.timeMs && !lapsAddUp(p.laps, p.timeMs) ? " (they don't add up to the time; an updater will look)" : ""}`);
-  if (!p.timeMs) lines.push("I couldn't read every digit of the time. Press Type the time.");
-  return {
-    content: lines.join("\n"),
-    components: [row(
-      btn("Add it", `${TT_OK_PREFIX}${draftId}`, 3, !p.timeMs),
-      btn("Change track", `${TT_FIXTRACK_PREFIX}${draftId}`),
-      btn(p.timeMs ? "Change time" : "Type the time", `${TT_FIXTIME_PREFIX}${draftId}`, p.timeMs ? 2 : 1),
-      btn("Cancel", `${TT_NO_PREFIX}${draftId}`),
-    )],
-  };
-}
-
-type ModalPart = { custom_id?: string; value?: string | null; values?: string[] };
-function modalParts(interaction: Record<string, unknown>): Map<string, ModalPart> {
-  const out = new Map<string, ModalPart>();
-  const walk = (list: unknown[]) => {
-    for (const c of list as { component?: ModalPart; components?: unknown[]; custom_id?: string }[]) {
-      if (c.component?.custom_id) out.set(c.component.custom_id, c.component);
-      else if (c.custom_id) out.set(c.custom_id, c as ModalPart);
-      if (c.components) walk(c.components);
-    }
-  };
-  walk(((interaction.data as { components?: unknown[] } | undefined)?.components) ?? []);
-  return out;
 }
 
 async function submitAddForm(interaction: Record<string, unknown>, game: TtGame): Promise<Response> {
@@ -252,13 +149,12 @@ async function submitAddForm(interaction: Record<string, unknown>, game: TtGame)
           laps = read.read.laps;
         }
       } else if (read.error === "cap") note = typedMs ? "That's all the screenshots I can read for you today, so pick the track." : "That's all the screenshots I can read for you today, so pick the track and type the time.";
-      // A typed time wins (as with /tt add), but a screenshot that reads differently is said out loud.
-      if (!note && typedMs && readMs && typedMs !== readMs) note = `You typed ${formatTime(typedMs)}. The screenshot reads ${formatTime(readMs)}.`;
+      // A typed time wins (as with /tt add); a screenshot that reads differently is a warning on the check (checkWarnings).
       const payload: DraftPayload = { game, track: trackId, cc: cc as TtClass, items: itemsRaw, vehicle, timeMs: typedMs ?? readMs, read: !typedMs && !!readMs, proofUrl: shot.url, name: actor.name, via: "panel", readMs, laps };
       const { data } = await createServiceClient().from("tt_drafts").insert({ player: actor.player, discord_id: user.id, guild_id: guildId, payload }).select("id").single();
       const draftId = (data as { id: string } | null)?.id;
       if (!draftId) { await editOriginal(appId, token, { content: "Something went wrong saving that. Try again." }); return; }
-      await editOriginal(appId, token, checkMessage(draftId, payload, note));
+      await editOriginal(appId, token, checkCard(draftId, payload, note));
     } catch (err) {
       console.error("[tt panel] add failed:", err);
       await editOriginal(appId, token, { content: "Something went wrong saving that. Try again." });
@@ -269,49 +165,27 @@ async function submitAddForm(interaction: Record<string, unknown>, game: TtGame)
 
 // ── Top ten ─────────────────────────────────────────────────────────────────────────────────────
 
-/** A board view, kept in the buttons: game, track, speed, mushrooms, whose times. */
-type BoardState = { game: TtGame; track: string; cc: TtClass; items: TtItems; scope: "server" | "everyone" };
-const encodeState = (s: BoardState) => [s.game === "mk8dx" ? "d" : "w", s.track, s.cc, s.items === "none" ? "n" : "s", s.scope === "server" ? "s" : "e"].join(".");
-function decodeState(raw: string): BoardState | null {
-  const [g, track, cc, i, sc] = raw.split(".");
-  const game: TtGame = g === "d" ? "mk8dx" : "mkworld";
-  const n = Number(cc);
-  if (!ttTrack(game, track) || !isClassFor(game, n)) return null;
-  return { game, track, cc: n as TtClass, items: i === "n" ? "none" : "shrooms", scope: sc === "s" ? "server" : "everyone" };
-}
-
-async function boardMessage(s: BoardState, viewer: string, guildId: string | null, shared: boolean): Promise<Record<string, unknown>> {
+/** Top ten on the panel (private, with the switches) or posted for everyone (Post here): the same card as /tt track. */
+async function boardMessage(s: BoardState, viewer: string, guildId: string | null, shared: boolean): Promise<Message> {
   const track = ttTrack(s.game, s.track)!;
   const scope = guildId ? s.scope : "everyone";
-  const board = await boardFor({ game: s.game, track: s.track, cc: s.cc, items: s.items, vehicle: "any", scope, viewer: viewer as never, guildId, limit: 10 });
-  const lines = board.rows.map((r) => `${r.rank}. ${r.name} · **${formatTime(r.timeMs)}**${r.video === "checked" ? " · Verified" : r.vouches >= COMMUNITY_VOUCHES ? " · Community verified" : r.top ? " · Unverified" : ""}`);
-  if (board.mine && !shared) lines.push(`…\n${board.mine.rank}. You · **${formatTime(board.mine.timeMs)}**`);
-  const embed = {
-    title: `${trackTitle(track)} · ${categoryText(s.game, s.cc, s.items, "any", TT_GAMES[s.game].classes.length > 1)}`,
-    description: lines.length ? lines.join("\n") : scope === "server" ? "No times from this server yet. Press Everyone for every player on GameShuffle." : "No times yet. Be the first: press Add a time.",
-    color: COLOR,
-    ...(track.image ? { thumbnail: { url: track.image } } : {}),
-    footer: { text: `${scope === "server" ? "This server" : "Everyone on GameShuffle"} · ${board.total} ${board.total === 1 ? "player" : "players"}` },
-  };
-  const full = link("Full board", boardUrl(track, s.cc, s.items, "any"));
-  if (shared) return { embeds: [embed], components: [row(full)] };
-  const to = (patch: Partial<BoardState>) => `${TT_BOARD_PREFIX}${encodeState({ ...s, ...patch })}`;
-  const switches: unknown[] = [];
-  if (guildId) {
-    switches.push(btn("This server", to({ scope: "server" }), scope === "server" ? 1 : 2));
-    switches.push(btn("Everyone", to({ scope: "everyone" }), scope === "everyone" ? 1 : 2));
-  }
-  switches.push(btn(s.items === "shrooms" ? "No mushrooms" : "Mushrooms", to({ items: s.items === "shrooms" ? "none" : "shrooms" })));
-  const classes = TT_GAMES[s.game].classes;
-  if (classes.length > 1) {
-    const other = classes.find((c) => c !== s.cc)!;
-    switches.push(btn(`${other}cc`, to({ cc: other })));
-  }
-  return {
-    content: "",
-    embeds: [embed],
-    components: [row(...switches), row(btn("Another track", `${TT_PANEL_PREFIX}top:${s.game}`), btn("Post here", `${TT_POST_PREFIX}${encodeState({ ...s, scope })}`, 1), full)],
-  };
+  const shown: BoardState = { ...s, scope };
+  const [board, rec] = await Promise.all([
+    boardFor({ game: s.game, track: s.track, cc: s.cc, items: s.items, vehicle: "any", scope, viewer: viewer as never, guildId, limit: 10 }),
+    recordLaps({ game: s.game, track: s.track, cc: s.cc, items: s.items, board: "any" }).catch(() => null),
+  ]);
+  const line = (r: typeof board.rows[number]): BoardLine => ({ rank: r.rank, name: r.name, country: r.country, timeMs: r.timeMs, status: statusWord(r) });
+  return boardCard({
+    track, cc: s.cc, items: s.items, total: board.total,
+    scopeLabel: scope === "server" ? "This server" : "Everyone on GameShuffle",
+    rows: board.rows.map(line),
+    // Post here leaves out your place: the post is for everyone.
+    mine: board.mine && !shared ? line(board.mine) : null,
+    recordLaps: board.rows.length && rec ? { name: rec.name, laps: rec.laps } : null,
+    empty: scope === "server" ? "No times from this server yet. Press Everyone for every player on GameShuffle." : shared ? "No times yet." : "No times yet. Be the first: press Add a time.",
+    fullUrl: boardUrl(track, s.cc, s.items, "any"),
+    live: shared ? null : { state: shown, guild: !!guildId },
+  });
 }
 
 // ── The /tt panel command ───────────────────────────────────────────────────────────────────────
@@ -370,12 +244,12 @@ export async function handleTtPanelComponent(interaction: Record<string, unknown
     const [kind, gameRaw] = customId.slice(TT_PANEL_PREFIX.length).split(":");
     if (!isPanelGame(gameRaw)) return say({ content: "That panel is out of date. Ask a server manager to post it again." });
     if (kind === "add") {
-      if (gameRaw === "both") return answer(interaction, gameButtons("add"));
+      if (gameRaw === "both") return answer(interaction, gameChoiceCard("add"));
       return Response.json({ type: 9, data: addForm(gameRaw) });
     }
     if (kind === "top") {
-      if (gameRaw === "both") return answer(interaction, gameButtons("top"));
-      return answer(interaction, { content: "Which track?", embeds: [], components: trackPicker("top", gameRaw, gameRaw, "track") });
+      if (gameRaw === "both") return answer(interaction, gameChoiceCard("top"));
+      return answer(interaction, pickerCard("top", gameRaw, gameRaw, "track"));
     }
     if (kind === "me") {
       const game = gameRaw === "both" ? null : gameRaw;
@@ -383,13 +257,10 @@ export async function handleTtPanelComponent(interaction: Record<string, unknown
         try {
           const actor = await discordActor(user);
           const all = (await playerBests(actor.player)).filter((b) => b.items === "shrooms" && b.vehicle === "any");
-          const msg = playerReply(actor.name, all, game, actor.player, null);
+          // The same card as /tt player, private, with Post here first in the bottom row.
+          const msg = playerReply(actor.name, all, game, actor.player, null, { post: `${TT_MINE_POST}${gameRaw}`, unlinked: !actor.userId });
           if (!msg) { await editOriginal(appId, token, { content: `You have no ${game ? `${TT_GAMES[game].label} ` : ""}times yet. Press Add a time on the panel.` }); return; }
-          const rows = (msg.components as { type: number; components: unknown[] }[]) ?? [];
-          const first = rows[0] ?? row();
-          first.components.push(btn("Post here", `${TT_MINE_POST}${gameRaw}`, 1));
-          if (!actor.userId) first.components.push(link("Link to GameShuffle", LINK_URL));
-          await editOriginal(appId, token, { ...msg, components: [first, ...rows.slice(1)] });
+          await editOriginal(appId, token, msg);
         } catch (err) {
           console.error("[tt panel] my times failed:", err);
           await editOriginal(appId, token, { content: "Your times couldn't load. Try again in a moment." });
@@ -415,14 +286,13 @@ export async function handleTtPanelComponent(interaction: Record<string, unknown
   if (customId.startsWith(TT_VIEW_PREFIX)) {
     const [by, mode, ref] = customId.slice(TT_VIEW_PREFIX.length).split(":");
     if ((by !== "track" && by !== "cup") || (mode !== "top" && mode !== "fix")) return say({ content: "That menu is out of date." });
-    let game: TtGame | null = null;
     if (mode === "fix") {
       const draft = await loadDraft(ref, user.id);
-      if (!draft) return update(GONE);
-      game = draft.payload.game;
-    } else if (ref === "mk8dx" || ref === "mkworld") game = ref;
-    if (!game) return say({ content: "That menu is out of date." });
-    return update({ content: mode === "fix" ? "Which track was it?" : "Which track?", embeds: [], components: trackPicker(mode, ref, game, by) });
+      if (!draft) return answer(interaction, gone(appId));
+      return answer(interaction, fixPickerCard(ref, draft.payload, by as PickBy));
+    }
+    if (ref !== "mk8dx" && ref !== "mkworld") return say({ content: "That menu is out of date." });
+    return answer(interaction, pickerCard("top", ref, ref, by as PickBy));
   }
 
   if (customId.startsWith(TT_CUP_PREFIX) || customId.startsWith(TT_TRACK_PREFIX)) {
@@ -432,20 +302,21 @@ export async function handleTtPanelComponent(interaction: Record<string, unknown
     let draft: Draft | null = null;
     if (mode === "fix") {
       draft = await loadDraft(ref, user.id);
-      if (!draft) return update(GONE);
+      if (!draft) return answer(interaction, gone(appId));
       game = draft.payload.game;
     } else if (ref === "mk8dx" || ref === "mkworld") game = ref;
     if (!game || (mode !== "top" && mode !== "fix")) return say({ content: "That menu is out of date." });
     if (isCup) {
       const idx = Number(values[0]);
-      return update({ content: mode === "fix" ? "Which track was it?" : "Which track?", embeds: [], components: trackPicker(mode, ref, game, "cup", Number.isInteger(idx) ? idx : null) });
+      const cup = Number.isInteger(idx) ? idx : null;
+      return answer(interaction, mode === "fix" && draft ? fixPickerCard(ref, draft.payload, "cup", cup) : pickerCard("top", ref, game, "cup", cup));
     }
     const track = ttTrack(game, values[0] ?? "");
     if (!track) return say({ content: "Pick a track from the list." });
     if (mode === "fix" && draft) {
       const payload = { ...draft.payload, track: track.id };
       await saveDraft(ref, payload);
-      return update(checkMessage(ref, payload));
+      return answer(interaction, checkCard(ref, payload));
     }
     const state: BoardState = { game, track: track.id, cc: TT_GAMES[game].classes[0], items: "shrooms", scope: guildId ? "server" : "everyone" };
     after(async () => {
@@ -454,10 +325,10 @@ export async function handleTtPanelComponent(interaction: Record<string, unknown
         await editOriginal(appId, token, await boardMessage(state, actor.player, guildId, false));
       } catch (err) {
         console.error("[tt panel] board failed:", err);
-        await editOriginal(appId, token, { content: "That board couldn't load. Try again in a moment.", embeds: [], components: [] });
+        await editOriginal(appId, token, lineMessage("That board couldn't load. Try again in a moment."));
       }
     });
-    return Response.json({ type: 6 });
+    return later(interaction);
   }
 
   if (customId.startsWith(TT_BOARD_PREFIX) || customId.startsWith(TT_POST_PREFIX)) {
@@ -470,18 +341,18 @@ export async function handleTtPanelComponent(interaction: Record<string, unknown
         await editOriginal(appId, token, await boardMessage(state, actor.player, guildId, shared));
       } catch (err) {
         console.error("[tt panel] board failed:", err);
-        await editOriginal(appId, token, { content: "That board couldn't load. Try again in a moment." });
+        await editOriginal(appId, token, lineMessage("That board couldn't load. Try again in a moment."));
       }
     });
     // Post here makes a new message for everyone; a switch changes the private one.
-    return Response.json(shared ? { type: 5 } : { type: 6 });
+    return shared ? Response.json({ type: 5 }) : later(interaction);
   }
 
   if (customId.startsWith(TT_FIXTRACK_PREFIX)) {
     const id = customId.slice(TT_FIXTRACK_PREFIX.length);
     const draft = await loadDraft(id, user.id);
-    if (!draft) return update(GONE);
-    return update({ content: "Which track was it?", components: trackPicker("fix", id, draft.payload.game, "track") });
+    if (!draft) return answer(interaction, gone(appId));
+    return answer(interaction, fixPickerCard(id, draft.payload));
   }
 
   if (customId.startsWith(TT_FIXTIME_PREFIX)) {
@@ -509,13 +380,14 @@ export async function handleTtPanelModal(interaction: Record<string, unknown>, c
     if (!user?.id) return say({ content: "Couldn't tell who you are." });
     const id = customId.slice(TT_FIXTIME_MODAL.length);
     const draft = await loadDraft(id, user.id);
-    if (!draft) return update(GONE);
+    const appId = String(interaction.application_id ?? "");
+    if (!draft) return answer(interaction, gone(appId));
     const raw = String(modalParts(interaction).get("time")?.value ?? "").trim();
     const ms = parseTime(raw);
-    if (!ms) return update(checkMessage(id, draft.payload, `Couldn't read "${raw.slice(0, 20)}" as a time. Type it like 1:24.903.`));
+    if (!ms) return answer(interaction, checkCard(id, draft.payload, `Couldn't read "${raw.slice(0, 20)}" as a time. Type it like 1:24.903.`));
     const payload = { ...draft.payload, timeMs: ms, read: false };
     await saveDraft(id, payload);
-    return update(checkMessage(id, payload));
+    return answer(interaction, checkCard(id, payload));
   }
   return say({ content: "Unknown form." });
 }

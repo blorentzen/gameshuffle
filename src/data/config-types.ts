@@ -1,4 +1,4 @@
-export type ConfigType = "kart-build" | "track-list" | "player-preset" | "ruleset" | "item-set" | "game-night-setup" | "party-setup" | "smash-setup" | "splatoon-setup" | "kirby-setup" | "stadium-setup" | "sonic-setup";
+export type ConfigType = "kart-build" | "track-list" | "player-preset" | "ruleset" | "item-set" | "game-night-setup" | "party-setup" | "smash-setup" | "splatoon-setup" | "kirby-setup" | "stadium-setup" | "sonic-setup" | "wonder-setup" | "double-dash-setup" | "mario-kart-ds-setup" | "mario-kart-7-setup" | "super-mario-kart-setup";
 
 export interface KartBuildConfig {
   type: "kart-build";
@@ -106,6 +106,73 @@ export interface SonicSetupConfig {
   grandPrix: string | null;
 }
 
+/** A Super Mario Bros. Wonder challenge: a character and badge per player, a level (or a run of levels) and the rules. */
+export interface WonderSetupConfig {
+  type: "wonder-setup";
+  gameSlug: string;
+  /** The world the levels come from, or null for any world. */
+  world: string | null;
+  switch2: boolean;
+  players: { name: string; character: string; badge: string | null }[];
+  level: string | null;
+  levels: string[];
+  /** Rule ids as rolled ("same-badge" carries its badge). */
+  rules: { id: string; badge?: string }[];
+}
+
+/**
+ * A Mario Kart: Double Dash!! session: a pair and a kart per kart in the room. Each kart lists its people: one (they
+ * drive and throw) or two (two to a kart: the first drives, the second throws), then the races or battles rolled.
+ */
+export interface DoubleDashSetupConfig {
+  type: "double-dash-setup";
+  gameSlug: string;
+  /** Two to a kart, and whether the two swap seats after each race. */
+  duo: boolean;
+  swap: boolean;
+  karts: { people: string[]; driver: string; thrower: string; kart: string }[];
+  /** The races rolled: a cup, the All Cup Tour or races, with the engine class. */
+  races: { title: string; engine: string | null; courses: string[] } | null;
+  battles: { course: string; mode: string }[];
+}
+
+/**
+ * A Mario Kart DS session: a character and kart per player at the save's kart step, then the races, battles and
+ * Mission Mode missions rolled.
+ */
+export interface MarioKartDsSetupConfig {
+  type: "mario-kart-ds-setup";
+  gameSlug: string;
+  /** Which karts the save has opened: start, own, borrowed or all. */
+  level: string;
+  racers: { name: string; character: string; kart: string }[];
+  /** The races rolled: a cup or races, with the engine class. */
+  races: { title: string; engine: string | null; courses: string[] } | null;
+  battles: { course: string; mode: string }[];
+  /** Missions as "1-4" or "3-boss". */
+  missions: string[];
+}
+
+/** A Mario Kart 7 session: a character, body, tires and glider per player from the save's parts, races and battles. */
+export interface MarioKart7SetupConfig {
+  type: "mario-kart-7-setup";
+  gameSlug: string;
+  /** Which parts the save has: start or all. */
+  parts: string;
+  racers: { name: string; character: string; body: string; tires: string; glider: string }[];
+  races: { title: string; engine: string | null; courses: string[] } | null;
+  battles: { course: string; mode: string }[];
+}
+
+/** A Super Mario Kart session: a character for each of the two players, races and battle courses. */
+export interface SuperMarioKartSetupConfig {
+  type: "super-mario-kart-setup";
+  gameSlug: string;
+  racers: { name: string; character: string }[];
+  races: { title: string; engine: string | null; courses: string[] } | null;
+  battles: { course: string; mode: string }[];
+}
+
 /** A Pokémon Stadium rental session: a cup and a team of 6 rentals per player, with an optional pick of 3. */
 export interface StadiumSetupConfig {
   type: "stadium-setup";
@@ -157,7 +224,12 @@ export type SavedConfigData =
   | SmashSetupConfig
   | SplatoonSetupConfig
   | KirbySetupConfig
-  | SonicSetupConfig;
+  | SonicSetupConfig
+  | WonderSetupConfig
+  | DoubleDashSetupConfig
+  | MarioKartDsSetupConfig
+  | MarioKart7SetupConfig
+  | SuperMarioKartSetupConfig;
 
 export const CONFIG_TYPE_LABELS: Record<ConfigType, string> = {
   "kart-build": "Kart Builds",
@@ -172,4 +244,9 @@ export const CONFIG_TYPE_LABELS: Record<ConfigType, string> = {
   "kirby-setup": "Kirby Air Riders Setups",
   "stadium-setup": "Pokémon Stadium Teams",
   "sonic-setup": "Sonic Racing: CrossWorlds Setups",
+  "wonder-setup": "Super Mario Bros. Wonder Challenges",
+  "double-dash-setup": "Mario Kart: Double Dash!! Setups",
+  "mario-kart-ds-setup": "Mario Kart DS Setups",
+  "mario-kart-7-setup": "Mario Kart 7 Setups",
+  "super-mario-kart-setup": "Super Mario Kart Setups",
 };

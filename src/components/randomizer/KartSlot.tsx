@@ -48,11 +48,13 @@ interface KartSlotProps {
   /** Drawn in place of the item box before a roll (an icon tile for games without art). */
   empty?: ReactNode;
   color?: string | null;
+  /** A small label over the part, for games where it has a job (Double Dash: "Drives", "Sam throws"). */
+  tag?: string;
 }
 
 const FALLBACK = "/images/fg/itembox.png";
 
-export function KartSlot({ label, name, imageSrc, pool, animate, portrait, color, fallback = FALLBACK, empty }: KartSlotProps) {
+export function KartSlot({ label, name, imageSrc, pool, animate, portrait, color, fallback = FALLBACK, empty, tag }: KartSlotProps) {
   const [display, setDisplay] = useState<{ img: string | null; name: string | null; color?: string | null }>({
     img: imageSrc,
     name,
@@ -128,6 +130,7 @@ export function KartSlot({ label, name, imageSrc, pool, animate, portrait, color
 
   return (
     <li className={`kart-slot kart-slot--${phase}${portrait ? " kart-slot--portrait" : ""}`}>
+      {tag && <small className="kart-slot__tag">{tag}</small>}
       {portrait ? (
         <span className="kart-slot__tile gs-portrait-bg" style={{ "--portrait-color": display.color ?? undefined } as React.CSSProperties}>
           {empty && !display.img && !display.name

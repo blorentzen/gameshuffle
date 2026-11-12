@@ -215,6 +215,46 @@ export default function Page() {
         keep one tool for good, ready once a day. Your first win against each trainer each month pays prize money in tokens too.
       </p>
 
+      <h2>Duel a friend</h2>
+      <p>
+        On any trainer&apos;s page, <strong>Duel a friend</strong>{" "}makes a duel for that team and gives you a link to share: 2 players, or
+        up to 8. Everyone duels the same team at the same time, with the same cards, Energy and events, and no professor or tools. The host
+        picks Easy, Normal or Hard for everyone. Mark ready, and when the host starts the 10 second countdown, everyone&apos;s arena opens
+        at 0.
+      </p>
+      <ul>
+        <li>A win counts first, then fewer turns, then less time. Anyone who loses is placed after the winners, by how many cards they knocked out.</li>
+        <li>With 4 or more players you can duel in teams: 2 to 4 teams, scored by everyone&apos;s turns added up or by each team&apos;s best. Everyone picks a team in the duel&apos;s room before the start.</li>
+        <li>Your duel counts on Trainer Road like any other: stars, your best and the board.</li>
+        <li>The duel&apos;s page shows everyone&apos;s knockouts and turns as they go. Add its link with <code>/obs</code>{" "}on the end to OBS to show it on stream. With GS Pro, chat can bet on who wins (<code>!bet</code>{" "}and a name or number).</li>
+      </ul>
+
+      <h2>Team up</h2>
+      <p>
+        <strong>Team up</strong>{" "}in the same window makes a tag team: two of you share one side against that trainer&apos;s team, on Normal.
+      </p>
+      <ul>
+        <li>A coin flip decides who picks first. You take turns picking from the duel&apos;s six (as many as the duel brings), and each card belongs to whoever picked it.</li>
+        <li>The player who picked second leads. After that, whoever owns the card on the field plays the turn. The Energy can go on any card on your side, and a swap can bring in your partner&apos;s card, which hands them the next turn.</li>
+        <li>When a card is knocked out, its owner picks the next one, from either player&apos;s cards.</li>
+        <li>Each turn has 60 seconds; three missed turns in a row, or a player leaving, ends the duel for both. No professor and no tools.</li>
+        <li>A win shows stars against the duel&apos;s par, the same as playing it alone, but a tag duel doesn&apos;t go on your Trainer Road best or the board.</li>
+      </ul>
+
+      <h2>Battle each other</h2>
+      <p>
+        In the same window, <strong>Battle each other</strong>{" "}makes a trainer battle: one against one, with teams from that
+        trainer&apos;s group (Gym Leaders, Elite Four, rivals, bosses or Champions). You start with that trainer&apos;s team and can change
+        it; the other player picks theirs. Neither of you sees the other&apos;s team until the battle starts.
+      </p>
+      <ul>
+        <li>At the start you each pick 3 cards to bring, after seeing the other team. A team of exactly 3 brings all three.</li>
+        <li>You both pick a lead without seeing the other&apos;s, then a coin flip decides who goes first. The first player can&apos;t attack on the first turn.</li>
+        <li>Turns go back and forth: play an Energy from your hand of 3, then attack, swap or end your turn. A card sent in after a knockout comes in with one Energy. Rain, sun and sandstorms come and go; there are no other events, no professor and no tools.</li>
+        <li>Each turn has 60 seconds. A turn that runs out passes on its own, and three in a row lose the battle. Leaving the page for more than 2 minutes, or pressing Forfeit, gives the other player the win.</li>
+        <li>Your wins and losses against each friend show at the end. Anyone with the link can watch, without seeing either hand.</li>
+      </ul>
+
       <h2>Still need help?</h2>
       <p>
         Email <a href="mailto:support@gameshuffle.co">support@gameshuffle.co</a>. To report a wrong team or fact, use the{" "}

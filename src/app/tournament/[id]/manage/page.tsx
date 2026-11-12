@@ -33,7 +33,7 @@ import { SortableTrackList } from "@/components/tournament/SortableTrackList";
 import { SeedingPanel } from "@/components/tournament/SeedingPanel";
 import { CheckInClosePanel } from "@/components/tournament/CheckInClosePanel";
 import { TournamentRandomizerCard } from "@/components/tournament/TournamentRandomizerCard";
-import type { LivePointer } from "@/lib/tournaments/randomizer";
+import type { GeneratedRound, LivePointer, TournamentRandomizerConfig } from "@/lib/tournaments/randomizer";
 import { VerifiedBadge } from "@/components/VerifiedBadge";
 import { useViewerTimezone } from "@/hooks/useViewerTimezone";
 import { formatEventTime } from "@/lib/time/format";
@@ -58,7 +58,7 @@ import { gameBySlug } from "@/lib/timeTrials/tracks";
 import { SwissSettingsFields, DeckListSettingsFields } from "@/components/tournament/swiss/SwissSettingsFields";
 import { OrganizerDeckLists } from "@/components/tournament/decks/TournamentDeckLists";
 import { isSwissState, swissSettingsOf } from "@/lib/tournaments/swiss";
-import { deckListSettingsOf, deckListsOn, isDeckListGame } from "@/lib/tournaments/deckLists";
+import { LIST_WORDS, deckListSettingsOf, deckListsOn, isDeckListGame, listKindOf, takesLists } from "@/lib/tournaments/deckLists";
 
 /** UTC ISO → a `datetime-local` value in the organizer's local wall clock. */
 function toDatetimeLocal(iso: string): string {
@@ -75,6 +75,61 @@ const noopSubscribe = () => () => {};
 const readTabParam = () => new URLSearchParams(window.location.search).get("tab");
 /** What each count on the Players tab shows in the table. */
 const COUNT_FILTERS: Record<string, string[]> = { pending: ["registered"], confirmed: ["confirmed", "checked_in"], checkedin: ["checked_in"] };
+
+/** A track picked for the tournament (guided order, limited pool or a
+ *  randomized list). Random slots carry a `random-…` id. */
+interface TrackPick {
+  id: string;
+  name: string;
+  img: string;
+}
+
+/** The parts of `tournaments.settings` (jsonb) this page reads and writes.
+ *  Keys owned by their own panels (Swiss, deck lists, time trials, party
+ *  rounds…) stay `unknown` and go through those panels' helpers. */
+interface TournamentSettings {
+  [key: string]: unknown;
+  roomCodeLabel?: string | null;
+  lobbyCodes?: { label: string; code: string }[];
+  display?: { accent?: string | null; subtitle?: string };
+  crewCommunityIds?: string[];
+  missionBonus?: MissionBonus[];
+  location?: string | null;
+  locationType?: string;
+  requireVerified?: boolean;
+  currentRaceKey?: string | null;
+  randomizer?: TournamentRandomizerConfig | null;
+  randomizerLive?: LivePointer | null;
+  rounds?: GeneratedRound[];
+  lobbySize?: number;
+  advance?: number;
+  grandFinal?: boolean;
+  lobbyReporting?: string;
+  useFlights?: boolean;
+  flightSize?: number;
+  flightRounds?: number;
+  racesPerRound?: number;
+  flightReseed?: string;
+  timeTrial?: boolean;
+  ttBestOf?: number;
+  heatSize?: number;
+  tieBreak?: string;
+  raceCount?: number;
+  cc?: string;
+  items?: string;
+  cpu?: string;
+  customItems?: string[];
+  trackMode?: string;
+  noDuplicateTracks?: boolean;
+  tracks?: TrackPick[];
+  allowedWeights?: string[];
+  allowedDrift?: string[];
+  allowedVehicleTypes?: string[];
+  characterMode?: string;
+  bannedCharacters?: string[];
+  allowedCharacters?: string[];
+  buildNotes?: string;
+}
 
 interface Tournament {
   id: string;
@@ -93,7 +148,7 @@ interface Tournament {
   community_name: string | null;
   friend_codes: { name: string; code: string }[];
   rules: string | null;
-  settings: Record<string, any>;
+  settings: TournamentSettings;
   scoring_table?: number[] | null;
   format?: string | null;
   bracket?: Bracket | null;
@@ -726,10 +781,10 @@ export default function ManageTournamentPage() {
   // Resolved inline from settings so we don't pull the randomizer lib's game
   // data into this bundle.
   const currentRandomizerRace = (): { round: number; race: number; track: unknown; combo: unknown; items: unknown } | null => {
-    const s = (tournament?.settings ?? {}) as Record<string, any>;
+    const s: TournamentSettings = tournament?.settings ?? {};
     if (!s.randomizer?.enabled || !s.randomizerLive || !Array.isArray(s.rounds)) return null;
-    const live = s.randomizerLive as { round: number; race: number };
-    const round = (s.rounds as any[]).find((r) => r.n === live.round && r.revealed);
+    const live = s.randomizerLive;
+    const round = s.rounds.find((r) => r.n === live.round && r.revealed);
     if (!round) return null;
     const total = Math.max(1, round.directive?.tracks?.length ?? 1);
     const i = Math.max(0, Math.min(live.race - 1, total - 1));
@@ -1660,10 +1715,10 @@ export default function ManageTournamentPage() {
             />
           </div>
 
-          {/* Deck lists (Pokémon TCG): who's in, who's missing, anything to look at. */}
+          {/* Deck lists (Pokémon TCG) or team lists (Pokémon Champions): who's in, who's missing, anything to look at. */}
           {swissReady && deckListsOn(tournament) && (
             <div className="comp-card manage-card">
-              <h2 className="manage-card__title">Deck lists</h2>
+              <h2 className="manage-card__title">{LIST_WORDS[listKindOf(tournament.game_slug) ?? "deck"].title}</h2>
               <OrganizerDeckLists tournamentId={tournamentId} />
             </div>
           )}
@@ -1850,10 +1905,11 @@ export default function ManageTournamentPage() {
                   {swissStarted && <p className="swiss-help">Rounds and the top cut were fixed when round 1 was paired.</p>}
                 </div>
               )}
-              {isDeckListGame(tournament.game_slug) && swissReady && (
+              {takesLists(tournament.game_slug) && swissReady && (
                 <div className="swiss-decks-panel" style={{ marginTop: 0, marginBottom: "1rem" }}>
-                  <div className="swiss-decks-panel__head"><span className="account-card__label">Deck lists</span><Badge variant="info" size="small">Pokémon TCG</Badge></div>
+                  <div className="swiss-decks-panel__head"><span className="account-card__label">{LIST_WORDS[listKindOf(tournament.game_slug)!].title}</span><Badge variant="info" size="small">{LIST_WORDS[listKindOf(tournament.game_slug)!].game}</Badge></div>
                   <DeckListSettingsFields
+                    kind={listKindOf(tournament.game_slug)!}
                     value={deckListSettingsOf(tournament.settings)}
                     onChange={(next) => void updateTournament({ settings: { ...tournament.settings, deckLists: next } })}
                     swiss={tournament.format === "swiss"}
@@ -2052,6 +2108,7 @@ export default function ManageTournamentPage() {
           {/* Smash: rules, best-of sets with striking, round rolls, crew battles, mission points */}
           {!isRunning && isSmashGame(tournament.game_slug) && (
             <SmashTournamentPanel
+              gameSlug={tournament.game_slug}
               settings={tournament.settings}
               participants={participants}
               format={tournament.format ?? ""}
@@ -2085,7 +2142,7 @@ export default function ManageTournamentPage() {
                   <label className="account-card__label" style={{ display: "block", marginBottom: "0.5rem" }}>CC</label>
                   <Select
                     value={tournament.settings?.cc || "150cc"}
-                    onChange={(v) => updateTournament({ settings: { ...tournament.settings, cc: v } })}
+                    onChange={(v) => updateTournament({ settings: { ...tournament.settings, cc: v as string } })}
                     options={["50cc", "100cc", "150cc", "200cc", "Mirror"].map((cc) => ({ value: cc, label: cc }))}
                   />
                 </div>
@@ -2094,7 +2151,7 @@ export default function ManageTournamentPage() {
                 <label className="account-card__label" style={{ display: "block", marginBottom: "0.5rem" }}>Items</label>
                 <Select
                   value={tournament.settings?.items || "normal"}
-                  onChange={(v) => updateTournament({ settings: { ...tournament.settings, items: v } })}
+                  onChange={(v) => updateTournament({ settings: { ...tournament.settings, items: v as string } })}
                   options={["all", "normal", "shells", "bananas", "mushrooms", "bob-ombs", "none", "custom"].map((i) => ({ value: i, label: i.charAt(0).toUpperCase() + i.slice(1) }))}
                 />
               </div>
@@ -2102,7 +2159,7 @@ export default function ManageTournamentPage() {
                 <label className="account-card__label" style={{ display: "block", marginBottom: "0.5rem" }}>CPU</label>
                 <Select
                   value={tournament.settings?.cpu === "none" ? "no cpu" : tournament.settings?.cpu || "hard"}
-                  onChange={(v) => updateTournament({ settings: { ...tournament.settings, cpu: v } })}
+                  onChange={(v) => updateTournament({ settings: { ...tournament.settings, cpu: v as string } })}
                   options={[{ value: "easy", label: "Easy" }, { value: "normal", label: "Normal" }, { value: "hard", label: "Hard" }, { value: "no cpu", label: "No CPU" }]}
                 />
               </div>
@@ -2113,7 +2170,7 @@ export default function ManageTournamentPage() {
               <div style={{ marginTop: "1.5rem" }}>
                 <label className="account-card__label" style={{ display: "block", marginBottom: "0.75rem" }}>Select Active Items</label>
                 <div className="item-grid" style={{ margin: 0 }}>
-                  {gd.items.map((item: any) => {
+                  {gd.items.map((item) => {
                     const activeItems: string[] = tournament.settings?.customItems || [];
                     const isActive = activeItems.includes(item.name);
                     return (
@@ -2135,7 +2192,7 @@ export default function ManageTournamentPage() {
                 </div>
                 <div style={{ marginTop: "0.75rem", display: "flex", gap: "0.5rem" }}>
                   <Button variant="ghost" size="small" onClick={() => {
-                    updateTournament({ settings: { ...tournament.settings, customItems: gd.items.map((i: any) => i.name) } });
+                    updateTournament({ settings: { ...tournament.settings, customItems: gd.items.map((i) => i.name) } });
                   }}>Select All</Button>
                   <Button variant="ghost" size="small" onClick={() => {
                     updateTournament({ settings: { ...tournament.settings, customItems: [] } });
@@ -2198,17 +2255,17 @@ export default function ManageTournamentPage() {
                     const shuffled = [...gd.coursesWithIds].sort(() => Math.random() - 0.5).slice(0, count).map((c) => ({ id: c.id, name: c.name, img: c.img }));
                     updateTournament({ settings: { ...tournament.settings, tracks: shuffled } });
                   }}>Randomize {tournament.settings?.raceCount || 12} Tracks</Button>
-                  {tournament.settings?.tracks?.length > 0 && (
+                  {(tournament.settings?.tracks?.length ?? 0) > 0 && (
                     <Button variant="ghost" size="small" onClick={() => updateTournament({ settings: { ...tournament.settings, tracks: [] } })}>Clear</Button>
                   )}
                 </div>
-                {tournament.settings?.tracks?.length > 0 && (
+                {(tournament.settings?.tracks?.length ?? 0) > 0 && (
                   <SortableTrackList
-                    tracks={tournament.settings.tracks}
+                    tracks={tournament.settings.tracks ?? []}
                     showNumbers={true}
                     onReorder={(tracks) => updateTournament({ settings: { ...tournament.settings, tracks } })}
                     onRemove={(i) => {
-                      const updated = [...tournament.settings.tracks];
+                      const updated = [...(tournament.settings.tracks ?? [])];
                       updated.splice(i, 1);
                       updateTournament({ settings: { ...tournament.settings, tracks: updated } });
                     }}
@@ -2221,29 +2278,31 @@ export default function ManageTournamentPage() {
             {(tournament.settings?.trackMode === "guided" || tournament.settings?.trackMode === "limited") && (() => {
               const isGuided = tournament.settings?.trackMode === "guided";
               const noDups = !!tournament.settings?.noDuplicateTracks;
-              const selectedTracks: any[] = tournament.settings?.tracks || [];
+              const selectedTracks: TrackPick[] = tournament.settings?.tracks || [];
 
               const raceCount = tournament.settings?.raceCount || 12;
               const atLimit = isGuided && selectedTracks.length >= raceCount;
 
-              const addTrack = (courseId: string, course: any) => {
+              const addTrack = (courseId: string, course: { name: string; img: string }) => {
                 if (atLimit) return;
-                if (noDups && selectedTracks.some((t: any) => t.id === courseId)) return;
+                if (noDups && selectedTracks.some((t) => t.id === courseId)) return;
                 updateTournament({ settings: { ...tournament.settings, tracks: [...selectedTracks, { id: courseId, name: course.name, img: course.img }] } });
               };
 
               // A "random" (mystery) track slot — decided on the day. Each is a
               // distinct entry (unique id), so it bypasses the no-duplicate rule
               // and can be added multiple times.
+              // Only offered when the game has a random tile (button below).
               const addRandom = () => {
-                if (atLimit) return;
-                updateTournament({ settings: { ...tournament.settings, tracks: [...selectedTracks, { id: `random-${Date.now()}-${selectedTracks.length}`, name: "Random", img: gd.randomTrackImg }] } });
+                const img = gd.randomTrackImg;
+                if (atLimit || !img) return;
+                updateTournament({ settings: { ...tournament.settings, tracks: [...selectedTracks, { id: `random-${Date.now()}-${selectedTracks.length}`, name: "Random", img }] } });
               };
 
-              const toggleTrack = (courseId: string, course: any) => {
-                const exists = selectedTracks.some((t: any) => t.id === courseId);
+              const toggleTrack = (courseId: string, course: { name: string; img: string }) => {
+                const exists = selectedTracks.some((t) => t.id === courseId);
                 const updated = exists
-                  ? selectedTracks.filter((t: any) => t.id !== courseId)
+                  ? selectedTracks.filter((t) => t.id !== courseId)
                   : [...selectedTracks, { id: courseId, name: course.name, img: course.img }];
                 updateTournament({ settings: { ...tournament.settings, tracks: updated } });
               };
@@ -2290,14 +2349,14 @@ export default function ManageTournamentPage() {
                   <Accordion
                     allowMultiple
                     variant="bordered"
-                    items={gd.cups.map((cup: any, cupIdx: number) => {
-                      const cupCourseIds = cup.courses.map((_: any, ci: number) => `c${cupIdx}-t${ci}`);
-                      const cupTrackCount = cupCourseIds.filter((cid: string) => selectedTracks.some((t: any) => t.id === cid)).length;
+                    items={gd.cups.map((cup, cupIdx: number) => {
+                      const cupCourseIds = cup.courses.map((_, ci: number) => `c${cupIdx}-t${ci}`);
+                      const cupTrackCount = cupCourseIds.filter((cid: string) => selectedTracks.some((t) => t.id === cid)).length;
                       return {
                         id: `cup-${cupIdx}`,
                         title: (
                           <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", width: "100%" }}>
-                            <img src={getImagePath(cup.img)} alt={gd.cupName(cupIdx)} style={{ height: 24, width: "auto" }} />
+                            <img src={getImagePath(cup.img ?? "")} alt={gd.cupName(cupIdx)} style={{ height: 24, width: "auto" }} />
                             <span style={{ fontWeight: 600, fontSize: "var(--font-size-12)", flex: 1 }}>{gd.cupName(cupIdx)}</span>
                             {cupTrackCount > 0 && <span className="cup-group__count">{cupTrackCount}/{cup.courses.length}</span>}
                             {!isGuided && (
@@ -2306,8 +2365,8 @@ export default function ManageTournamentPage() {
                                 onClick={(e: React.MouseEvent) => {
                                   e.stopPropagation();
                                   const newTracks = cup.courses
-                                    .map((c: any, ci: number) => ({ id: `c${cupIdx}-t${ci}`, name: c.name, img: c.img }))
-                                    .filter((c: any) => !selectedTracks.some((t: any) => t.id === c.id));
+                                    .map((c, ci: number) => ({ id: `c${cupIdx}-t${ci}`, name: c.name, img: c.img }))
+                                    .filter((c) => !selectedTracks.some((t) => t.id === c.id));
                                   updateTournament({ settings: { ...tournament.settings, tracks: [...selectedTracks, ...newTracks] } });
                                 }}
                               >Add Cup</span>
@@ -2316,9 +2375,9 @@ export default function ManageTournamentPage() {
                         ),
                         content: (
                           <div className="cup-group__tracks">
-                            {cup.courses.map((course: any, courseIdx: number) => {
+                            {cup.courses.map((course, courseIdx: number) => {
                               const courseId = `c${cupIdx}-t${courseIdx}`;
-                              const isSelected = selectedTracks.some((t: any) => t.id === courseId);
+                              const isSelected = selectedTracks.some((t) => t.id === courseId);
                               const isDisabled = (noDups && isSelected && isGuided) || (atLimit && isGuided && !isSelected);
                               return (
                                 <button
@@ -2502,8 +2561,8 @@ export default function ManageTournamentPage() {
               {((tournament.settings?.bannedCharacters || []).length > 0 || (tournament.settings?.allowedCharacters || []).length > 0) && (
                 <div style={{ marginTop: "0.5rem", fontSize: "var(--font-size-12)", fontWeight: 600 }}>
                   {tournament.settings?.characterMode === "allowed"
-                    ? <span style={{ color: "var(--success-ink)" }}>{tournament.settings.allowedCharacters.length} allowed</span>
-                    : <span style={{ color: "var(--error-ink)" }}>{tournament.settings.bannedCharacters.length} banned</span>
+                    ? <span style={{ color: "var(--success-ink)" }}>{(tournament.settings.allowedCharacters ?? []).length} allowed</span>
+                    : <span style={{ color: "var(--error-ink)" }}>{(tournament.settings.bannedCharacters ?? []).length} banned</span>
                   }
                 </div>
               )}
@@ -2768,6 +2827,7 @@ export default function ManageTournamentPage() {
           {/* Smash: rules, best-of sets with striking, round rolls, crew battles, mission points */}
           {isRunning && isSmashGame(tournament.game_slug) && (
             <SmashTournamentPanel
+              gameSlug={tournament.game_slug}
               settings={tournament.settings}
               participants={participants}
               format={tournament.format ?? ""}

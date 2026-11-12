@@ -185,4 +185,4 @@ export function OddOneOutPanel({ activity: a, me, seatName, busy, act, gameDone,
 }
 
 /** Every activity view a live night can carry. */
-export type ActivityView = OddActivityView | import("@/components/party/MostLikelyPanel").LikelyActivityView | import("@/components/party/TierWarsPanel").TierActivityView | import("@/components/party/DraftPanel").DraftActivityView | import("@/components/party/BingoPanel").BingoActivityView;
+export type ActivityView = OddActivityView | import("@/components/party/MostLikelyPanel").LikelyActivityView | import("@/components/party/TierWarsPanel").TierActivityView | import("@/components/party/DraftPanel").DraftActivityView | import("@/components/party/BingoPanel").BingoActivityView | import("@/components/party/BrainTablePanel").BrainTableActivityView | import("@/components/party/CoopPanel").CoopActivityView;

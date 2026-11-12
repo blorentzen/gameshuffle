@@ -19,7 +19,18 @@ export const CHAT_GAME_CATEGORIES: ChatGameCategory[] = [
   { id: "941530474", name: "Mario Kart 8 Deluxe", slug: "mario-kart-8-deluxe" },
   { id: "1826300051", name: "Mario Kart World", slug: "mario-kart-world" },
   { id: "9250", name: "Mario Kart 64", slug: "mario-kart-64" },
+  // Helix id from the box art pull (src/data/box-art.generated.ts).
+  { id: "18871", name: "Mario Kart Wii", slug: "mario-kart-wii" },
+  // Helix id from the box art pull (src/data/box-art.generated.ts).
+  { id: "17189", name: "Mario Kart: Double Dash!!", slug: "mario-kart-double-dash" },
+  // Helix id from the box art pull (src/data/box-art.generated.ts).
+  { id: "5993", name: "Mario Kart DS", slug: "mario-kart-ds" },
+  // Helix ids from the box art pull (src/data/box-art.generated.ts).
+  { id: "28588", name: "Mario Kart 7", slug: "mario-kart-7" },
+  { id: "17470", name: "Super Mario Kart", slug: "super-mario-kart" },
   { id: "504461", name: "Super Smash Bros. Ultimate", slug: "super-smash-bros-ultimate" },
+  // Helix id from the box art pull (src/data/box-art.generated.ts).
+  { id: "16282", name: "Super Smash Bros. Melee", slug: "super-smash-bros-melee" },
   { id: "1471610418", name: "Super Mario Party Jamboree", slug: "super-mario-party-jamboree" },
   { id: "1068239917", name: "Mario Party Superstars", slug: "mario-party-superstars" },
   { id: "5887", name: "Mario Party", slug: "mario-party" },
@@ -31,10 +42,14 @@ export const CHAT_GAME_CATEGORIES: ChatGameCategory[] = [
   { id: "2086806174", name: "Kirby Air Riders", slug: "kirby-air-riders" },
   // Helix id from the box art pull (src/data/box-art.generated.ts).
   { id: "1135492840", name: "Sonic Racing: CrossWorlds", slug: "sonic-racing-crossworlds" },
+  // Helix id from the box art pull (src/data/box-art.generated.ts).
+  { id: "463447553", name: "Super Mario Bros. Wonder", slug: "super-mario-bros-wonder" },
   { id: "829248383", name: "GoldenEye 007", slug: "goldeneye-007" },
   { id: "2686", name: "Perfect Dark", slug: "perfect-dark" },
   { id: "6657", name: "Pokémon Stadium", slug: "pokemon-stadium" },
   { id: "5620", name: "Pokémon Stadium 2", slug: "pokemon-stadium-2" },
+  // Helix id from the box art pull (src/data/box-art.generated.ts).
+  { id: "1931693784", name: "Pokémon Champions", slug: "pokemon-champions" },
 ];
 
 /** The slug for a category, by id first and then by name. */

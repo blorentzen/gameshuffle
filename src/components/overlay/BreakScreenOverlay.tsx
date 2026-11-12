@@ -56,26 +56,31 @@ const FACE: Record<DiceFace, { label: string; icon: ReactNode }> = {
   bomb: { label: "Bomb", icon: <IconBomb size={26} stroke={2.2} /> },
 };
 
-function Faces({ faces, small = false }: { faces: DiceFace[]; small?: boolean }) {
-  if (!faces.length) return <span className="gs-break__none">None</span>;
+function Faces({ faces, small = false, base }: { faces: DiceFace[]; small?: boolean; base: string }) {
+  if (!faces.length) return <span className={`${base}__none`}>None</span>;
   return (
-    <span className={`gs-break__faces${small ? " is-small" : ""}`}>
-      {faces.map((f, i) => <span key={i} className={`gs-break__face is-${f}`} title={FACE[f].label} aria-label={FACE[f].label}>{FACE[f].icon}</span>)}
+    <span className={`${base}__faces${small ? " is-small" : ""}`}>
+      {faces.map((f, i) => <span key={i} className={`${base}__face is-${f}`} title={FACE[f].label} aria-label={FACE[f].label}>{FACE[f].icon}</span>)}
     </span>
   );
 }
 
-function Table({ t }: { t: ShuffleTable }) {
+/**
+ * Shuffle Dice's table: this roll, the dice kept, Bombs out, what's riding and
+ * the score. `base` is the class prefix (the overlay's gs-break, the live
+ * page's live-break, the TV's coop-tv); `team` names the side against the house.
+ */
+export function DiceTable({ t, base = "gs-break", team = "Chat" }: { t: ShuffleTable; base?: string; team?: string }) {
   return (
-    <div className="gs-break__table">
-      <div className="gs-break__table-row"><span>This roll</span><Faces faces={t.roll} /></div>
-      <div className="gs-break__table-row"><span>Kept</span><Faces faces={t.kept} small /></div>
-      <div className="gs-break__table-row">
+    <div className={`${base}__table`}>
+      <div className={`${base}__table-row`}><span>This roll</span><Faces faces={t.roll} base={base} /></div>
+      <div className={`${base}__table-row`}><span>Kept</span><Faces faces={t.kept} small base={base} /></div>
+      <div className={`${base}__table-row`}>
         <span>Bombs</span>
-        <span className="gs-break__bombs" aria-label={`${t.bombs} of 3 Bombs`}>{[0, 1, 2].map((i) => <i key={i} className={i < t.bombs ? "on" : ""} />)}</span>
-        <b className="gs-break__riding">{t.turnPoints} riding</b>
+        <span className={`${base}__bombs`} aria-label={`${t.bombs} of 3 Bombs`}>{[0, 1, 2].map((i) => <i key={i} className={i < t.bombs ? "on" : ""} />)}</span>
+        <b className={`${base}__riding`}>{t.turnPoints} riding</b>
       </div>
-      <div className="gs-break__score"><span>Chat <b>{t.chat}</b></span><span>House <b>{t.house}</b></span><span>First to {t.target}</span></div>
+      <div className={`${base}__score`}><span>{team} <b>{t.chat}</b></span><span>House <b>{t.house}</b></span><span>First to {t.target}</span></div>
     </div>
   );
 }
@@ -310,7 +315,7 @@ export function BreakScreenOverlay({ view, style, full = false }: { view: BreakV
         )}
         {r.layout === "shuffle" && (
           <>
-            <Table t={rv?.table ?? r.table} />
+            <DiceTable t={rv?.table ?? r.table} />
             {!rv && (
               <ol className="gs-break__opts is-2 is-compact">
                 {r.options.map((o) => <Option key={o.key} o={o} correct={false} count={0} total={0} reveal={false} compact />)}

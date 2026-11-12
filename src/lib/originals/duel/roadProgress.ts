@@ -170,7 +170,11 @@ export async function roadProgressView(userId: string, opts: { always?: boolean 
   ]);
   const who = people.get(`u:${userId}`);
   const lv = levelOf(progress.xp);
-  const [open, levers] = await Promise.all([openEncounterOf(userId), roadLevers()]);
+  const [open, levers, battles] = await Promise.all([
+    openEncounterOf(userId), roadLevers(),
+    // Loaded on use: the battles store reads the rooms, which read Trainer Road.
+    import("@/lib/versus/battle").then((m) => m.battleRecord(userId)).catch(() => null),
+  ]);
   return {
     name: who?.name || "Trainer",
     avatar: who?.avatar ?? null,
@@ -187,6 +191,7 @@ export async function roadProgressView(userId: string, opts: { always?: boolean 
     next: nextView(progress),
     encounter: open ? encounterView(open, levers) : null,
     marks: markNames(progress).map((m) => ({ region: m.region, name: m.name, picture: villainPicture(m.region, m.person) })),
+    battles: battles && battles.won + battles.lost > 0 ? battles : null,
   };
 }
 

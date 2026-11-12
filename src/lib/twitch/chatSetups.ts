@@ -13,13 +13,15 @@
  */
 
 import mk64Data from "@/data/mk64-data.json";
+import mkwiiData from "@/data/mkwii-data.json";
 import { randomizeTrackList } from "@/lib/randomizer";
 import { TWITCH_GAMES } from "@/lib/twitch/games";
 import type { Cup, KnockoutRally } from "@/data/types";
 import type { ChatRoll, RollSlot } from "@/lib/twitch/chatRoll";
 import { pick } from "@/lib/party/roll";
 import { ULTIMATE } from "@/data/smash/ultimate";
-import { COMPETITIVE_RULES, rollPartyRules, rollStage, stagePool, type SmashRules } from "@/lib/smash/roll";
+import { MELEE } from "@/data/smash/melee";
+import { COMPETITIVE_RULES, competitiveRules, rollPartyRules, rollStage, stagePool, type SmashRules } from "@/lib/smash/roll";
 import { PARTY_GAMES } from "@/data/party";
 import { rollSetup } from "@/lib/party/roll";
 import type { PartyGame } from "@/lib/party/types";
@@ -36,6 +38,20 @@ import { rollGrandPrix as rollSonicGrandPrix, rollRaces as rollSonicRaces } from
 import { rollMatch as rollGoldenEyeMatch } from "@/lib/goldeneye/roll";
 import { rollMatch as rollPdMatch } from "@/lib/perfectdark/roll";
 import { stadiumGame } from "@/lib/pokemon/stadium";
+import { WONDER } from "@/data/wonder/wonder";
+import { DOUBLE_DASH } from "@/data/double-dash/double-dash";
+import { battleArt as ddBattleArt, courseArt as ddCourseArt, rollAllCupTour as ddTour, rollBattles as ddBattles, rollCup as ddCup, rollEngine as ddEngine, rollRaces as ddRaces } from "@/lib/double-dash/roll";
+import type { DdCourse } from "@/lib/double-dash/types";
+import { MARIO_KART_DS } from "@/data/mario-kart-ds/mario-kart-ds";
+import { battleArt as dsBattleArt, characterArt as dsCharacterArt, characterColor as dsCharacterColor, courseArt as dsCourseArt, missionArt as dsMissionArt, missionPlace as dsMissionPlace, missionTitle as dsMissionTitle, rollBattles as dsBattles, rollCup as dsCup, rollEngine as dsEngine, rollMissions as dsMissions, rollRaces as dsRaces } from "@/lib/mario-kart-ds/roll";
+import type { DsCourse } from "@/lib/mario-kart-ds/types";
+import { MARIO_KART_7 } from "@/data/mario-kart-7/mario-kart-7";
+import { battleArt as mk7BattleArt, courseArt as mk7CourseArt, courseNote as mk7CourseNote, rollBattles as mk7Battles, rollCup as mk7Cup, rollEngine as mk7Engine, rollRaces as mk7Races } from "@/lib/mario-kart-7/roll";
+import type { Mk7Course } from "@/lib/mario-kart-7/types";
+import { SUPER_MARIO_KART } from "@/data/super-mario-kart/super-mario-kart";
+import { battleArt as smkBattleArt, courseArt as smkCourseArt, rollBattleCourses as smkBattles, rollCup as smkCup, rollEngine as smkEngine, rollRaces as smkRaces } from "@/lib/super-mario-kart/roll";
+import type { SmkCourse } from "@/lib/super-mario-kart/types";
+import { LASTS_LABEL, badgePool, levelPool, rollLevels, rollRules, ruleDetail, ruleOf, rulePool, worldLabel, worldOf, worldsFor } from "@/lib/wonder/roll";
 
 export interface SetupContext {
   /** Whatever followed the command ("8", "party", "push", "top"). */
@@ -87,6 +103,159 @@ function rally(slug: string, rallies: KnockoutRally[], label: string): ChatRoll 
 const MK8 = TWITCH_GAMES["mario-kart-8-deluxe"].data;
 const MKW = TWITCH_GAMES["mario-kart-world"].data;
 const MK64 = mk64Data as unknown as { cups: Cup[]; battleCourses: KnockoutRally[] };
+const MKWII = mkwiiData as unknown as { cups: Cup[]; battleCourses: KnockoutRally[] };
+
+/** Mario Kart Wii: races (4 by default, 12 for a war), one cup's four tracks in order, or a battle arena. */
+function mkwiiCup(): ChatRoll {
+  const cup = pick(MKWII.cups)!;
+  const title = `${cup.name} Cup`;
+  return setup(
+    "mario-kart-wii",
+    title,
+    cup.courses.map((c, i) => ({ label: `Race ${i + 1}`, name: c.name, kind: "art" as const, img: c.img || undefined })),
+    "🏆",
+    cup.courses.map((c, i) => `${i + 1}. ${c.name}`),
+  );
+}
+
+/**
+ * Mario Kart: Double Dash!! (Retro Mario Kart picks 2026-11-12): a cup in its order with the engine class (the
+ * default), the All Cup Tour (`tour`: Luigi Circuit first, Rainbow Road last), races from every cup (a number), or a
+ * battle course and mode (`battle`).
+ */
+function ddRaceList(title: string, courses: DdCourse[]): ChatRoll {
+  return setup(
+    DOUBLE_DASH.slug,
+    title,
+    courses.map((c, i) => ({ label: `Race ${i + 1}`, name: c.name, kind: "art" as const, img: ddCourseArt(DOUBLE_DASH, c.name) ?? undefined, ...(c.laps !== 3 ? { detail: `${c.laps} laps` } : {}) })),
+    "🏆",
+    courses.map((c, i) => `${i + 1}. ${c.name}`),
+  );
+}
+const doubleDashSetup: ChatSetup = {
+  argHint: "cup, tour, a number of races or battle",
+  choices: [{ label: "A cup", arg: "" }, { label: "All Cup Tour", arg: "tour" }, { label: "8 races", arg: "8" }, { label: "Battle", arg: "battle" }],
+  roll: ({ arg }) => {
+    const w = words(arg);
+    if (w.includes("battle")) {
+      const [b] = ddBattles(DOUBLE_DASH, 1);
+      return setup(DOUBLE_DASH.slug, b.mode, [{ label: "Battle course", name: b.course, kind: "art", img: ddBattleArt(DOUBLE_DASH, b.course) ?? undefined, detail: b.mode }], "🎈", [b.course]);
+    }
+    const engine = ddEngine(DOUBLE_DASH);
+    if (w.includes("tour") || w.includes("all")) return ddRaceList(`All Cup Tour, ${engine}`, ddTour(DOUBLE_DASH));
+    if (w.some((x) => /^\d+$/.test(x))) {
+      const n = raceCount(arg, 4, 16);
+      return ddRaceList(`${n} ${n === 1 ? "race" : "races"}, ${engine}`, ddRaces(DOUBLE_DASH, n));
+    }
+    const cup = ddCup(DOUBLE_DASH);
+    return ddRaceList(`${cup.name}, ${engine}`, cup.courses);
+  },
+};
+
+/**
+ * Mario Kart DS (Retro Mario Kart picks 2026-11-12): a cup in its order with the engine class (the default; `nitro`
+ * or `retro` for one kind of cup), races from every cup (a number, 4 to 32), a battle course and mode (`battle`), or
+ * a Mission Mode mission from Levels 1 to 6 (`mission`), with the course and character the game gives.
+ */
+function dsRaceList(title: string, courses: DsCourse[]): ChatRoll {
+  return setup(
+    MARIO_KART_DS.slug,
+    title,
+    courses.map((c, i) => ({ label: `Race ${i + 1}`, name: c.name, kind: "art" as const, img: dsCourseArt(MARIO_KART_DS, c.name) ?? undefined, ...(c.laps !== 3 ? { detail: `${c.laps} laps` } : {}) })),
+    "🏆",
+    courses.map((c, i) => `${i + 1}. ${c.name}`),
+  );
+}
+const marioKartDsSetup: ChatSetup = {
+  argHint: "cup, nitro, retro, a number of races, battle or mission",
+  choices: [{ label: "A cup", arg: "" }, { label: "8 races", arg: "8" }, { label: "Battle", arg: "battle" }, { label: "A mission", arg: "mission" }],
+  roll: ({ arg }) => {
+    const w = words(arg);
+    if (w.includes("battle")) {
+      const [b] = dsBattles(MARIO_KART_DS, 1);
+      return setup(MARIO_KART_DS.slug, b.mode, [{ label: "Battle course", name: b.course, kind: "art", img: dsBattleArt(MARIO_KART_DS, b.course) ?? undefined, detail: b.mode }], "🎈", [b.course]);
+    }
+    if (w.includes("mission") || w.includes("missions")) {
+      const [m] = dsMissions(MARIO_KART_DS, 1);
+      const title = dsMissionTitle(m);
+      return setup(MARIO_KART_DS.slug, title, [
+        { label: m.boss ? "Boss" : "Mission", name: m.text, kind: "art", img: dsMissionArt(MARIO_KART_DS, m) ?? undefined, detail: dsMissionPlace(m) },
+        { label: "Character", name: m.character, kind: "portrait", img: dsCharacterArt(MARIO_KART_DS, m.character) ?? undefined, color: dsCharacterColor(MARIO_KART_DS, m.character) ?? undefined },
+      ], "🎯", [m.text, dsMissionPlace(m), `as ${m.character}`, m.time ? `${m.time} on the clock` : "a race to the finish"]);
+    }
+    const engine = dsEngine(MARIO_KART_DS);
+    if (w.some((x) => /^\d+$/.test(x))) {
+      const n = raceCount(arg, 4, 32);
+      return dsRaceList(`${n} ${n === 1 ? "race" : "races"}, ${engine}`, dsRaces(MARIO_KART_DS, n));
+    }
+    const cup = dsCup(MARIO_KART_DS, w.includes("nitro") ? "nitro" : w.includes("retro") ? "retro" : "any");
+    return dsRaceList(`${cup.name}, ${engine}`, cup.courses);
+  },
+};
+
+/**
+ * Mario Kart 7 (Retro Mario Kart picks 2026-11-12): a cup in its order with the engine class (the default; `new` or
+ * `classic` for one kind of cup), races from every cup (a number, up to 32), or a battle course and mode (`battle`).
+ */
+function mk7RaceList(title: string, courses: Mk7Course[]): ChatRoll {
+  return setup(
+    MARIO_KART_7.slug,
+    title,
+    courses.map((c, i) => ({ label: `Race ${i + 1}`, name: c.name, kind: "art" as const, img: mk7CourseArt(MARIO_KART_7, c.name) ?? undefined, ...(mk7CourseNote(c) ? { detail: mk7CourseNote(c) } : {}) })),
+    "🏆",
+    courses.map((c, i) => `${i + 1}. ${c.name}`),
+  );
+}
+const mario7Setup: ChatSetup = {
+  argHint: "cup, new, classic, a number of races or battle",
+  choices: [{ label: "A cup", arg: "" }, { label: "8 races", arg: "8" }, { label: "Battle", arg: "battle" }],
+  roll: ({ arg }) => {
+    const w = words(arg);
+    if (w.includes("battle")) {
+      const [b] = mk7Battles(MARIO_KART_7, 1);
+      return setup(MARIO_KART_7.slug, b.mode, [{ label: "Battle course", name: b.course, kind: "art", img: mk7BattleArt(MARIO_KART_7, b.course) ?? undefined, detail: b.mode }], "🎈", [b.course]);
+    }
+    const engine = mk7Engine(MARIO_KART_7);
+    if (w.some((x) => /^\d+$/.test(x))) {
+      const n = raceCount(arg, 4, 32);
+      return mk7RaceList(`${n} ${n === 1 ? "race" : "races"}, ${engine}`, mk7Races(MARIO_KART_7, n));
+    }
+    const cup = mk7Cup(MARIO_KART_7, w.includes("new") ? "new" : w.includes("classic") || w.includes("retro") ? "classic" : "any");
+    return mk7RaceList(`${cup.name}, ${engine}`, cup.courses);
+  },
+};
+
+/**
+ * Super Mario Kart (Retro Mario Kart picks 2026-11-12): a cup's five courses in order with the engine class (the
+ * default), races from every cup (a number, up to 20), or a battle course (`battle`, Balloon Battle).
+ */
+function smkRaceList(title: string, courses: SmkCourse[]): ChatRoll {
+  return setup(
+    SUPER_MARIO_KART.slug,
+    title,
+    courses.map((c, i) => ({ label: `Race ${i + 1}`, name: c.name, kind: "art" as const, img: smkCourseArt(SUPER_MARIO_KART, c.name) ?? undefined })),
+    "🏆",
+    courses.map((c, i) => `${i + 1}. ${c.name}`),
+  );
+}
+const superMarioKartSetup: ChatSetup = {
+  argHint: "cup, a number of races or battle",
+  choices: [{ label: "A cup", arg: "" }, { label: "10 races", arg: "10" }, { label: "Battle course", arg: "battle" }],
+  roll: ({ arg }) => {
+    const w = words(arg);
+    if (w.includes("battle")) {
+      const [b] = smkBattles(SUPER_MARIO_KART, 1);
+      return setup(SUPER_MARIO_KART.slug, "Battle Mode", [{ label: "Battle course", name: b.name, kind: "art", img: smkBattleArt(SUPER_MARIO_KART, b.name) ?? undefined, detail: "Balloon Battle" }], "🎈", [b.name]);
+    }
+    const engine = smkEngine(SUPER_MARIO_KART);
+    if (w.some((x) => /^\d+$/.test(x))) {
+      const n = raceCount(arg, 5, 20);
+      return smkRaceList(`${n} ${n === 1 ? "race" : "races"}, ${engine}`, smkRaces(SUPER_MARIO_KART, n));
+    }
+    const cup = smkCup(SUPER_MARIO_KART);
+    return smkRaceList(`${cup.name}, ${engine}`, cup.courses);
+  },
+};
 
 // ── Smash ────────────────────────────────────────────────────────────────────
 
@@ -116,6 +285,46 @@ const smashSetup: ChatSetup = {
       ],
       "🏟️",
       [`${stage.name}${stageDetail ? ` (${stageDetail})` : ""}`, rulesLine],
+    );
+  },
+};
+
+/**
+ * Melee (space picks 2026-11-11): a stage from the legal list with the competitive rules (4 stocks, 8 minutes, items
+ * off), the five starters game 1 is struck from (`starters`), or any of the 29 with party rules (`party`). Melee
+ * stages have no forms or hazard switch.
+ */
+const meleeArt = (img: string) => (MELEE.artReady ? `${MELEE.assetBase}${img}` : undefined);
+const meleeSetup: ChatSetup = {
+  argHint: "starters or party",
+  choices: [{ label: "Legal stage", arg: "" }, { label: "Starters to strike", arg: "starters" }, { label: "Party battle", arg: "party" }],
+  roll: ({ arg }) => {
+    const w = words(arg);
+    if (w.some((x) => x.startsWith("starter") || x.startsWith("strike"))) {
+      const starters = MELEE.stages.filter((x) => x.status === "starter");
+      const counter = MELEE.stages.filter((x) => x.status === "counterpick").map((x) => x.name);
+      const counterLine = `${counter.join(" and ")} ${counter.length === 1 ? "is the counterpick" : "are counterpicks"}`;
+      return setup(
+        MELEE.slug,
+        "Stage strikes, game 1",
+        [...starters.map((x): RollSlot => ({ label: "Starter", name: x.name, kind: "art", img: meleeArt(x.img) })), text(counterLine, "#3a3f4b", "Counterpick")],
+        "🏟️",
+        [...starters.map((x) => x.name), counterLine],
+      );
+    }
+    const party = w.includes("party");
+    const s = rollStage(stagePool(MELEE, { list: party ? "all" : "competitive", sometimes: false }), !party, Math.random, false);
+    const stage = MELEE.stages.find((x) => x.id === s.stageId)!;
+    const rulesLine = smashRulesText(party ? rollPartyRules(Math.random, MELEE) : competitiveRules(MELEE));
+    return setup(
+      MELEE.slug,
+      party ? "Party battle" : "Match setup",
+      [
+        { label: "Stage", name: stage.name, kind: "art", img: meleeArt(stage.img) },
+        text(rulesLine.charAt(0).toUpperCase() + rulesLine.slice(1), "#3a3f4b", "Rules"),
+      ],
+      "🏟️",
+      [stage.name, rulesLine],
     );
   },
 };
@@ -245,6 +454,45 @@ const sonicSetup: ChatSetup = {
   },
 };
 
+// ── Super Mario Bros. Wonder ─────────────────────────────────────────────────
+
+/** A world named in the args by any of its words ("desert", "magma", "petal"), or null. */
+function wonderWorldIn(w: string[]) {
+  return worldsFor(WONDER, false).find((x) => x.name.toLowerCase().split(/[^a-z]+/).some((part) => part.length > 3 && part !== "world" && w.includes(part))) ?? null;
+}
+
+/**
+ * Super Mario Bros. Wonder (game space picks 2026-11-11): the next level (a world's name keeps it to that world, a number
+ * rolls that many up to 8), `world` for a world, or `rule` for a challenge rule. Courses, palaces, battleships and
+ * Bowser, from the original game (chat can't know which version a streamer plays).
+ */
+const wonderSetup: ChatSetup = {
+  argHint: "a world, a number of levels, world or rule",
+  choices: [{ label: "A level", arg: "" }, { label: "Three levels", arg: "3" }, { label: "A world", arg: "world" }, { label: "A challenge rule", arg: "rule" }],
+  roll: ({ arg }) => {
+    const w = words(arg);
+    if (w.some((x) => x === "rule" || x === "rules" || x === "challenge")) {
+      const [r] = rollRules(rulePool(WONDER), 1, badgePool(WONDER));
+      const rule = r && ruleOf(WONDER, r);
+      if (!rule) return failed(WONDER.slug, "Challenge rule", "No rule to roll.");
+      return setup(WONDER.slug, "Challenge rule", [text(rule.title, "#5b3fc4", "Rule", LASTS_LABEL[rule.lasts])], "📜",
+        [`${rule.title}. ${ruleDetail(rule, r)} (${LASTS_LABEL[rule.lasts]})`]);
+    }
+    const world = wonderWorldIn(w);
+    if (w.includes("world") && !world) {
+      const pickWorld = pick(worldsFor(WONDER, false))!;
+      return setup(WONDER.slug, "Next world", [text(worldLabel(pickWorld), pickWorld.color, "World")], "🗺️", [worldLabel(pickWorld)]);
+    }
+    const count = raceCount(arg, 1, 8);
+    const list = rollLevels(levelPool(WONDER, { world: world?.id ?? null }), count);
+    if (!list.length) return failed(WONDER.slug, "Level to play", "No level to roll.");
+    const title = `${count === 1 ? "Level to play" : `${count} levels to play`}${world ? ` in ${world.name}` : ""}`;
+    return setup(WONDER.slug, title,
+      list.map((l, i) => text(l.name, worldOf(WONDER, l.world).color, count === 1 ? "Level" : `Level ${i + 1}`, worldOf(WONDER, l.world).name)), "🌼",
+      list.map((l, i) => `${count === 1 ? "" : `${i + 1}. `}${l.name} (${worldOf(WONDER, l.world).name})`));
+  },
+};
+
 // ── N64 shooters ─────────────────────────────────────────────────────────────
 
 const goldeneyeSetup: ChatSetup = {
@@ -301,13 +549,29 @@ export const CHAT_SETUPS: Record<string, ChatSetup> = {
     choices: [{ label: "4 races", arg: "" }, { label: "8 races", arg: "8" }, { label: "Battle course", arg: "battle" }],
     roll: ({ arg }) => (words(arg).includes("battle") ? rally("mario-kart-64", MK64.battleCourses, "Battle course") : tracks("mario-kart-64", "Grand Prix", MK64.cups, arg, 16)),
   },
+  "mario-kart-wii": {
+    argHint: "a number of races, cup or battle",
+    choices: [{ label: "4 races", arg: "" }, { label: "12 races", arg: "12" }, { label: "A cup", arg: "cup" }, { label: "Battle arena", arg: "battle" }],
+    roll: ({ arg }) => {
+      const w = words(arg);
+      if (w.includes("battle") || w.includes("arena")) return rally("mario-kart-wii", MKWII.battleCourses, "Battle arena");
+      if (w.includes("cup")) return mkwiiCup();
+      return tracks("mario-kart-wii", "Grand Prix", MKWII.cups, arg, 32);
+    },
+  },
+  [DOUBLE_DASH.slug]: doubleDashSetup,
+  [MARIO_KART_DS.slug]: marioKartDsSetup,
+  [MARIO_KART_7.slug]: mario7Setup,
+  [SUPER_MARIO_KART.slug]: superMarioKartSetup,
   [ULTIMATE.slug]: smashSetup,
+  [MELEE.slug]: meleeSetup,
   ...Object.fromEntries(Object.values(PARTY_GAMES).map((g) => [g.slug, partySetup(g)])),
   [OVERWATCH.slug]: heroSetup(OVERWATCH),
   [MARVEL_RIVALS.slug]: heroSetup(MARVEL_RIVALS),
   [SPLATOON3.slug]: splatoonSetup,
   [AIR_RIDERS.slug]: kirbySetup,
   [CROSSWORLDS_GAME.slug]: sonicSetup,
+  [WONDER.slug]: wonderSetup,
   "goldeneye-007": goldeneyeSetup,
   "perfect-dark": perfectDarkSetup,
   "pokemon-stadium": stadiumSetup("pokemon-stadium"),

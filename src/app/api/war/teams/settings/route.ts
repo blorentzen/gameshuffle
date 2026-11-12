@@ -12,7 +12,7 @@ import { rateLimit } from "@/lib/ratelimit";
 import { cardsReady, removeTrackName, setReadsLike, setTrackName } from "@/lib/wars/cardStore";
 import { isReadsLike } from "@/lib/wars/legacy";
 import { teamsAccess, trackNickViews } from "@/lib/wars/teamAdmin";
-import type { WarGame } from "@/lib/wars/rules";
+import { warGameOr, type WarGame } from "@/lib/wars/rules";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -42,7 +42,7 @@ export async function POST(req: Request) {
   const body = (await req.json().catch(() => null)) as Body | null;
   const o = await open(body?.guild);
   if ("error" in o) return o.error;
-  const game: WarGame = body?.game === "mkworld" ? "mkworld" : "mk8dx";
+  const game: WarGame = warGameOr(body?.game, "mk8dx");
   const res = await setTrackName(o.a.guild, game, String(body?.nick ?? ""), String(body?.track ?? "").trim(), o.a.by.id);
   if (res !== "ok") return fail(res, res === "not_ready" ? 503 : 400);
   return NextResponse.json({ nicks: await trackNickViews(o.a.guild) });

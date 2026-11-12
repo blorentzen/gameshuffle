@@ -7,7 +7,8 @@ import { Alert, Badge, Button, Chip, Radio, RadioGroup, Select, Switch } from "@
 import { IconDice5, IconPlayerPlay } from "@tabler/icons-react";
 import { useToast } from "@/components/toast/ToastProvider";
 import { PARTY_GAMES } from "@/data/party";
-import { NIGHT_GAMES } from "@/lib/nights/games";
+import { openNightGames } from "@/lib/nights/games";
+import { useNightGates } from "@/components/nights/useNightGates";
 import { DEFAULT_PARTY_MODULE, readModules, type PartyModule } from "@/lib/game-nights/modules";
 import { EVENTS, track } from "@/lib/analytics/events";
 import { GameChipIcon } from "@/components/games/GameCover";
@@ -21,6 +22,7 @@ import { GameChipIcon } from "@/components/games/GameCover";
 export function NightModules({ nightId, initial, liveCode }: { nightId: string; initial: unknown; liveCode: string | null }) {
   const toast = useToast();
   const router = useRouter();
+  const gates = useNightGates();
   const saved = readModules(initial).find((m) => m.type === "mario-party") ?? null;
   const [mod, setMod] = useState<PartyModule | null>(saved);
   const [savedJson, setSavedJson] = useState(JSON.stringify(saved));
@@ -88,7 +90,7 @@ export function NightModules({ nightId, initial, liveCode }: { nightId: string; 
 
           <p className="party-options__label">Games tonight</p>
           <div className="party-chips">
-            {NIGHT_GAMES.map((g) => {
+            {openNightGames(gates).map((g) => {
               const on = mod.games.includes(g.slug);
               return <Chip key={g.slug} clickable selected={on} variant={on ? "primary" : "default"} label={g.short} icon={<GameChipIcon slug={g.slug} name={g.label} />} onClick={() => toggleGame(g.slug)} />;
             })}

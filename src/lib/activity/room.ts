@@ -19,11 +19,15 @@ import { createServiceClient } from "@/lib/supabase/admin";
 import type { ActivitySession } from "@/lib/activity/session";
 import { GAMES } from "@/lib/break/games";
 import { publicPuzzles, puzzleOrder } from "@/lib/break/games/facts";
-import type { BreakAnswer, RoundDraft } from "@/lib/break/games/common";
+import type { BreakAnswer, RoundDraft, RunMeta } from "@/lib/break/games/common";
 import { BREAK_GAMES, type BreakGameId, type BreakReveal, type BreakRound } from "@/lib/break/types";
 import { CHAT_GAMES, getChatGame } from "@/lib/twitch/chatGames";
 import { CHAT_SETUPS } from "@/lib/twitch/chatSetups";
 import type { ChatRoll } from "@/lib/twitch/chatRoll";
+import {
+  COOP_GAMES, coopClose, coopOpen, coopOutcome, coopRecord, coopRevealView, coopRoundView, isCoopGame,
+  type CoopGameId, type CoopResult,
+} from "@/lib/coop/rules";
 import {
   PARTY_NAMES, PARTY_SLUGS, PartyRuleError, partyAction, partyScores, partyTick, partyView, seatEveryone,
   type PartyAct, type PartySecret, type PartySlug, type PartyState,
@@ -33,9 +37,9 @@ import {
   type BrainSecret, type BrainState,
 } from "./roomBrain";
 import {
-  ACTIVE_MS, ANSWER_GRACE_MS, HOST_STALE_MS, INTRO_SECONDS, MAX_PLAYERS, QUICKFIRE_FOCUS, QUICKFIRE_FOCUS_IDS, QUICKFIRE_SETS,
-  QUICKFIRE_SET_IDS, REVEAL_SECONDS, ROUND_COUNTS, RUSH_ROUNDS, addPoints, everyoneAnswered, lineupFor, ranked,
-  type QuickfireFocus, type QuickfireSetId, type RoomGame, type RoomPeek, type RoomPlayer, type RoomView,
+  ACTIVE_MS, ANSWER_GRACE_MS, COOP_COUNTS, COOP_REVEAL_SECONDS, HOST_STALE_MS, INTRO_SECONDS, MAX_PLAYERS, QUICKFIRE_FOCUS, QUICKFIRE_FOCUS_IDS, QUICKFIRE_SETS,
+  QUICKFIRE_SET_IDS, REVEAL_SECONDS, ROUND_COUNTS, RUSH_ROUNDS, addPoints, coopLineup, everyoneAnswered, lineupFor, ranked,
+  type CoopPick, type QuickfireFocus, type QuickfireSetId, type RoomGame, type RoomPeek, type RoomPlayer, type RoomView,
 } from "./roomRules";
 
 export class RoomError extends Error {
@@ -56,6 +60,25 @@ interface QuickfireState {
   lastPoints: { id: string; name: string; points: number }[];
   /** Items this room has already played (no repeats in an evening). */
   seen: string[];
+  /** Team up (set "coop"): the game in play and what it remembers between rounds. */
+  coop?: CoopRoomState;
+}
+
+/**
+ * Team up's games last several rounds. Break mode keeps a game's memory on the
+ * run (`meta`); the room keeps it here and hands it to the game's next round,
+ * then starts it empty for the next game in the lineup.
+ */
+interface CoopRoomState {
+  pick: CoopPick;
+  /** The lineup's game in play (0-based). */
+  slot: number;
+  /** Rounds that game has opened. */
+  played: number;
+  meta: RunMeta;
+  /** That game has ended (its result is the last in `results`). */
+  over: boolean;
+  results: CoopResult[];
 }
 
 interface RollState {
@@ -193,6 +216,7 @@ async function makeRound(id: BreakGameId, st: QuickfireState): Promise<RoundDraf
 }
 
 async function openRound(row: RoomRow, st: QuickfireState): Promise<RoomRow | null> {
+  if (st.set === "coop") return openCoopRound(row, st);
   // This round's game, or the next one in the set that has something to show.
   let draft: RoundDraft | null = null;
   let id = st.lineup[played(row, st)];
@@ -213,6 +237,7 @@ async function openRound(row: RoomRow, st: QuickfireState): Promise<RoomRow | nu
 }
 
 async function closeRound(row: RoomRow, st: QuickfireState, players: PlayerRow[]): Promise<RoomRow | null> {
+  if (st.set === "coop") return closeCoopRound(row, st, players);
   const r = st.round;
   if (!r) return claim(row, { phase: "reveal", phase_ends_at: at(Date.now() + REVEAL_SECONDS * 1000) });
   const names = new Map(players.map((p) => [p.identity_id, p.name]));
@@ -249,10 +274,78 @@ async function stepQuickfire(row: RoomRow, st: QuickfireState, players: PlayerRo
     return null;
   }
   if (row.phase === "reveal" && over) {
+    if (st.set === "coop") return nextCoop(row, st, now);
     if (played(row, st) >= st.rounds) return claim(row, { phase: "done", phase_ends_at: null });
     return claim(row, { phase: "intro", phase_ends_at: at(now + INTRO_SECONDS * 1000), state: { ...st, round: null } });
   }
   return null;
+}
+
+// ── Team up (co-op games) ────────────────────────────────────────────────────
+
+const freshCoop = (pick: CoopPick): CoopRoomState => ({ pick, slot: 0, played: 0, meta: {}, over: false, results: [] });
+
+/** Opens the game in play's next round with what its last round left, or the next game in the lineup that has something to show. */
+async function openCoopRound(row: RoomRow, st: QuickfireState): Promise<RoomRow | null> {
+  let c = st.coop ?? freshCoop("mix");
+  const seen = new Set(st.seen);
+  while (c.slot < st.lineup.length) {
+    const id = st.lineup[c.slot];
+    const opened = isCoopGame(id) && !c.over ? coopOpen(id, c.meta, c.played, { skip: (k) => seen.has(k) }) : null;
+    if (!opened) {
+      // Nothing more to show: a game cut short counts as it stands; then the next game.
+      const cut = isCoopGame(id) && c.played > 0 && !c.over ? coopOutcome(id, c.meta, true) : null;
+      c = { ...c, slot: c.slot + 1, played: 0, meta: {}, over: false, results: cut ? [...c.results, cut] : c.results };
+      continue;
+    }
+    const now = Date.now();
+    const gameId = id as CoopGameId;
+    return claim(row, {
+      phase: "open",
+      round_no: row.round_no + 1,
+      phase_ends_at: at(now + COOP_GAMES[gameId].seconds * 1000),
+      state: {
+        ...st,
+        coop: { ...c, played: c.played + 1, meta: opened.meta },
+        round: { game: gameId, view: { ...opened.draft.round, openedAt: at(now) } as BreakRound, reveal: null },
+        lastPoints: [],
+        seen: [...st.seen, ...(opened.draft.key ? [opened.draft.key] : [])].slice(-SEEN_CAP),
+      },
+      secret: opened.draft.secret,
+    });
+  }
+  return claim(row, { phase: "done", phase_ends_at: null, state: { ...st, coop: c, round: null } });
+}
+
+/** Judges the round with the game's memory, keeps what it leaves for the next round, and records the result when the game ends. */
+async function closeCoopRound(row: RoomRow, st: QuickfireState, players: PlayerRow[]): Promise<RoomRow | null> {
+  const r = st.round;
+  const c = st.coop;
+  if (!r || !c || !isCoopGame(r.game)) return claim(row, { phase: "reveal", phase_ends_at: at(Date.now() + REVEAL_SECONDS * 1000) });
+  const names = new Map(players.map((p) => [p.identity_id, p.name]));
+  const answers: BreakAnswer[] = (await answersFor(row)).map((a) => ({
+    platform: "discord", viewer: a.identity_id, name: names.get(a.identity_id) ?? null, answer: a.answer, at: Date.parse(a.answered_at),
+  }));
+  const { judged, meta, outcome } = coopClose(r.game, { round: r.view, secret: row.secret ?? {} }, answers, c.meta, c.played);
+  return claim(row, {
+    phase: "reveal",
+    phase_ends_at: at(Date.now() + (outcome ? REVEAL_SECONDS : COOP_REVEAL_SECONDS) * 1000),
+    // One team: no points per person.
+    state: { ...st, round: { ...r, reveal: judged.reveal }, lastPoints: [], coop: { ...c, meta, over: !!outcome, results: outcome ? [...c.results, outcome] : c.results } },
+  });
+}
+
+/** After a reveal: the same game's next round, the next game's intro, or the end. */
+async function nextCoop(row: RoomRow, st: QuickfireState, now: number): Promise<RoomRow | null> {
+  const c = st.coop ?? freshCoop("mix");
+  if (!c.over) return openCoopRound(row, st);
+  if (c.slot + 1 >= st.lineup.length) return claim(row, { phase: "done", phase_ends_at: null });
+  return claim(row, {
+    phase: "intro",
+    phase_ends_at: at(now + INTRO_SECONDS * 1000),
+    secret: {},
+    state: { ...st, round: null, coop: { ...c, slot: c.slot + 1, played: 0, meta: {}, over: false } },
+  });
 }
 
 // ── Roll for the call ────────────────────────────────────────────────────────
@@ -378,18 +471,33 @@ async function viewOf(row: RoomRow, players: PlayerRow[], me: string): Promise<R
   if (st.kind === "quickfire") {
     const r = st.round;
     const game = r ? GAMES[r.game] : null;
-    const upcoming = row.phase === "intro" ? st.lineup[played(row, st)] : r?.game;
+    const c = st.set === "coop" ? st.coop ?? null : null;
+    const upcoming = row.phase === "intro" ? st.lineup[c ? c.slot : played(row, st)] : r?.game;
+    const coopId = c && upcoming && isCoopGame(upcoming) ? upcoming : null;
     const mineRows = answers.filter((a) => a.identity_id === me);
     quickfire = {
       set: st.set, setName: QUICKFIRE_SETS[st.set].name, focus: st.focus, rounds: st.rounds, roundNo: played(row, st),
-      game: upcoming ? { id: upcoming, name: BREAK_GAMES[upcoming].name, howTo: BREAK_GAMES[upcoming].howTo } : null,
-      round: r && row.phase !== "intro" ? roundHere(r.view) : null,
-      reveal: r?.reveal ?? null,
+      game: upcoming ? { id: upcoming, name: coopId ? COOP_GAMES[coopId].name : BREAK_GAMES[upcoming].name, howTo: coopId ? COOP_GAMES[coopId].how : BREAK_GAMES[upcoming].howTo } : null,
+      // Team up's words are for the people in the call, not a stream's chat.
+      round: r && row.phase !== "intro" ? roundHere(c ? coopRoundView(r.view) : r.view) : null,
+      reveal: r?.reveal ? (c ? coopRevealView(r.reveal) : r.reveal) : null,
       found: game?.liveAnswers && row.phase === "open" ? [...new Set(answers.map((a) => a.answer))] : null,
       mine: mineRows.length ? mineRows[mineRows.length - 1].answer : null,
       answering: answered.size,
       lastPoints: st.lastPoints,
       oneGuess: !!game?.oneGuess,
+      coop: c ? {
+        pick: c.pick,
+        gameNo: Math.min(st.lineup.length, c.slot + 1),
+        games: st.lineup.length,
+        round: row.phase === "intro" ? 0 : c.played,
+        maxRounds: coopId ? COOP_GAMES[coopId].maxRounds : 0,
+        roundWord: coopId ? COOP_GAMES[coopId].roundWord : "Round",
+        how: coopId ? COOP_GAMES[coopId].how : "",
+        results: c.results,
+        record: coopRecord(c.results),
+        outcome: c.over && row.phase !== "intro" ? c.results[c.results.length - 1] ?? null : null,
+      } : null,
     };
   }
   let roll: RoomView["roll"] = null;
@@ -459,7 +567,7 @@ export async function roomPeek(s: ActivitySession): Promise<RoomPeek | null> {
 // ── Doing ────────────────────────────────────────────────────────────────────
 
 export type RoomAction =
-  | { action: "quickfire"; set: string; focus: string; rounds: number }
+  | { action: "quickfire"; set: string; focus: string; rounds: number; game?: string }
   | { action: "roll"; slug: string; arg?: string }
   | { action: "answer"; text: string }
   | { action: "next" }
@@ -475,10 +583,14 @@ export type RoomAction =
 
 const seenOf = (st: RoomState) => st.seen ?? [];
 
-function quickfireStart(row: RoomRow, set: QuickfireSetId, focus: QuickfireFocus, rounds: number, seen: string[]): Partial<RoomRow> {
+function quickfireStart(row: RoomRow, set: QuickfireSetId, focus: QuickfireFocus, rounds: number, seen: string[], pick: CoopPick = "mix"): Partial<RoomRow> {
+  const coop = set === "coop";
   return {
     game: "quickfire", phase: "intro", phase_ends_at: at(Date.now() + INTRO_SECONDS * 1000), secret: {},
-    state: { kind: "quickfire", set, focus, rounds, lineup: lineupFor(set, rounds), base: row.round_no, scores: {}, round: null, lastPoints: [], seen },
+    state: {
+      kind: "quickfire", set, focus, rounds, lineup: coop ? coopLineup(pick, rounds) : lineupFor(set, rounds), base: row.round_no, scores: {}, round: null, lastPoints: [], seen,
+      ...(coop ? { coop: freshCoop(pick) } : {}),
+    },
   };
 }
 
@@ -529,9 +641,10 @@ export async function roomAct(s: ActivitySession, a: RoomAction): Promise<RoomVi
       needHost();
       const set = QUICKFIRE_SET_IDS.includes(a.set as QuickfireSetId) ? (a.set as QuickfireSetId) : null;
       const focus = QUICKFIRE_FOCUS_IDS.includes(a.focus as QuickfireFocus) ? (a.focus as QuickfireFocus) : "any";
-      const allowed: readonly number[] = set === "rush" ? RUSH_ROUNDS : ROUND_COUNTS;
+      const allowed: readonly number[] = set === "rush" ? RUSH_ROUNDS : set === "coop" ? COOP_COUNTS : ROUND_COUNTS;
       if (!set || !allowed.includes(a.rounds)) throw new RoomError("bad_request");
-      next = await claim(row, quickfireStart(row, set, focus, a.rounds, seenOf(st)));
+      const pick: CoopPick = isCoopGame(a.game) ? a.game : "mix";
+      next = await claim(row, quickfireStart(row, set, set === "coop" ? "any" : focus, a.rounds, seenOf(st), pick));
       break;
     }
     case "again": {
@@ -547,7 +660,7 @@ export async function roomAct(s: ActivitySession, a: RoomAction): Promise<RoomVi
         break;
       }
       if (st.kind !== "quickfire") throw new RoomError("bad_request");
-      next = await claim(row, quickfireStart(row, st.set, st.focus, st.rounds, st.seen));
+      next = await claim(row, quickfireStart(row, st.set, st.focus, st.rounds, st.seen, st.coop?.pick));
       break;
     }
     case "brain_start": {

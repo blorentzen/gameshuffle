@@ -66,7 +66,7 @@ const FREE = [
   "The Daily, the Weekly and Chat Brain in the Activity",
   "Results cards and the morning recap",
   "/gs-randomize, /gs-flip, /gs-roll and /gs-8ball",
-  "Go-live posts to one channel",
+  "The Weekly each Monday and a daily Chat Brain question, in your channel",
 ];
 const PRO = [
   "The bot in up to 5 servers, each with its own setup",
@@ -81,7 +81,7 @@ const PRO = [
 const FAQ = [
   {
     q: "Is the GameShuffle Discord bot free?",
-    a: "Yes. Adding the bot to one server, the Daily, the Weekly, Chat Brain, the results card in your channel, /gs-randomize and the table tools are free. GS Pro runs the bot in up to 5 servers and adds server tools: live polls, channel routing, role menus, roles for new members, AutoMod, server logging, Question of the Day, reminders and tags.",
+    a: "Yes. Adding the bot to one server, the Daily, the Weekly, Chat Brain, the results card in your channel, the Monday Weekly and daily Chat Brain posts, /gs-randomize and the table tools are free. GS Pro runs the bot in up to 5 servers and adds server tools: live polls, channel routing, role menus, roles for new members, AutoMod, server logging, Question of the Day, reminders and tags.",
   },
   {
     q: "Do players need a GameShuffle account?",

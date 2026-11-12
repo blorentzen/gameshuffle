@@ -22,7 +22,8 @@ export default function MK64RandomizerPage() {
       <Suspense>
         <RandomizerClient gameConfig={mk64Config} gameData={gameData} heroProps={mk64Hero} />
       </Suspense>
-      <RandomizerNudge gameName="Mario Kart 64" saves="your racers and game-night setups" />
+      {/* Mario Kart 64 lives in the Retro Mario Kart space (picks 2026-11-12): once it opens, its band takes this place. */}
+      <RandomizerNudge gameName="Mario Kart 64" game="mario-kart-64" saves="your racers and game-night setups" />
       <RandomizerLanding landing={RANDOMIZER_LANDINGS["mario-kart-64"]} />
     </>
   );

@@ -18,6 +18,10 @@
  */
 
 import { BOX_ART } from "@/data/box-art.generated";
+import { MKWII_PUBLIC, POKEMON_CHAMPIONS_PUBLIC } from "@/lib/games-visibility";
+import { meleeShown } from "@/lib/games-visibility";
+import { WONDER_PUBLIC } from "@/lib/games-visibility";
+import { doubleDashShown, mario7Shown, marioKartDsShown, superMarioKartShown } from "@/lib/games-visibility";
 
 export type CatalogStatus = "live" | "candidate" | "listed";
 
@@ -66,23 +70,45 @@ export const GAME_CATALOG: CatalogEntry[] = [
   { slug: "street-fighter-6", name: "Street Fighter 6", status: "live", href: "/tournament/create", family: "Fighting" },
   { slug: "tekken-8", name: "Tekken 8", status: "live", href: "/tournament/create", family: "Fighting" },
 
+  // Speedrun roster (picks 2026-11-11): split templates and a splits page each (src/data/speedrun/roster.ts).
+  { slug: "super-mario-64", name: "Super Mario 64", aliases: ["SM64"], status: "live", href: "/speedrun/splits/super-mario-64", family: "Nintendo" },
+  { slug: "celeste", name: "Celeste", status: "live", href: "/speedrun/splits/celeste", family: "Other" },
+  { slug: "super-mario-bros", name: "Super Mario Bros.", aliases: ["Super Mario Bros", "SMB1", "SMB"], status: "live", href: "/speedrun/splits/super-mario-bros", family: "Nintendo" },
+  { slug: "portal", name: "Portal", status: "live", href: "/speedrun/splits/portal", family: "Other" },
+  { slug: "cuphead", name: "Cuphead", status: "live", href: "/speedrun/splits/cuphead", family: "Other" },
+  { slug: "hollow-knight", name: "Hollow Knight", status: "live", href: "/speedrun/splits/hollow-knight", family: "Other" },
+  { slug: "super-mario-world", name: "Super Mario World", aliases: ["SMW"], status: "live", href: "/speedrun/splits/super-mario-world", family: "Nintendo" },
+
   // ── Candidates: good randomizers or modes next ─────────────────────────────
   { slug: "super-mario-party", name: "Super Mario Party", status: "candidate", pitch: "Boards, characters and minigames on the party randomizer we already have.", family: "Mario Party" },
-  { slug: "mario-kart-wii", name: "Mario Kart Wii", status: "candidate", pitch: "A kart combo and track randomizer, plus the custom track scene.", family: "Mario Kart" },
-  { slug: "mario-kart-double-dash", name: "Mario Kart: Double Dash!!", twitch: "Mario Kart: Double Dash!!", status: "candidate", pitch: "Character pairs and karts: a pair roll no other game has.", family: "Mario Kart" },
-  { slug: "super-smash-bros-melee", name: "Super Smash Bros. Melee", status: "candidate", pitch: "Fighters and the tournament stage list for the Melee scene.", family: "Fighting" },
+  // Live with its randomizer (built 2026-11-11); production keeps it a candidate until the page is public.
+  { slug: "mario-kart-wii", name: "Mario Kart Wii", aliases: ["MKWii", "MK Wii"], ...(MKWII_PUBLIC || process.env.NODE_ENV !== "production" ? { status: "live" as const, href: "/randomizers/mario-kart-wii" } : { status: "candidate" as const, pitch: "A kart combo and track randomizer, plus the custom track scene." }), family: "Mario Kart" },
+  // Live with its randomizer (built 2026-11-12, Retro Mario Kart space); production keeps it a candidate until it opens.
+  { slug: "mario-kart-double-dash", name: "Mario Kart: Double Dash!!", aliases: ["Mario Kart Double Dash", "Double Dash", "MKDD"], twitch: "Mario Kart: Double Dash!!", ...(doubleDashShown() ? { status: "live" as const, href: "/randomizers/mario-kart-double-dash" } : { status: "candidate" as const, pitch: "Character pairs and karts: a pair roll no other game has." }), family: "Mario Kart" },
+  // Live with its randomizer (built 2026-11-12, Retro Mario Kart space); production keeps it a candidate until it opens.
+  { slug: "mario-kart-ds", name: "Mario Kart DS", aliases: ["MKDS", "MK DS"], twitch: "Mario Kart DS", ...(marioKartDsShown() ? { status: "live" as const, href: "/randomizers/mario-kart-ds" } : { status: "candidate" as const, pitch: "Characters and the karts your save has opened, cups, battles and Mission Mode." }), family: "Mario Kart" },
+  // Live with their randomizers (built 2026-11-12, Retro Mario Kart space); production keeps them candidates until it opens.
+  { slug: "mario-kart-7", name: "Mario Kart 7", aliases: ["MK7"], ...(mario7Shown() ? { status: "live" as const, href: "/randomizers/mario-kart-7" } : { status: "candidate" as const, pitch: "A character and a body, tires and glider from your save, cups and battles." }), family: "Mario Kart" },
+  { slug: "super-mario-kart", name: "Super Mario Kart", aliases: ["SMK", "Super Mario Kart SNES"], ...(superMarioKartShown() ? { status: "live" as const, href: "/randomizers/super-mario-kart" } : { status: "candidate" as const, pitch: "Two racers, a cup or a race list, and a battle course for the SNES original." }), family: "Mario Kart" },
+  // Live with its randomizer (built 2026-11-11); production keeps it a candidate until the Melee space opens.
+  { slug: "super-smash-bros-melee", name: "Super Smash Bros. Melee", aliases: ["Melee", "SSBM", "Smash Melee"], ...(meleeShown() ? { status: "live" as const, href: "/randomizers/super-smash-bros-melee" } : { status: "candidate" as const, pitch: "Fighters and the tournament stage list for the Melee scene." }), family: "Fighting" },
   { slug: "mario-tennis-aces", name: "Mario Tennis Aces", status: "candidate", pitch: "Characters and courts for tennis nights.", family: "Sports" },
   { slug: "mario-golf-super-rush", name: "Mario Golf: Super Rush", status: "candidate", pitch: "Characters and courses, with a speed golf mode.", family: "Sports" },
   { slug: "mario-strikers-battle-league", name: "Mario Strikers: Battle League", status: "candidate", pitch: "Captains, teammates and gear builds for 4v4 nights.", family: "Sports" },
   { slug: "nintendo-switch-sports", name: "Nintendo Switch Sports", status: "candidate", pitch: "A sports and rules roll for a living room tournament.", family: "Sports" },
-  { slug: "super-mario-bros-wonder", name: "Super Mario Bros. Wonder", status: "candidate", pitch: "Character, badge and level rolls for co-op challenge runs.", family: "Nintendo" },
+  { slug: "super-mario-bros-wonder", name: "Super Mario Bros. Wonder", aliases: ["Mario Wonder", "Super Mario Wonder", "SMBW"], ...(WONDER_PUBLIC || process.env.NODE_ENV !== "production" ? { status: "live" as const, href: "/randomizers/super-mario-bros-wonder" } : { status: "candidate" as const, pitch: "Character, badge and level rolls for co-op challenge runs." }), family: "Nintendo" },
+  // Levels from players (picks 2026-11-11): course IDs in a stream level queue and a board in its space.
+  { slug: "super-mario-maker-2", name: "Super Mario Maker 2", aliases: ["Mario Maker 2", "SMM2"], status: "live", href: "/games/super-mario-maker-2?tab=levels", family: "Nintendo" },
   { slug: "luigis-mansion-3", name: "Luigi's Mansion 3", status: "candidate", pitch: "ScareScraper and ScreamPark floors and rules.", family: "Nintendo" },
   { slug: "warioware-move-it", name: "WarioWare: Move It!", status: "candidate", pitch: "Party modes and form rolls for game night.", family: "Party" },
   { slug: "pokemon-unite", name: "Pokémon Unite", status: "candidate", pitch: "Pokémon, held items and lanes, like the hero roulettes.", family: "Pokémon" },
   { slug: "pokemon-legends-z-a", name: "Pokémon Legends: Z-A", status: "candidate", pitch: "A run challenge in the style of the Fire Red one.", family: "Pokémon" },
-  { slug: "pokemon-champions", name: "Pokémon Champions", status: "candidate", pitch: "Team rolls and drafts for the new battle game (Chat Draft has its roster).", family: "Pokémon" },
+  // Live once the team builder ships (POKEMON_CHAMPIONS_PUBLIC); until then a candidate, so nothing links a page that 404s.
+  { slug: "pokemon-champions", name: "Pokémon Champions", aliases: ["Pokemon Champs", "Pokémon Champions VGC"], ...(POKEMON_CHAMPIONS_PUBLIC ? { status: "live" as const, href: "/pokemon-champions-team-builder" } : { status: "candidate" as const, pitch: "Team rolls and drafts for the new battle game (Chat Draft has its roster)." }), family: "Pokémon" },
   { slug: "rocket-league", name: "Rocket League", status: "candidate", pitch: "Car, arena and mutator rolls.", family: "Sports" },
-  { slug: "fall-guys", name: "Fall Guys", status: "candidate", pitch: "Round and challenge rolls for custom lobbies.", family: "Party" },
+  { slug: "fall-guys", name: "Fall Guys", status: "live", href: "/games/fall-guys?tab=levels", family: "Party" },
+  // Levels from players, curation picks 14A (2026-11-11): level IDs in the level queue and a board in its space.
+  { slug: "geometry-dash", name: "Geometry Dash", aliases: ["GD"], status: "live", href: "/games/geometry-dash?tab=levels", family: "Other" },
   { slug: "among-us", name: "Among Us", status: "candidate", pitch: "Map, roles and settings for a lobby with chat.", family: "Party" },
   { slug: "overcooked-2", name: "Overcooked! 2", status: "candidate", pitch: "Level and chef rolls for co-op nights.", family: "Party" },
   { slug: "pico-park", name: "PICO PARK", status: "candidate", pitch: "Level rolls for a big couch group.", family: "Party" },
@@ -103,15 +129,15 @@ export const GAME_CATALOG: CatalogEntry[] = [
   { slug: "rainbow-six-siege", name: "Rainbow Six Siege", aliases: ["Tom Clancy's Rainbow Six Siege", "R6"], status: "candidate", pitch: "Operators by side and maps.", family: "Shooter" },
   { slug: "dead-by-daylight", name: "Dead by Daylight", status: "candidate", pitch: "Killer, survivor and perk builds.", family: "Other" },
   { slug: "lethal-company", name: "Lethal Company", status: "candidate", pitch: "Moon and challenge rolls for a crew.", family: "Party" },
-  { slug: "minecraft", name: "Minecraft", status: "candidate", pitch: "Challenge seeds and rules for a run.", family: "Sandbox" },
+  { slug: "minecraft", name: "Minecraft", aliases: ["Minecraft: Java Edition", "Minecraft Java"], status: "live", href: "/speedrun/splits/minecraft", pitch: "Challenge seeds and rules for a run.", family: "Sandbox" },
   { slug: "league-of-legends", name: "League of Legends", status: "candidate", pitch: "Champions by role for ARAM-style chaos.", family: "Other" },
   { slug: "tetris-99", name: "Tetris 99", status: "candidate", pitch: "Theme and challenge rules for chat battles.", family: "Party" },
 
   // ── Listed: popular favorites ──────────────────────────────────────────────
   { slug: "animal-crossing-new-horizons", name: "Animal Crossing: New Horizons", status: "listed", family: "Nintendo" },
   { slug: "zelda-tears-of-the-kingdom", name: "The Legend of Zelda: Tears of the Kingdom", status: "listed", family: "Nintendo" },
-  { slug: "zelda-breath-of-the-wild", name: "The Legend of Zelda: Breath of the Wild", status: "listed", family: "Nintendo" },
-  { slug: "super-mario-odyssey", name: "Super Mario Odyssey", status: "listed", family: "Nintendo" },
+  { slug: "zelda-breath-of-the-wild", name: "The Legend of Zelda: Breath of the Wild", aliases: ["Breath of the Wild", "BotW"], status: "live", href: "/speedrun/splits/zelda-breath-of-the-wild", family: "Nintendo" },
+  { slug: "super-mario-odyssey", name: "Super Mario Odyssey", aliases: ["SMO"], status: "live", href: "/speedrun/splits/super-mario-odyssey", family: "Nintendo" },
   { slug: "donkey-kong-bananza", name: "Donkey Kong Bananza", status: "listed", family: "Nintendo" },
   { slug: "metroid-prime-4", name: "Metroid Prime 4: Beyond", status: "listed", family: "Nintendo" },
   { slug: "pikmin-4", name: "Pikmin 4", status: "listed", family: "Nintendo" },

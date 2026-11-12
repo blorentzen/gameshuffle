@@ -46,6 +46,7 @@ import { getViewerCountsForOwner } from "@/lib/streams/viewers";
 import { mmrTokenFor } from "@/lib/mmr/store";
 import { warPieceFor } from "@/lib/wars/streamPiece";
 import { seriesPieceFor } from "@/lib/series/store";
+import { levelQueueOverlay } from "@/lib/levels/store";
 import { ttPieceFor } from "@/lib/tournaments/tt/overlayServer";
 import { roomOverlayFor } from "@/lib/lounge/roomServer";
 import { noteOverlaySeen } from "@/lib/streaming/setup";
@@ -112,7 +113,7 @@ export async function GET(
     return null;
   });
 
-  const [viewers, mmrToken, loungeRoom, warPiece, seriesPiece, ttPiece, wheelSpin, overlayEvents, layouts, poll, bingo, draft, brainParts, trivia, breakScreen, resolved] = await Promise.all([
+  const [viewers, mmrToken, loungeRoom, warPiece, seriesPiece, ttPiece, levelQueue, wheelSpin, overlayEvents, layouts, poll, bingo, draft, brainParts, trivia, breakScreen, resolved] = await Promise.all([
     // All-up viewer count (Twitch today; cached ~20s so this 2s poll doesn't hit
     // Helix every tick). Null on failure — the overlay just hides the badge.
     getViewerCountsForOwner(ownerUserId).catch(() => null),
@@ -126,6 +127,8 @@ export async function GET(
     seriesPieceFor(ownerUserId).catch(() => null),
     // The running time trial tournament the streamer plays in or runs (the piece reads its own view; cached 30s).
     ttPieceFor(ownerUserId).catch(() => null),
+    // The level queue, while it's open or a level is being played (cached 3s per streamer; null before levels-m1.sql).
+    levelQueueOverlay(ownerUserId).catch(() => null),
     readWheelSpin(ownerUserId),
     // Generic streamer-tool overlay events (dice, coin, oracle, …). Owner-keyed
     // and session-independent, like wheel spins; the client dedups by id.
@@ -176,6 +179,7 @@ export async function GET(
       warPiece,
       seriesPiece,
       ttPiece,
+      levelQueue,
     });
   }
 
@@ -219,6 +223,7 @@ export async function GET(
     warPiece,
     seriesPiece,
     ttPiece,
+    levelQueue,
   });
 }
 

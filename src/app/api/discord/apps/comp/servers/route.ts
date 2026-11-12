@@ -5,7 +5,7 @@
  *   PATCH { guild, settings }   merges channel settings (comp: { channel } for its posts)
  *   PATCH { guild, lounge }     lounge posts in this server: { rankUps?, rolesGame?, boardGame? } (roles and the board
  *                               are GS Pro). GameShuffle's lounge settings for the server come along the first time.
- *   PATCH { guild, speedrun }   speedrun posts: { pbs?, pace?, paceRole? } (pace alerts are GS Pro); ?guild= GETs list
+ *   PATCH { guild, speedrun }   speedrun posts: { pbs?, races?, pace?, paceRole? } (pace alerts are GS Pro); ?guild= GETs list
  *                               the server's roles for the ping
  *   DELETE ?guild=<id>          forgets the server (the bot stays until someone removes it in Discord)
  *   POST { action: "panel", guild, channel, game }   posts (or moves) the time trial panel; game mk8dx | mkworld | both
@@ -91,6 +91,7 @@ export async function PATCH(request: Request) {
     if (!g || g.ownerUserId !== user.id) return NextResponse.json({ ok: false, error: "not_yours" }, { status: 404 });
     const next: CompSpeedrun = { ...readCompSpeedrun(g.settings) };
     if (body.speedrun.pbs !== undefined) next.pbs = body.speedrun.pbs === true;
+    if (body.speedrun.races !== undefined) next.races = body.speedrun.races === true;
     if (body.speedrun.pace !== undefined) {
       if (body.speedrun.pace === true && !(await isProUser(user.id))) return NextResponse.json({ ok: false, error: "pro_required" }, { status: 403 });
       next.pace = body.speedrun.pace === true;

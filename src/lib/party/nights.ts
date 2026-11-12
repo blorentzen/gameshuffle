@@ -751,7 +751,11 @@ async function runAwards(l: Loaded, v: Viewer, body: ActionBody): Promise<Action
  * points record for accounts, and the game marked done. Console games and
  * activities (GameShuffle Originals) both finish through here.
  */
-export async function recordResults(l: Loaded, rawOrder: number[], picked: Record<string, string>, source: "placement" | "activity"): Promise<void> {
+/**
+ * `shared`: a co-op game (the table against the game). Every seat in `rawOrder` gets the same result: first
+ * place and first-place points on a win, last place and no points on a loss. The crown doesn't move.
+ */
+export async function recordResults(l: Loaded, rawOrder: number[], picked: Record<string, string>, source: "placement" | "activity", shared?: { won: boolean }): Promise<void> {
   const svc = createServiceClient();
   // Finishing order, first place first. Seats can be left out (they score 0).
   const valid = new Set(l.seats.map((s) => s.seat_index));
@@ -762,7 +766,8 @@ export async function recordResults(l: Loaded, rawOrder: number[], picked: Recor
   if (del.error) fail(del.error);
   // Who played what this game: the host's pick, else the seat's character.
   const characterOf = (seat: number) => (String(picked[String(seat)] ?? "").slice(0, 40) || l.seats.find((s) => s.seat_index === seat)?.character) ?? null;
-  const rows = order.map((seat, i) => ({ night_id: l.night.id, game_id: l.current.id, seat_index: seat, place: i + 1, points: placePoints(i + 1), character: source === "activity" ? null : characterOf(seat) }));
+  const placeOf = (i: number) => (shared ? (shared.won ? 1 : order.length) : i + 1);
+  const rows = order.map((seat, i) => ({ night_id: l.night.id, game_id: l.current.id, seat_index: seat, place: placeOf(i), points: shared && !shared.won ? 0 : placePoints(placeOf(i)), character: source === "activity" ? null : characterOf(seat) }));
   const ins = await svc.from("party_results").insert(rows);
   if (ins.error) fail(ins.error);
   // Accounts keep placement points in their record (one row per game each).
@@ -787,7 +792,7 @@ export async function recordResults(l: Loaded, rawOrder: number[], picked: Recor
       .map(({ c, user }) => ({ user_id: user, night_id: l.night.id, card_row: c.id, game_row: l.current.id, game_slug: l.current.game_slug, source: "call", points: CALL_POINTS }));
     if (callRows.length) await svc.from("party_points").insert(callRows).then(() => {}, () => {});
   }
-  await applyCrown(l, rows.map((x) => ({ seat_index: x.seat_index, place: x.place }))).catch(() => {});
+  if (!shared) await applyCrown(l, rows.map((x) => ({ seat_index: x.seat_index, place: x.place }))).catch(() => {});
   const done = await svc.from("party_games").update({ status: "done", ended_at: new Date().toISOString() }).eq("id", l.current.id);
   if (done.error) fail(done.error);
 }
@@ -824,7 +829,7 @@ async function applyCrown(l: Loaded, placed: { seat_index: number; place: number
 }
 
 export async function runAction(l: Loaded, v: Viewer, body: ActionBody): Promise<ActionOutcome> {
-  if (/^(oo|ml|tw|dn|bg)_/.test(body.action)) {
+  if (/^(oo|ml|tw|dn|bg|cb|co)_/.test(body.action)) {
     // Loaded on demand: activities import from this module.
     const { runActivity } = await import("@/lib/party/activities");
     return runActivity(l, v, body as ActivityAction);

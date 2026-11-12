@@ -3,7 +3,7 @@
 /**
  * "Running now" in the control room: one card for each thing happening on
  * stream (picks and bans, a poll, bingo, a draft, Chat Brain, a prediction,
- * bounties, chaos challenges to settle), each with its next step and a way into its tab. Nothing running
+ * bounties, chaos challenges to settle, the level queue), each with its next step and a way into its tab. Nothing running
  * means no cards, just the ways to start one, and only the ones this game
  * can run (picks and bans and predictions are Mario Kart only).
  */
@@ -115,6 +115,19 @@ export function RunningNow({ sessionSlug, liveSlug, actions, predictions = true 
       </Card>,
     );
   }
+  if (data?.levels && (data.levels.open || data.levels.now)) {
+    const l = data.levels;
+    const line = l.now ? `Now playing ${l.now.code} from ${l.now.from} · ${l.waiting} in line` : `${l.gameName} · ${l.waiting} in line`;
+    cards.push(
+      <Card key="levels" title="Level queue" status={<Badge variant={l.open ? "success" : "default"} size="small">{l.open ? "Open" : "Closed"}</Badge>}
+        line={line} onOpen={() => goTab("live-games", "levels")}>
+        {(l.waiting > 0 || l.now) && (
+          <Button size="small" variant="secondary" className="hub-lever__main" disabled={busy !== null}
+            onClick={() => void run("levels", patch("/api/levels/queue", { action: "next" }, "POST"), l.waiting ? "Next level up" : "Level done")}>Next</Button>
+        )}
+      </Card>,
+    );
+  }
   if (data?.market && marketsGame) {
     const m = data.market;
     cards.push(
@@ -168,6 +181,8 @@ export function RunningNow({ sessionSlug, liveSlug, actions, predictions = true 
   if (!data?.draft) starts.push({ key: "draft", label: "Chat Draft", onClick: () => goTab("live-games", "draft") });
   if (!data?.brain) starts.push({ key: "brain", label: "Chat Brain", onClick: () => goTab("live-games", "chat-brain") });
   if (!data?.breakMode) starts.push({ key: "break", label: "Break mode", onClick: () => goTab("live-games", "break") });
+  // The level queue: only while a level game is on stream (Mario Maker 2, Fortnite, Fall Guys).
+  if (data?.levels?.onStream && !data.levels.open) starts.push({ key: "levels", label: "Level queue", onClick: () => goTab("live-games", "levels") });
   if (marketsGame && !data?.market) starts.push({ key: "market", label: "Prediction", onClick: () => goTab("predictions") });
   if (predictions) starts.push({ key: "bounty", label: "Bounty", onClick: () => goTab("predictions") });
 

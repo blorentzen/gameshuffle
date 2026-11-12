@@ -45,6 +45,8 @@ export const NOTIFICATION_TYPES = {
   championship_invite: { cds: "success", invite: false },
   // Chat Brain co-stream: another streamer invites you (accept on the Chat Brain tab; the row links there).
   chatbrain_costream: { cds: "info", invite: false },
+  // Speedrun races (src/lib/versus/store.ts): the host of an invite-only race asks you in (the row links to the race).
+  race_invite: { cds: "info", invite: false },
   system: { cds: "system", invite: false },
   // Idea Board (spec §6.6) — all per-event, none actionable.
   idea_accepted: { cds: "success", invite: false },
@@ -76,6 +78,11 @@ export const NOTIFICATION_TYPES = {
   referral: { cds: "success", invite: false },
   // The Monday lounge report (src/lib/lounge/weeklyReport.ts, GS Pro): last week's MMR change, record and rivals.
   lounge_weekly: { cds: "info", invite: false },
+  // Levels from players (src/lib/levels, curation picks 2026-11-11): your level is the level of the week; a level you
+  // sent was cleared on stream (the row opens the board's Share window); someone you follow shared a level.
+  level_of_week: { cds: "success", invite: false },
+  level_cleared_share: { cds: "success", invite: false },
+  level_shared_followed: { cds: "info", invite: false },
 } as const satisfies Record<string, NotificationTypeDef>;
 
 /** The registered GS notification types. New producers must register here. */

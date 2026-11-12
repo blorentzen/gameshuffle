@@ -89,6 +89,21 @@ export default function Page() {
         becomes a new run.
       </p>
 
+      <h2>Races</h2>
+      <p>
+        Race other runners live, 2 to 8 of you, each on your own timer and stream. Under <strong>Races</strong>{" "}on the
+        speedrun page, <strong>Make a race</strong>{" "}takes your game, category and splits and gives you a link to share.
+        Pick how many runners and whether anyone with the link can join or only people you invite.
+      </p>
+      <ul>
+        <li>Everyone&apos;s splits need the same count, and every timer has to be one GameShuffle can start: LiveSplit with GameShuffle for LiveSplit (remote control on), LiveSplit One, or the phone remote open. The race page says who isn&apos;t set.</li>
+        <li>Keep your timer at 0:00 and mark yourself ready. Once at least two runners are ready, the host starts a 10 second countdown, and GameShuffle starts every timer at 0. Anyone not ready sits that race out.</li>
+        <li>Places and gaps compare the same split on each runner&apos;s own clock, so a slow connection never decides a race. A reset forfeits. The race ends when everyone has finished or is out; the host can also end it.</li>
+        <li>Your overlay shows the race beside your splits. For a restream or commentary, add the race&apos;s link with <code>/obs</code>{" "}on the end to OBS: every runner as a lane. Both wait out each runner&apos;s <strong>Replies wait</strong>.</li>
+        <li>With GS Pro, chat can bet Arcade Tokens on who wins (<code>!bet nova 100</code>, or a runner&apos;s number). Bets lock a quarter of the way in and settle at the finish.</li>
+        <li>With 4 or more runners you can race in teams: pick 2 to 4 teams when you make the race, and whether a team scores everyone&apos;s times added up or its fastest runner. Everyone picks a team in the race&apos;s room before the start, and the race page shows the teams above the runners.</li>
+      </ul>
+
       <h2>No timer program? Use your phone</h2>
       <p>
         Set your splits under <strong>Your splits</strong>, then <strong>Open the phone remote</strong>{" "}(or scan its
@@ -135,6 +150,7 @@ export default function Page() {
         <li><strong>Post new PBs</strong>{" "}(free): the time, how much faster, gold splits and a Watch on Twitch button, for you and members who connected GameShuffle with Discord.</li>
         <li><strong>PB pace alerts</strong>{" "}(GS Pro): once per run, when a live runner is ahead of PB with a quarter of the run left, with an optional role ping. Discord only lets the bot ping roles that allow mentions.</li>
         <li><code>/pb</code>{" "}(free): anyone can look up PB, sum of best and attempts. It shows the server owner&apos;s run unless you pick a member.</li>
+        <li><strong>Post races and duels</strong>{" "}(free): a race (or a Trainer Road duel) starting, with a Watch button, then its results once every stream has shown the finish.</li>
       </ul>
       <p>
         The GameShuffle bot&apos;s end-of-stream recap also adds <strong>Speedrun tonight</strong>: attempts, your best run,

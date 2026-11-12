@@ -1,6 +1,6 @@
 import type { BrowseHeroProps } from "@/components/events/BrowseHero";
 
-/** The page's header (its search box is added by the page), shared with its loading outline. */
+/** The page's header (its search box is added by the page). */
 export const LOUNGE_HERO: BrowseHeroProps = {
   eyebrow: "Mario Kart lounge",
   title: "Lounge stats",

@@ -41,6 +41,7 @@ import { ImpersonationBanner } from "@/components/staff/ImpersonationBanner";
 import { ImpersonationControlMount } from "@/components/staff/ImpersonationControlMount";
 import { ImpersonationProviderMount } from "@/components/staff/ImpersonationProviderMount";
 import { RouteThemeSync } from "@/components/theme/RouteThemeSync";
+import { ScrollTopOnNavigate } from "@/components/layout/ScrollTopOnNavigate";
 import { AuthHashErrorCatcher } from "@/components/auth/AuthHashErrorCatcher";
 import { TabsInView } from "@/components/ui/TabsInView";
 import { NavProgress } from "@/components/layout/NavProgress";
@@ -214,6 +215,7 @@ export default async function RootLayout({
             above only covers the initial load; this covers route
             transitions. Mirrors the same isAppRoute() decision tree. */}
         <RouteThemeSync />
+        <ScrollTopOnNavigate />
         {/* Sends a sign-in error that Supabase dropped on another page (after the #) to /login to be explained. */}
         <AuthHashErrorCatcher />
         {/* Scrolls a CDS tab bar to its selected tab when the tabs don't fit (phones). */}

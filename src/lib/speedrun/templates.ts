@@ -2,7 +2,8 @@
  * Ready-made split lists (speedrun templates picks 2026-11-10, all as recommended), from game data GameShuffle already
  * keeps, so nothing comes from outside: Mario Kart 8 Deluxe, World and 64 (every track, cups as LiveSplit groups, or
  * one split a cup), Kirby Air Riders (the 18 Air Ride courses) and Pokémon FireRed and LeafGreen (Any%: the Gym Leaders,
- * the Elite Four and the Champion). Every other game gets the number builder (`numberedSplits`), typing, or its own
+ * the Elite Four and the Champion), plus the speedrun roster's ten games (roster picks 2026-11-11, our own lists in
+ * src/data/speedrun/roster.ts). Every other game gets the number builder (`numberedSplits`), typing, or its own
  * LiveSplit file, so this never makes speedrunning a Mario Kart tool. Served by /api/speedrun/templates (the data
  * files stay off the setup page's bundle). Pure.
  */
@@ -11,6 +12,7 @@ import mk8dx from "@/data/mk8dx-data.json";
 import mkworld from "@/data/mkworld-data.json";
 import mk64 from "@/data/mk64-data.json";
 import { AIR_RIDERS } from "@/data/kirby/air-riders";
+import { SPEEDRUN_ROSTER } from "@/data/speedrun/roster";
 import { gameKey } from "@/lib/games/key";
 import { groupedNames, type SplitGroup } from "./splitGroups";
 
@@ -98,6 +100,17 @@ const GAMES: Record<string, Omit<GameTemplates, "game">> = {
     templates: [{ id: "any", name: "Any%", note: "8 Gym Leaders, the Elite Four and the Champion", groups: [{ group: "Badges", names: FRLG_GYMS }, { group: "Pokémon League", names: FRLG_LEAGUE }] }],
   },
 };
+
+/** "19 splits", "73 splits in 24 groups". */
+function rosterNote(groups: SplitGroup[]): string {
+  const n = groups.reduce((a, g) => a + g.names.length, 0);
+  const named = groups.filter((g) => g.group).length;
+  return named ? `${n} splits in ${named} groups` : `${n} splits`;
+}
+
+for (const g of SPEEDRUN_ROSTER) {
+  GAMES[g.key] = { speeds: [], items: false, templates: g.categories.map((c) => ({ id: c.id, name: c.name, note: rosterNote(c.groups), groups: c.groups })) };
+}
 
 /** A game's templates (any way the game is named), or null when there's no ready-made list for it. */
 export function templatesFor(game: string | null | undefined): GameTemplates | null {

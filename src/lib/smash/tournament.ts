@@ -13,8 +13,9 @@
  */
 
 import { ULTIMATE } from "@/data/smash/ultimate";
+import { MELEE } from "@/data/smash/melee";
 import { drawFighters, fighterPool, type FighterRoll } from "@/lib/smash/roll";
-import type { SmashGame, SmashStage } from "@/lib/smash/types";
+import type { SmashGame, SmashStage, StarterPreset } from "@/lib/smash/types";
 
 export type Side = "a" | "b";
 
@@ -32,8 +33,16 @@ export interface SmashTourneyRules {
   legal: string[];
 }
 
+/** The Smash games a tournament can run with sets, strikes and counterpicks (Melee joined 2026-11-11). */
+const TOURNEY_GAMES: Record<string, SmashGame> = { [ULTIMATE.slug]: ULTIMATE, [MELEE.slug]: MELEE };
+
 export function isSmashGame(slug: string | null | undefined): boolean {
-  return slug === ULTIMATE.slug;
+  return !!slug && slug in TOURNEY_GAMES;
+}
+
+/** The Smash game a tournament plays (Ultimate when the slug isn't one). */
+export function smashTourneyGame(slug: string | null | undefined): SmashGame {
+  return (slug && TOURNEY_GAMES[slug]) || ULTIMATE;
 }
 
 /** FFA points formats score like Mario Party: steep, four to a flight. */
@@ -52,15 +61,18 @@ export function defaultRules(game: SmashGame = ULTIMATE): SmashTourneyRules {
  * Common starter lists. Picking one also makes sure its stages are legal.
  * Three is the quick strike; five is the 1-2-1 most events use.
  */
-export const STARTER_PRESETS: { id: string; label: string; stages: string[] }[] = [
+export const STARTER_PRESETS: StarterPreset[] = [
   { id: "three", label: "3 starters: Battlefield, Final Destination, Smashville", stages: ["battlefield", "final-destination", "smashville"] },
   { id: "five", label: "5 starters: adds Pokémon Stadium 2 and Town and City", stages: ["battlefield", "final-destination", "smashville", "pokemon-stadium-2", "town-and-city"] },
 ];
 
+/** The game's own starter lists (Melee: singles, Pokémon Stadium in, doubles), else Ultimate's. */
+export const starterPresetsFor = (game: SmashGame = ULTIMATE): StarterPreset[] => game.starterPresets ?? STARTER_PRESETS;
+
 /** Which preset the current starters match, or "custom". */
-export function starterPresetOf(starters: string[]): string {
+export function starterPresetOf(starters: string[], game: SmashGame = ULTIMATE): string {
   const set = new Set(starters);
-  return STARTER_PRESETS.find((p) => p.stages.length === set.size && p.stages.every((id) => set.has(id)))?.id ?? "custom";
+  return starterPresetsFor(game).find((p) => p.stages.length === set.size && p.stages.every((id) => set.has(id)))?.id ?? "custom";
 }
 
 export function readRules(raw: unknown, game: SmashGame = ULTIMATE): SmashTourneyRules {

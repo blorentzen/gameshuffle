@@ -1,7 +1,8 @@
 "use client";
 
 /**
- * Tournament deck lists (Pokémon TCG events):
+ * Tournament deck lists (Pokémon TCG events). On a Pokémon Champions event the route answers `kind: "team"` and each
+ * of these hands over to its team list twin (./TournamentTeamLists.tsx).
  * - MyDeckListCard: the player's own list on the tournament page (send, swap
  *   until the event starts, see its checks and whether the organizer checked it).
  * - OrganizerDeckLists: the manage page's tab (who's in, who's missing with a
@@ -22,6 +23,8 @@ import type { DeckView } from "@/lib/tcg/decks";
 import type { DeckListSettings } from "@/lib/tournaments/deckLists";
 import type { OrganizerDeckRow, PublicDeckList } from "@/lib/tournaments/deckListStore";
 import { DeckListPicker } from "./DeckListPicker";
+import { MyTeamListCard, OrganizerTeamLists, PublicTeamLists, type TeamMine } from "./TournamentTeamLists";
+import type { OrganizerTeamRow, PublicTeamList, TeamScope } from "@/lib/tournaments/teamListStore";
 
 const SECTIONS: DeckSection[] = ["pokemon", "trainer", "energy"];
 const okLabel = (format: string) => (format === "standard" ? "Standard ✓" : `${DECK_FORMATS.find((f) => f.value === format)?.label ?? "Format"} ✓`);
@@ -63,19 +66,23 @@ export function MyDeckListCard({ tournamentId, onChanged }: { tournamentId: stri
   const [swapping, setSwapping] = useState(false);
   const [pick, setPick] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [team, setTeam] = useState<TeamMine | null>(null);
 
-  const fetchMine = useCallback(async (): Promise<Mine | null> => {
+  const fetchMine = useCallback(async (): Promise<{ deck: Mine | null; team: TeamMine | null }> => {
     const res = await fetch(`/api/tournament/${tournamentId}/deck-lists?view=mine`, { cache: "no-store" }).catch(() => null);
-    const j = (await res?.json().catch(() => null)) as { ok?: boolean; mine?: Mine } | null;
-    return j?.ok && j.mine ? j.mine : null;
+    const j = (await res?.json().catch(() => null)) as { ok?: boolean; kind?: string; mine?: Mine } | null;
+    // A Pokémon Champions event: its team list card takes over.
+    if (j?.ok && j.kind === "team" && j.mine) return { deck: null, team: j.mine as unknown as TeamMine };
+    return { deck: j?.ok && j.mine ? j.mine : null, team: null };
   }, [tournamentId]);
-  const load = useCallback(async () => setMine(await fetchMine()), [fetchMine]);
+  const load = useCallback(async () => setMine((await fetchMine()).deck), [fetchMine]);
   useEffect(() => {
     let live = true;
-    fetchMine().then((m) => { if (live) setMine(m); });
+    fetchMine().then((m) => { if (live) { setMine(m.deck); setTeam(m.team); } });
     return () => { live = false; };
   }, [fetchMine]);
 
+  if (team) return <MyTeamListCard tournamentId={tournamentId} initial={team} onChanged={onChanged} />;
   if (!mine || !mine.participantId) return null;
   const send = async () => {
     if (!pick) return;
@@ -133,13 +140,16 @@ export function OrganizerDeckLists({ tournamentId }: { tournamentId: string }) {
   const [openId, setOpenId] = useState<string | null>(null);
   const [detail, setDetail] = useState<(DeckView & { checkedAt: string | null; player: string }) | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
+  const [teams, setTeams] = useState<{ rows: OrganizerTeamRow[]; settings: DeckListSettings; locked: boolean } | null>(null);
 
   const fetchOrg = useCallback(async () => {
     const res = await fetch(`/api/tournament/${tournamentId}/deck-lists?view=organizer`, { cache: "no-store" }).catch(() => null);
-    return (await res?.json().catch(() => null)) as { ok?: boolean; organizer?: Org; error?: string } | null;
+    return (await res?.json().catch(() => null)) as { ok?: boolean; kind?: string; organizer?: Org; error?: string } | null;
   }, [tournamentId]);
   const apply = useCallback((j: Awaited<ReturnType<typeof fetchOrg>>) => {
     if (j?.error === "missing") setMissing(true);
+    // A Pokémon Champions event: its team lists take over.
+    if (j?.ok && j.kind === "team" && j.organizer) { setTeams(j.organizer as unknown as { rows: OrganizerTeamRow[]; settings: DeckListSettings; locked: boolean }); return; }
     if (j?.ok && j.organizer) setData(j.organizer);
   }, []);
   const load = useCallback(async () => apply(await fetchOrg()), [apply, fetchOrg]);
@@ -167,6 +177,7 @@ export function OrganizerDeckLists({ tournamentId }: { tournamentId: string }) {
   };
 
   if (missing) return <Alert variant="info" title="Deck lists need a database update">Once it&apos;s applied, players&apos; lists show here.</Alert>;
+  if (teams) return <OrganizerTeamLists tournamentId={tournamentId} initial={teams} />;
   if (!data) return <LoadingLines label="Loading deck lists" />;
   const playing = data.rows.filter((r) => r.status !== "dropped");
   const inCount = playing.filter((r) => r.deck).length;
@@ -237,13 +248,20 @@ export function OrganizerDeckLists({ tournamentId }: { tournamentId: string }) {
 export function PublicDeckLists({ tournamentId, signedIn }: { tournamentId: string; signedIn: boolean }) {
   const toast = useToast();
   const [data, setData] = useState<{ lists: PublicDeckList[]; scope: "top_cut" | "all" } | null>(null);
+  const [teams, setTeams] = useState<{ lists: PublicTeamList[]; scope: TeamScope } | null>(null);
   const [saving, setSaving] = useState<number | null>(null);
   useEffect(() => {
     let live = true;
     fetch(`/api/tournament/${tournamentId}/deck-lists?view=public`, { cache: "no-store" })
-      .then((r) => r.json()).then((j) => { if (live && j?.ok) setData(j.public ?? null); }).catch(() => {});
+      .then((r) => r.json()).then((j) => {
+        if (!live || !j?.ok) return;
+        // A Pokémon Champions event: the teams the organizer chose to show.
+        if (j.kind === "team") setTeams(j.public ?? null);
+        else setData(j.public ?? null);
+      }).catch(() => {});
     return () => { live = false; };
   }, [tournamentId]);
+  if (teams) return <PublicTeamLists data={teams} />;
   if (!data || !data.lists.length) return null;
   const save = async (i: number, entry: PublicDeckList) => {
     setSaving(i);

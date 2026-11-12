@@ -7,6 +7,11 @@ import { describeSmashSetup } from "@/data/smash";
 import { describeSplatoonSetup } from "@/data/splatoon";
 import { describeKirbySetup } from "@/data/kirby";
 import { describeSonicSetup } from "@/data/sonic";
+import { describeWonderSetup } from "@/data/wonder";
+import { describeDoubleDashSetup } from "@/data/double-dash";
+import { describeMarioKartDsSetup } from "@/data/mario-kart-ds";
+import { describeMarioKart7Setup } from "@/data/mario-kart-7";
+import { describeSuperMarioKartSetup } from "@/data/super-mario-kart";
 import { describeStadiumSetup } from "@/data/pokemon/stadium-setup";
 import { getGameName } from "@/data/game-registry";
 
@@ -102,6 +107,36 @@ export default async function SharedConfigPage({
               </div>
             ))}
             {configData.type === "sonic-setup" && describeSonicSetup(configData).map((r) => (
+              <div key={r.label} className="account-card__row">
+                <span className="account-card__label">{r.label}</span>
+                <span className="account-card__value">{r.value}</span>
+              </div>
+            ))}
+            {configData.type === "wonder-setup" && describeWonderSetup(configData).map((r) => (
+              <div key={r.label} className="account-card__row">
+                <span className="account-card__label">{r.label}</span>
+                <span className="account-card__value">{r.value}</span>
+              </div>
+            ))}
+            {configData.type === "double-dash-setup" && describeDoubleDashSetup(configData).map((r) => (
+              <div key={r.label} className="account-card__row">
+                <span className="account-card__label">{r.label}</span>
+                <span className="account-card__value">{r.value}</span>
+              </div>
+            ))}
+            {configData.type === "mario-kart-ds-setup" && describeMarioKartDsSetup(configData).map((r) => (
+              <div key={r.label} className="account-card__row">
+                <span className="account-card__label">{r.label}</span>
+                <span className="account-card__value">{r.value}</span>
+              </div>
+            ))}
+            {configData.type === "mario-kart-7-setup" && describeMarioKart7Setup(configData).map((r) => (
+              <div key={r.label} className="account-card__row">
+                <span className="account-card__label">{r.label}</span>
+                <span className="account-card__value">{r.value}</span>
+              </div>
+            ))}
+            {configData.type === "super-mario-kart-setup" && describeSuperMarioKartSetup(configData).map((r) => (
               <div key={r.label} className="account-card__row">
                 <span className="account-card__label">{r.label}</span>
                 <span className="account-card__value">{r.value}</span>

@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { HelpArticle } from "@/components/help/HelpArticle";
 import { findArticle } from "@/lib/help/manifest";
 
@@ -38,7 +39,7 @@ export default function Page() {
 
       <h2>Choosing what reaches you</h2>
       <p>
-        <a href="/settings/notifications">Settings ▸ Notifications</a> lets you choose, for each kind of news,
+        <Link href="/settings/notifications">Settings ▸ Notifications</Link> lets you choose, for each kind of news,
         whether it reaches you on GameShuffle, by email or on Discord.
       </p>
 

@@ -22,6 +22,7 @@ import { LocationFields } from "@/components/account/profile/LocationFields";
 import { TopFriendsEditor } from "@/components/account/TopFriendsEditor";
 import { PlatformIcon } from "@/components/PlatformIcon";
 import { GAMERTAG_PLATFORMS, type Gamertags } from "@/data/gamertag-types";
+import { MakerIdSection } from "@/components/levels/MakerIdSection";
 import { SOCIAL_PLATFORMS, type Socials } from "@/data/socials-types";
 import { BOARD_GAME_GENRE_SUGGESTIONS, BOARD_GAME_LEVELS, BOARD_GAME_LENGTHS } from "@/data/board-games";
 
@@ -201,6 +202,9 @@ export function ProfileHandlesScreen() {
           ))}
         </div>
       </AdminSection>
+
+      {/* Levels from players (curation picks 9A): shows itself once the curation tables exist. */}
+      <MakerIdSection />
 
       <AdminSection title="Socials" intro={<>Your channels. They also fill <code>$youtube</code>, <code>$twitter</code> and the rest in your <Link href="/account/streaming?tab=chat-commands">chat commands</Link>.</>}>
         <div className="admin-form-grid">

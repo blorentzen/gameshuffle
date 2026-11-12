@@ -14,8 +14,9 @@
  *   - The createSession service writes 'scheduled' status when scheduledAt
  *     is provided — verified via a contract assertion at the type level
  *     (the runtime behavior is exercised in the runbook)
- *   - The Twitch help-message context selection (in-session / no-session /
- *     unsupported) is structurally correct — the strings exist and differ
+ *   - Twitch chat help: the registry-driven renderer (`!gs help`) points
+ *     a channel at its commands page, lists by role and topic, and fits
+ *     one chat message
  */
 
 import assert from "node:assert/strict";
@@ -70,80 +71,88 @@ async function main() {
     assert.equal(hasCapability(staffImpFree, "hub.access"), false);
   });
 
-  // ---------- Help-message context selection ------------------------------
-  // The dispatcher chooses one of three strings based on session state:
-  //   no session             → HELP_MESSAGE_NO_SESSION
-  //   session w/ no slug     → HELP_MESSAGE_GAME_UNSUPPORTED
-  //   session w/ slug        → HELP_MESSAGE_IN_SESSION
-  // This is too coupled to the dispatcher to import directly without
-  // pulling in DB-dependent symbols. Verify the strings live in the file
-  // and differ — that's enough to catch regressions.
+  // ---------- Chat help ---------------------------------------------------
+  // The three hard-coded HELP_MESSAGE_* strings in dispatch.ts were
+  // replaced by the registry-driven renderer (Spec 03 §3,
+  // helpRenderer.ts): `!gs help` on a channel points at that channel's
+  // commands page (2026-10-10), with no channel it lists commands by
+  // category for the caller's role, and `!gs help <topic>` prints one
+  // command's usage. Every answer must fit one Twitch message (500 chars).
 
-  section("Twitch chat help — three context-aware messages exist");
+  section("Twitch chat help — registry-driven renderer");
 
-  const fs = await import("node:fs/promises");
-  const dispatcherSource = await fs.readFile(
-    new URL("../src/lib/twitch/commands/dispatch.ts", import.meta.url),
-    "utf8"
-  );
+  // Show triggers the way production does, whatever the shell has set.
+  delete process.env.GS_COMMAND_DEV_TAG;
+  await import("../src/lib/twitch/commands/registrations");
+  const { renderHelp } = await import("../src/lib/twitch/commands/helpRenderer");
+  const TIERS = ["everyone", "player", "crew", "host"] as const;
 
-  await test("HELP_MESSAGE_IN_SESSION is defined", () => {
-    assert.match(dispatcherSource, /HELP_MESSAGE_IN_SESSION\s*=/);
+  await test("!gs help on a channel links that channel's commands page", async () => {
+    const msg = await renderHelp({ callerTier: "everyone", topic: null, streamerSlug: "nova streams" });
+    assert.match(msg, /gameshuffle\.co\/c\/nova%20streams\/commands/);
+    assert.match(msg, /!gs join/);
+    assert.match(msg, /!gs shuffle/);
+    assert.match(msg, /!help <command>/);
   });
-  await test("HELP_MESSAGE_NO_SESSION is defined", () => {
-    assert.match(dispatcherSource, /HELP_MESSAGE_NO_SESSION\s*=/);
+  await test("!gs help with no channel lists commands by category", async () => {
+    const msg = await renderHelp({ callerTier: "everyone", topic: null, streamerSlug: null });
+    assert.match(msg, /^🎲 GS commands → /);
+    assert.match(msg, /Core: [^·]*!gs help/);
+    assert.match(msg, /!help <topic> for details\.$/);
   });
-  await test("HELP_MESSAGE_QUEUE_MODE is defined", () => {
-    assert.match(dispatcherSource, /HELP_MESSAGE_QUEUE_MODE\s*=/);
+  await test("Each role's category list shows only commands that role can use", async () => {
+    const { listCommands, tierMeets } = await import("../src/lib/twitch/commands/registry");
+    const byTrigger = new Map(listCommands().map((d) => [`!${d.trigger.join(" ")}`, d]));
+    for (const callerTier of TIERS) {
+      const msg = await renderHelp({ callerTier, topic: null, streamerSlug: null });
+      const body = msg.replace(/^🎲 GS commands → /, "").replace(/ · !help <topic> for details\.$/, "");
+      const shown = body
+        .split(" · ")
+        .filter((section) => section.includes(": "))
+        .flatMap((section) => section.slice(section.indexOf(": ") + 2).split(", "));
+      assert.ok(shown.length > 0, `${callerTier}: no commands listed`);
+      for (const trigger of shown) {
+        const def = byTrigger.get(trigger);
+        assert.ok(def, `${callerTier}: "${trigger}" isn't a registered trigger`);
+        assert.ok(tierMeets(callerTier, def!.actor ?? "everyone"), `${callerTier} was shown ${trigger} (${def!.actor})`);
+      }
+    }
   });
-  await test("In-session help mentions the playable commands", () => {
-    const match = dispatcherSource.match(
-      /HELP_MESSAGE_IN_SESSION\s*=\s*"([^"]+)"/
-    );
-    assert.ok(match, "could not extract HELP_MESSAGE_IN_SESSION literal");
-    const body = match![1];
-    assert.match(body, /!gs-join/);
-    assert.match(body, /!gs-shuffle/);
-    assert.match(body, /!gs-mycombo/);
-    assert.match(body, /!gs-lobby/);
-    assert.match(body, /!gs-leave/);
+  await test("!gs help <topic> prints that command's usage", async () => {
+    const msg = await renderHelp({ callerTier: "everyone", topic: "gs shuffle", streamerSlug: null });
+    assert.match(msg, /^🎲 !gs shuffle → /);
+    for (const shape of ["gs-shuffle", "!gs shuffle", "gs.shuffle"]) {
+      const same = await renderHelp({ callerTier: "everyone", topic: shape, streamerSlug: null });
+      assert.equal(same, msg, `topic "${shape}" should resolve like "gs shuffle"`);
+    }
   });
-  await test("No-session help explains why bot is silent", () => {
-    const match = dispatcherSource.match(
-      /HELP_MESSAGE_NO_SESSION\s*=\s*"([^"]+)"/
-    );
-    assert.ok(match, "could not extract HELP_MESSAGE_NO_SESSION literal");
-    assert.match(match![1], /isn't running/);
+  await test("Help names an unknown topic and a role-locked one", async () => {
+    const unknown = await renderHelp({ callerTier: "everyone", topic: "nope-not-real", streamerSlug: null });
+    assert.match(unknown, /Unknown command "nope-not-real"/);
+    const locked = await renderHelp({ callerTier: "everyone", topic: "gs brb", streamerSlug: null });
+    assert.match(locked, /isn't available to your role/);
+    const allowed = await renderHelp({ callerTier: "crew", topic: "gs brb", streamerSlug: null });
+    assert.match(allowed, /^🎲 !gs brb → /);
   });
-  await test("Queue-mode help directs viewers to !gs-join + !gs-lobby", () => {
-    const match = dispatcherSource.match(
-      /HELP_MESSAGE_QUEUE_MODE\s*=\s*"([^"]+)"/
-    );
-    assert.ok(match, "could not extract HELP_MESSAGE_QUEUE_MODE literal");
-    assert.match(match![1], /!gs-join/);
-    assert.match(match![1], /!gs-lobby/);
-    assert.match(match![1], /Queue/i);
-  });
-  await test("All three help messages stay under Twitch's 500-char cap", () => {
-    for (const name of [
-      "HELP_MESSAGE_IN_SESSION",
-      "HELP_MESSAGE_NO_SESSION",
-      "HELP_MESSAGE_QUEUE_MODE",
-    ]) {
-      const match = dispatcherSource.match(
-        new RegExp(`${name}\\s*=\\s*"([^"]+)"`)
-      );
-      assert.ok(match, `${name} not found`);
-      assert.ok(
-        match![1].length <= 500,
-        `${name} (${match![1].length} chars) exceeds Twitch's 500-char cap`
-      );
+  await test("Every help answer stays under Twitch's 500-char cap", async () => {
+    for (const callerTier of TIERS) {
+      for (const streamerSlug of [null, "novastreams"]) {
+        const msg = await renderHelp({ callerTier, topic: null, streamerSlug });
+        assert.ok(msg.length <= 500, `${callerTier}/${streamerSlug}: ${msg.length} chars`);
+      }
+    }
+    const { listCommands } = await import("../src/lib/twitch/commands/registry");
+    for (const def of listCommands()) {
+      const msg = await renderHelp({ callerTier: "host", topic: def.trigger.join(" "), streamerSlug: null });
+      assert.ok(msg.length <= 500, `!help ${def.trigger.join(" ")}: ${msg.length} chars`);
     }
   });
 
   // ---------- Help-discoverability — error messages reference !gs-help ----
 
   section("Help-discoverability — error messages mention !gs-help");
+
+  const fs = await import("node:fs/promises");
 
   const messagesSource = await fs.readFile(
     new URL("../src/lib/twitch/commands/messages.ts", import.meta.url),

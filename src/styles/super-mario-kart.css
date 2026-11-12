@@ -1,0 +1,22 @@
+/* Super Mario Kart randomizer (SuperMarioKartRandomizer). The cards, intro, tabs and race tiles come from
+   randomizer.css and the Race and Battle tabs from kart-races.css; this is the driver's class on each card and the
+   game's pixel art kept sharp. */
+
+.smk-randomizer { width: 100%; min-width: 0; }
+.smk-randomizer > .type-card-disclaimer { text-align: start; }
+
+/* The course maps and cup emblems are the game's pixel art: they scale without blurring. */
+.smk-randomizer .track-list__course-img,
+.smk-randomizer .track-list__cup-img,
+.smk-randomizer .kart-races__cup { image-rendering: pixelated; }
+
+/* The cup emblem is a strip of three icons, wider than it is tall. */
+.smk-randomizer .kart-races__cup { width: 9.6rem; height: 3.2rem; }
+.smk-randomizer .track-list__cup-img { height: 3.2rem; }
+
+/* The driver artwork is the whole kart: it fills the tile instead of being cropped to a face. */
+.smk-randomizer .player-card__pic .kart-slot--portrait .kart-slot__tile { align-items: center; }
+.smk-randomizer .player-card__pic .kart-slot--portrait .kart-slot__tile img { height: 92%; object-fit: contain; object-position: center; }
+
+/* The driver's class and what the pair is good at, label left and value right. */
+.smk-facts dd { text-align: right; }

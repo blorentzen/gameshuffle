@@ -7,6 +7,8 @@
  */
 
 import { RANKED_CATEGORY, RANKED_HELP, RANKED_HELP_JA, RANKED_HELP_PUBLIC } from "./ranked";
+import { MELEE_PUBLIC, MKWII_PUBLIC, WONDER_PUBLIC } from "@/lib/games-visibility";
+import { DOUBLE_DASH_PUBLIC, MARIO_KART_7_PUBLIC, MARIO_KART_DS_PUBLIC, SUPER_MARIO_KART_PUBLIC } from "@/lib/games-visibility";
 
 export type HelpCategoryId =
   | "getting-started"
@@ -472,6 +474,14 @@ export const HELP_ARTICLES: HelpArticleMeta[] = [
     keywords: ["bingo", "stream bingo", "!bingo", "number bingo", "bingo card", "patterns", "blackout", "prize", "overlay"],
   },
   {
+    id: "level-queue",
+    title: "Level queue and Levels",
+    description: "Viewers send Super Mario Maker 2 course IDs, Fortnite island codes, Fall Guys share codes and Geometry Dash level IDs with !add; you play them in order or at random. Players share, like and list their best on each game's Levels board.",
+    href: "/help/streaming/level-queue",
+    category: "streaming",
+    keywords: ["level queue", "levels", "!add", "!position", "!remove", "!level", "mario maker", "super mario maker 2", "course id", "maker id", "fortnite", "island code", "uefn", "fall guys", "share code", "geometry dash", "level id", "minecraft", "seeds", "level of the week", "lists", "viewer levels", "overlay"],
+  },
+  {
     id: "speedrun-overlay",
     title: "Speedrun overlay",
     description: "Your splits on stream from LiveSplit One or your phone, for any game: connect the timer, add the overlay to OBS, pick a look, and let chat ask !pb, !pace and !splits.",
@@ -649,6 +659,83 @@ export const HELP_ARTICLES: HelpArticleMeta[] = [
   },
 ];
 
+/** The Mario Kart Wii randomizer's article: in the index, search and sitemap once the randomizer is public (MKWII_PUBLIC). */
+export const MKWII_HELP: HelpArticleMeta = {
+  id: "mario-kart-wii-randomizer",
+  title: "How to use the Mario Kart Wii randomizer",
+  description: "Roll a character and a kart or bike in their size class for up to 12 players, races from all 32 tracks, and battle arenas for Mario Kart Wii.",
+  href: "/help/apps/mario-kart-wii-randomizer",
+  category: "apps",
+  keywords: ["mario kart wii", "mkwii", "wii", "character", "size class", "kart", "bike", "inside drift", "outside drift", "mii", "tracks", "retro tracks", "battle", "battle arenas", "war", "saved setup"],
+};
+if (MKWII_PUBLIC) HELP_ARTICLES.push(MKWII_HELP);
+
+/** The Melee randomizer's article: joins the index, search and sitemap once the randomizer is public (MELEE_PUBLIC). */
+export const MELEE_HELP: HelpArticleMeta = {
+  id: "melee-randomizer",
+  title: "How to use the Melee randomizer",
+  description: "Roll a fighter and costume for two to four Melee players, a stage with party or tournament rules, and run Melee tournaments with stage strikes.",
+  href: "/help/apps/melee-randomizer",
+  category: "apps",
+  keywords: ["melee", "ssbm", "smash melee", "super smash bros melee", "fighter", "costume", "sheik", "stage", "stage strikes", "starters", "counterpick", "legal stages", "tournament", "smashdown"],
+};
+if (MELEE_PUBLIC) HELP_ARTICLES.push(MELEE_HELP);
+
+/** The Super Mario Bros. Wonder randomizer's article: joins the index, search and sitemap once it's public (WONDER_PUBLIC). */
+export const WONDER_HELP: HelpArticleMeta = {
+  id: "super-mario-bros-wonder-randomizer",
+  title: "How to use the Super Mario Bros. Wonder randomizer",
+  description: "Roll a character and a badge for up to four co-op players, a level from any world, and challenge rules like one life each.",
+  href: "/help/apps/super-mario-bros-wonder-randomizer",
+  category: "apps",
+  keywords: ["super mario bros wonder", "mario wonder", "smbw", "badge", "badges", "character", "level", "world", "challenge", "co-op", "rules", "switch 2 edition", "rosalina"],
+};
+if (WONDER_PUBLIC) HELP_ARTICLES.push(WONDER_HELP);
+
+/** The Mario Kart: Double Dash!! randomizer's article: joins the index, search and sitemap once it's public (DOUBLE_DASH_PUBLIC). */
+export const DOUBLE_DASH_HELP: HelpArticleMeta = {
+  id: "mario-kart-double-dash-randomizer",
+  title: "How to use the Mario Kart Double Dash randomizer",
+  description: "Roll a driver, an item thrower and a kart that fits them for every kart in Double Dash, pair people two to a kart, and roll cups, the All Cup Tour and battles.",
+  href: "/help/apps/mario-kart-double-dash-randomizer",
+  category: "apps",
+  keywords: ["mario kart double dash", "double dash", "mkdd", "gamecube", "pair", "driver", "item thrower", "two to a kart", "co-op", "kart class", "special item", "parade kart", "cup", "all cup tour", "battle", "shine thief", "bob-omb blast", "retro mario kart"],
+};
+if (DOUBLE_DASH_PUBLIC) HELP_ARTICLES.push(DOUBLE_DASH_HELP);
+
+/** The Mario Kart DS randomizer's article: joins the index, search and sitemap once it's public (MARIO_KART_DS_PUBLIC). */
+export const MARIO_KART_DS_HELP: HelpArticleMeta = {
+  id: "mario-kart-ds-randomizer",
+  title: "How to use the Mario Kart DS randomizer",
+  description: "Roll a character and a kart your save has opened for each player in Mario Kart DS, then roll cups, races, battles and Mission Mode challenges.",
+  href: "/help/apps/mario-kart-ds-randomizer",
+  category: "apps",
+  keywords: ["mario kart ds", "mkds", "nintendo ds", "character", "kart", "signature kart", "standard kart", "unlock", "save", "nitro cup", "retro cup", "battle", "balloon battle", "shine runners", "mission mode", "missions", "boss", "retro mario kart"],
+};
+if (MARIO_KART_DS_PUBLIC) HELP_ARTICLES.push(MARIO_KART_DS_HELP);
+
+/** The Mario Kart 7 randomizer's article: joins the index, search and sitemap once it's public (MARIO_KART_7_PUBLIC). */
+export const MARIO_KART_7_HELP: HelpArticleMeta = {
+  id: "mario-kart-7-randomizer",
+  title: "How to use the Mario Kart 7 randomizer",
+  description: "Roll a character and a body, tires and glider from the parts your save has for each player in Mario Kart 7, then roll cups, races and battles.",
+  href: "/help/apps/mario-kart-7-randomizer",
+  category: "apps",
+  keywords: ["mario kart 7", "mk7", "3ds", "character", "kart", "body", "tires", "glider", "parts", "unlock", "new cup", "classic cup", "battle", "balloon battle", "coin runners", "retro mario kart"],
+};
+if (MARIO_KART_7_PUBLIC) HELP_ARTICLES.push(MARIO_KART_7_HELP);
+
+/** The Super Mario Kart randomizer's article: joins the index, search and sitemap once it's public (SUPER_MARIO_KART_PUBLIC). */
+export const SUPER_MARIO_KART_HELP: HelpArticleMeta = {
+  id: "super-mario-kart-randomizer",
+  title: "How to use the Super Mario Kart randomizer",
+  description: "Roll a different racer for each of two players in Super Mario Kart, then roll a cup, a race list and battle courses.",
+  href: "/help/apps/super-mario-kart-randomizer",
+  category: "apps",
+  keywords: ["super mario kart", "smk", "snes", "super nintendo", "racer", "two players", "match race", "grand prix", "cup", "battle course", "balloon battle", "retro mario kart"],
+};
+if (SUPER_MARIO_KART_PUBLIC) HELP_ARTICLES.push(SUPER_MARIO_KART_HELP);
+
 // GS Ranked's section joins the index, search and sitemap once it's announced (src/lib/help/ranked.ts).
 if (RANKED_HELP_PUBLIC) {
   HELP_CATEGORIES.push(RANKED_CATEGORY);
@@ -661,7 +748,7 @@ export function articlesInCategory(categoryId: HelpCategoryId): HelpArticleMeta[
 
 /** Any article, the GS Ranked pages included while they're unlisted. */
 export function findArticle(href: string): HelpArticleMeta | undefined {
-  return HELP_ARTICLES.find((a) => a.href === href) ?? RANKED_HELP.find((a) => a.href === href) ?? RANKED_HELP_JA.find((a) => a.href === href);
+  return HELP_ARTICLES.find((a) => a.href === href) ?? RANKED_HELP.find((a) => a.href === href) ?? RANKED_HELP_JA.find((a) => a.href === href) ?? [MKWII_HELP, MELEE_HELP, WONDER_HELP, DOUBLE_DASH_HELP, MARIO_KART_DS_HELP, MARIO_KART_7_HELP, SUPER_MARIO_KART_HELP].find((a) => a.href === href);
 }
 
 export function findCategory(categoryId: HelpCategoryId): HelpCategory | undefined {

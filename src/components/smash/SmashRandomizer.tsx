@@ -21,9 +21,10 @@ import { useGameCollection } from "@/hooks/useGameCollection";
 import { CollectionBar } from "@/components/collection/CollectionBar";
 import { saveConfig, updateConfig } from "@/lib/configs";
 import {
-  COMPETITIVE_RULES, drawFighters, drawSquads, fighterPool, rollCustomSmash, rollPartyRules, rollStage, stagePool,
+  competitiveRules, costumeArt, costumeLabel, drawFighters, drawSquads, fighterPool, rollCustomSmash, rollPartyRules, rollStage, stagePool,
   type FighterRoll, type SmashRules, type StageRoll,
 } from "@/lib/smash/roll";
+import { IMAGE_COMING_SOON } from "@/components/ImageComingSoon";
 import type { SmashGame } from "@/lib/smash/types";
 import { fighterColor } from "@/data/smash/ultimate";
 
@@ -45,6 +46,14 @@ function describeRules(r: SmashRules): string {
 }
 
 export function SmashRandomizer({ game }: { game: SmashGame }) {
+  // What this game has (Melee, 2026-11-11: four players, no Echo or Mii Fighters, Squad Strike, Custom Smash or stage forms).
+  const maxPlayers = game.maxPlayers ?? 8;
+  const hasEchoes = game.fighters.some((f) => f.echoOf);
+  const hasMiis = game.fighters.some((f) => f.mii);
+  const forms = game.rules?.stageForms ?? true;
+  const squadStrike = game.rules?.squadStrike ?? true;
+  const sometimesStages = game.stages.some((s) => s.status === "sometimes");
+  const compRules = competitiveRules(game);
   const { user } = useAuth();
   const toast = useToast();
   const { trackEvent } = useAnalytics();
@@ -91,7 +100,7 @@ export function SmashRandomizer({ game }: { game: SmashGame }) {
       const [one] = drawFighters(pool, 1, { used: avoid });
       setFighters((cur) => withSeat(cur, seat, one));
     }
-    trackEvent("Smash Fighters Rolled", { players: String(players) });
+    trackEvent("Smash Fighters Rolled", { players: String(players), game: game.shortLabel });
   };
   const nextGame = () => { setUsed((u) => [...u, ...rolled.map((f) => f.name)]); rollFighters(); };
 
@@ -105,9 +114,9 @@ export function SmashRandomizer({ game }: { game: SmashGame }) {
   const [custom, setCustom] = useState<Record<string, string> | null>(null);
   const stages = useMemo(() => stagePool(game, { list: preset === "competitive" ? "competitive" : stageList, sometimes, exclude: offStages }), [game, preset, stageList, sometimes, offStages]);
   const rollStageNow = () => {
-    setStage(rollStage(stages, preset === "competitive"));
+    setStage(rollStage(stages, preset === "competitive", Math.random, forms));
     setStageSpins((n) => n + 1);
-    setRules(preset === "competitive" ? COMPETITIVE_RULES : rollPartyRules());
+    setRules(preset === "competitive" ? compRules : rollPartyRules(Math.random, game));
   };
   const stageRow = game.stages.find((s) => s.id === stage?.stageId);
 
@@ -132,7 +141,7 @@ export function SmashRandomizer({ game }: { game: SmashGame }) {
         const cfg = data?.config_data as SmashSetupConfig | undefined;
         if (!data || cfg?.type !== "smash-setup" || cfg.gameSlug !== game.slug) return;
         setSaveName(data.config_name); setLoadedId(data.id);
-        const n = Math.max(2, Math.min(8, cfg.players.length));
+        const n = Math.max(2, Math.min(maxPlayers, cfg.players.length));
         setPlayers(n);
         setNames(Array.from({ length: 8 }, (_, i) => { const v = cfg.players[i]?.name ?? ""; return /^Player \d+$/.test(v) ? "" : v; }));
         setFighters(cfg.players.map((p) => (p.fighter ? { name: p.fighter, costume: p.costume } : null)));
@@ -140,7 +149,7 @@ export function SmashRandomizer({ game }: { game: SmashGame }) {
         setSquads(cfg.squads ?? []);
         trackEvent("Config Loaded", { configId: id });
       });
-  }, [searchParams, user, game, trackEvent]);
+  }, [searchParams, user, game, trackEvent, maxPlayers]);
 
   // Saving
   const save = async () => {
@@ -161,22 +170,25 @@ export function SmashRandomizer({ game }: { game: SmashGame }) {
   const seriesOptions = useMemo(() => [...new Set(game.fighters.map((f) => f.series))].map((k) => ({ value: k, label: game.series[k] ?? k })).sort((a, b) => a.label.localeCompare(b.label)), [game]);
 
   // Fighters: same shape as the Mario Kart kart tab (intro + filters, then a grid of player cards).
-  const includeValues = [...(echoes === "separate" ? ["echoes"] : []), ...(miis ? ["miis"] : []), ...(noRepeats ? ["norepeat"] : [])];
+  const includeValues = [...(hasEchoes && echoes === "separate" ? ["echoes"] : []), ...(miis ? ["miis"] : []), ...(noRepeats ? ["norepeat"] : [])];
   const toggleInclude = (v: string) => {
     if (v === "echoes") setEchoes((e) => (e === "separate" ? "merged" : "separate"));
     if (v === "miis") setMiis((m) => !m);
     if (v === "norepeat") { setNoRepeats((n) => !n); setUsed([]); }
   };
-  const fighterArt = (name: string) => { const f = game.fighters.find((x) => x.name === name); return f && game.artReady ? `${game.assetBase}${f.img}` : ""; };
-  const reelPool = useMemo(() => pool.map((f) => ({ name: f.name, img: game.artReady ? `${game.assetBase}${f.img}` : "", color: fighterColor(f.series) })), [pool, game]);
+  const fighterRow = (name: string) => game.fighters.find((x) => x.name === name);
+  const reelPool = useMemo(() => pool.map((f) => ({ name: f.name, img: costumeArt(game, f, 1), color: fighterColor(f.series) })), [pool, game]);
+  const includeOptions = [...(hasEchoes ? [{ value: "echoes", label: "Echo Fighters" }] : []), ...(hasMiis ? [{ value: "miis", label: "Mii Fighters" }] : []), { value: "norepeat", label: "No repeats (Smashdown)" }];
+  const starters = game.stages.filter((s) => s.status === "starter").map((s) => s.name);
+  const counterpicks = game.stages.filter((s) => s.status === "counterpick").map((s) => s.name);
   const fightersTab = (
     <section>
       <div className="kart-intro">
         <div className="kart-intro__content">
           <h2>Pick fighters for everyone.</h2>
-          <p>Two to eight players, a fighter each (two can land on the same one, like the game). {pool.length} fighters in the pool{noRepeats ? `, ${used.length} already played tonight` : ""}.</p>
+          <p>Two to {maxPlayers === 4 ? "four" : "eight"} players, a fighter{game.fighters.some((f) => f.costumes) ? " and costume" : ""} each (two can land on the same one, like the game). {pool.length} fighters in the pool{noRepeats ? `, ${used.length} already played tonight` : ""}.</p>
           <div className="kart-intro__actions">
-            <Button variant="primary" disabled={players >= 8} onClick={() => setPlayers((n) => Math.min(8, n + 1))}>Add Player</Button>
+            <Button variant="primary" disabled={players >= maxPlayers} onClick={() => setPlayers((n) => Math.min(maxPlayers, n + 1))}>Add Player</Button>
             <Button variant="primary" onClick={() => rollFighters()}>Randomize Fighters</Button>
             {noRepeats && rolled.length > 0 && <Button variant="secondary" onClick={nextGame}>Next game (no repeats)</Button>}
             {noRepeats && used.length > 0 && <Button variant="ghost" onClick={() => setUsed([])}>Reset the night</Button>}
@@ -188,8 +200,7 @@ export function SmashRandomizer({ game }: { game: SmashGame }) {
         <div className="randomizer-setup">
           <RandomizerOptions title="Any special modifiers?" empty="Every fighter is in the mix"
             summary={[...includeValues.map((v) => ({ echoes: "Echo Fighters", miis: "Mii Fighters", norepeat: "No repeats (Smashdown)" } as Record<string, string>)[v] ?? v), series.length ? `${series.length} ${series.length === 1 ? "series" : "series"}` : ""].filter(Boolean)}>
-            <FilterGroup label="Include" activeValues={includeValues} onToggle={toggleInclude}
-              options={[{ value: "echoes", label: "Echo Fighters" }, { value: "miis", label: "Mii Fighters" }, { value: "norepeat", label: "No repeats (Smashdown)" }]} />
+            <FilterGroup label="Include" activeValues={includeValues} onToggle={toggleInclude} options={includeOptions} />
             <div className="filter-group">
               <span className="filter-group__label"><b>Series</b></span>
               <Select multiple size="small" placeholder="Every series" value={series} onChange={(v) => setSeries(v as string[])} options={seriesOptions} />
@@ -200,6 +211,7 @@ export function SmashRandomizer({ game }: { game: SmashGame }) {
       <div className="randomizer-grid">
         {Array.from({ length: players }, (_, i) => {
           const f = fighters[i];
+          const row = f ? fighterRow(f.name) : undefined;
           return (
             <SeatCard key={i} rolled={Boolean(f)} animate={animateReel}
               name={<Input type="text" floatingLabel={`Player ${i + 1} name`} placeholder="Type a name" value={names[i] ?? ""} maxLength={24} onChange={(e) => setNames((n) => n.map((x, j) => (j === i ? e.target.value : x)))} />}
@@ -209,10 +221,10 @@ export function SmashRandomizer({ game }: { game: SmashGame }) {
                   removeLabel={`Remove ${seatLabel(names, i)}`} onRemove={players > 2 ? () => removePlayer(i) : undefined} />
               }
               tile={
-                <KartSlot label="Fighter" portrait name={f?.name ?? null} imageSrc={f ? fighterArt(f.name) || null : null}
-                  color={f ? fighterColor(game.fighters.find((x) => x.name === f.name)?.series ?? "") : null} pool={reelPool} animate={animateReel} empty={<RandomTile look="smash" />} />
+                <KartSlot label="Fighter" portrait name={f?.name ?? null} imageSrc={f ? costumeArt(game, row, f.costume) || null : null}
+                  color={f ? fighterColor(row?.series ?? "") : null} pool={reelPool} animate={animateReel} fallback={IMAGE_COMING_SOON} empty={<RandomTile look="smash" />} />
               }>
-              {f && <p className="party-muted">Costume {f.costume} · {game.series[game.fighters.find((x) => x.name === f.name)?.series ?? ""] ?? ""}</p>}
+              {f && <p className="party-muted">{costumeLabel(row, f.costume)} · {game.series[row?.series ?? ""] ?? ""}</p>}
             </SeatCard>
           );
         })}
@@ -226,13 +238,17 @@ export function SmashRandomizer({ game }: { game: SmashGame }) {
         <Button variant={preset === "party" ? "primary" : "secondary"} size="small" onClick={() => { setPreset("party"); setStage(null); setRules(null); }}>Party Rules</Button>
         <Button variant={preset === "competitive" ? "primary" : "secondary"} size="small" onClick={() => { setPreset("competitive"); setStage(null); setRules(null); }}>Competitive Rules</Button>
       </div>
-      <p className="party-muted">{preset === "party" ? "Any stage, with the rules rolled too." : "Legal stages, 3 stocks, 7 minutes, no items."}</p>
+      <p className="party-muted">
+        {preset === "party" ? "Any stage, with the rules rolled too." : `Legal stages, ${compRules.stocks} stocks, ${compRules.minutes} minutes, no items.`}
+        {/* Melee says how a set picks its stages: game 1 struck from the starters, then counterpicks. */}
+        {preset === "competitive" && game.rules && ` Game 1 is struck from the ${starters.length} starters (${starters.join(", ")}); ${counterpicks.length === 1 ? `${counterpicks[0]} is a counterpick.` : `counterpicks: ${counterpicks.join(", ")}.`}`}
+      </p>
       <div className="party-row">
         {preset === "party" && (
           <Select floatingLabel="Stages" value={stageList} onChange={(v) => setStageList(v as typeof stageList)}
             options={[{ value: "all", label: "Every stage" }, { value: "competitive", label: "Competitive list" }]} />
         )}
-        {(preset === "competitive" || stageList === "competitive") && <Switch label="Include stages some events allow" checked={sometimes} onChange={(e) => setSometimes(e.target.checked)} />}
+        {sometimesStages && (preset === "competitive" || stageList === "competitive") && <Switch label="Include stages some events allow" checked={sometimes} onChange={(e) => setSometimes(e.target.checked)} />}
       </div>
       <div className="party-board" style={{ "--party-board": "#34405a" } as React.CSSProperties}>
         {/* eslint-disable-next-line @next/next/no-img-element -- stage screenshot, same as the party board art */}
@@ -242,13 +258,14 @@ export function SmashRandomizer({ game }: { game: SmashGame }) {
             {stageRow && <Badge variant={stageRow.status === "starter" ? "success" : stageRow.status === "counterpick" ? "info" : "default"} size="small">{stageRow.status === "starter" ? "Starter" : stageRow.status === "counterpick" ? "Counterpick" : stageRow.status === "sometimes" ? "Sometimes legal" : "Casual"}</Badge>}
           </div>
           <p className="party-board__name">{stageRow ? <RollingText key={stageSpins} value={stageRow.name} pool={stages.map((x) => x.name)} spin={animateReel && stageSpins > 0} /> : "Roll to pick a stage"}</p>
-          {stage && <p className="party-board__blurb">{stage.form === "normal" ? "Normal form" : stage.form === "omega" ? "Omega form" : "Battlefield form"} · hazards {stage.hazards ? "on" : "off"} · from {stageRow?.origin}</p>}
+          {stage && forms && <p className="party-board__blurb">{stage.form === "normal" ? "Normal form" : stage.form === "omega" ? "Omega form" : "Battlefield form"} · hazards {stage.hazards ? "on" : "off"} · from {stageRow?.origin}</p>}
+          {stage && !forms && stageRow?.origin === "SSB" && <p className="party-board__blurb">A Past Stage, from the first Super Smash Bros.</p>}
         </div>
       </div>
       {rules && <p><strong>Rules:</strong> {describeRules(rules)}</p>}
       <div className="party-actions">
         <Button variant="primary" iconBefore={IconDice5} onClick={rollStageNow}>{stage ? "Roll again" : "Roll the stage and rules"}</Button>
-        <Button variant="secondary" onClick={() => setCustom(rollCustomSmash(game))}>Roll Custom Smash</Button>
+        {game.customSmash.length > 0 && <Button variant="secondary" onClick={() => setCustom(rollCustomSmash(game))}>Roll Custom Smash</Button>}
       </div>
       <p className="party-muted">{stages.length} stages in the pool.</p>
       {custom && (
@@ -281,11 +298,11 @@ export function SmashRandomizer({ game }: { game: SmashGame }) {
   const tabs: { id: Tab; label: string; content: React.ReactNode }[] = [
     { id: "fighters", label: "Fighter Randomizer", content: fightersTab },
     { id: "stage", label: "Stage & Rules", content: stageTab },
-    { id: "squad", label: "Squad Strike", content: squadTab },
+    ...(squadStrike ? [{ id: "squad" as Tab, label: "Squad Strike", content: squadTab }] : []),
   ];
   return (
     <div className="smash-randomizer">
-      <CollectionBar slug={game.slug} col={col} />
+      {game.packs.length > 0 && <CollectionBar slug={game.slug} col={col} />}
       <div className="randomizer-controls">
         <Tabs variant="pills" size="medium" activeTab={tab} onChange={(id) => setTab(id as Tab)} tabs={tabs.map((t) => ({ id: t.id, label: t.label, content: <></> }))} />
         <div style={{ display: "flex", alignItems: "center", gap: "var(--spacing-8)" }}>

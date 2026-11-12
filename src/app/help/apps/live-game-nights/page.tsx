@@ -46,6 +46,20 @@ export default function Page() {
         <li>End the night to crown the MVP. The recap can be copied or posted to your community, and with GS Pro, <strong>Write it up with AI</strong> turns it into a Discord post and a short post for X or Bluesky (see <a href="/help/apps/ai-tools">AI tools</a>).</li>
       </ul>
 
+      <h2>Games you play as a team</h2>
+      <p>
+        Add <strong>Boss Fight</strong>, <strong>Five Letters</strong>, <strong>Four in a Row</strong> or <strong>Shuffle Dice</strong> to
+        the lineup and the whole table plays together on their phones, with the board on the TV. A round plays once everyone has
+        answered, or when the host taps <strong>Play this round now</strong>.
+      </p>
+      <ul>
+        <li><strong>Boss Fight:</strong> everyone hits the boss once a round. Bring its health to zero in five rounds.</li>
+        <li><strong>Five Letters:</strong> guess a five-letter gaming word in six tries. The word most of you type is the one played.</li>
+        <li><strong>Four in a Row:</strong> you against the computer. The column most of you pick is played.</li>
+        <li><strong>Shuffle Dice:</strong> you against the house. Vote to roll again or bank; first to 25 wins.</li>
+        <li><strong>Scoring:</strong> the table shares one result. Win more of the games than you lose and everyone gets first place&apos;s points; otherwise nobody scores. The crown doesn&apos;t move.</li>
+      </ul>
+
       <h2>Night formats</h2>
       <ul>
         <li><strong>The Gauntlet:</strong> 4 to 8 events on one scoreboard, and the winner is the Gauntlet champion.</li>

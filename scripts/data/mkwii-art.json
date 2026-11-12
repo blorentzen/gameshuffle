@@ -1,0 +1,659 @@
+{
+ "checkedOn": "2026-11-11",
+ "note": "Mario Kart Wii art for the randomizer, all from Super Mario Wiki (mariowiki.com): the in-game character select icons and Time Trial vehicle icons (game assets), the in-game cup icons, course and battle arena views (Nintendo UK press screenshots where the wiki has them, else in-game overviews), and the official poster artwork for the header. Run scripts/pull-mkwii-art.ts. Views taken from a race or battle intro carry the game's text in two corners; `band` keeps only that part of the picture (top and bottom as shares of its height), centred, so the text is left out.",
+ "characters": [
+  {
+   "name": "Baby Mario",
+   "slug": "baby-mario",
+   "file": "BabyMarioMKW.png"
+  },
+  {
+   "name": "Baby Luigi",
+   "slug": "baby-luigi",
+   "file": "BabyLuigiMKW.png"
+  },
+  {
+   "name": "Baby Peach",
+   "slug": "baby-peach",
+   "file": "BabyPeachMKW.png"
+  },
+  {
+   "name": "Baby Daisy",
+   "slug": "baby-daisy",
+   "file": "BabyDaisyMKW.png"
+  },
+  {
+   "name": "Toad",
+   "slug": "toad",
+   "file": "ToadMKW.png"
+  },
+  {
+   "name": "Toadette",
+   "slug": "toadette",
+   "file": "ToadetteMKWIIMug.png"
+  },
+  {
+   "name": "Koopa Troopa",
+   "slug": "koopa-troopa",
+   "file": "KoopaTroopa-MKWii-Icon.png"
+  },
+  {
+   "name": "Dry Bones",
+   "slug": "dry-bones",
+   "file": "MK_Wii_Dry_Bones_icon.png"
+  },
+  {
+   "name": "Mario",
+   "slug": "mario",
+   "file": "MarioMKW.png"
+  },
+  {
+   "name": "Luigi",
+   "slug": "luigi",
+   "file": "LuigiMKW.png"
+  },
+  {
+   "name": "Peach",
+   "slug": "peach",
+   "file": "PeachMKW.png"
+  },
+  {
+   "name": "Daisy",
+   "slug": "daisy",
+   "file": "DaisyMKW.png"
+  },
+  {
+   "name": "Yoshi",
+   "slug": "yoshi",
+   "file": "MKW Yoshi Icon.png"
+  },
+  {
+   "name": "Birdo",
+   "slug": "birdo",
+   "file": "BirdoMKW.png"
+  },
+  {
+   "name": "Diddy Kong",
+   "slug": "diddy-kong",
+   "file": "DiddyKongMKW.png"
+  },
+  {
+   "name": "Bowser Jr.",
+   "slug": "bowser-jr",
+   "file": "Bowser_Jr_MK_Wii_icon.png"
+  },
+  {
+   "name": "Wario",
+   "slug": "wario",
+   "file": "WarioMKW.png"
+  },
+  {
+   "name": "Waluigi",
+   "slug": "waluigi",
+   "file": "WaluigiMKW.png"
+  },
+  {
+   "name": "Donkey Kong",
+   "slug": "donkey-kong",
+   "file": "DonkeyKongMKW.png"
+  },
+  {
+   "name": "Bowser",
+   "slug": "bowser",
+   "file": "BowserMKW.png"
+  },
+  {
+   "name": "King Boo",
+   "slug": "king-boo",
+   "file": "KingBooMKW.png"
+  },
+  {
+   "name": "Rosalina",
+   "slug": "rosalina",
+   "file": "RosalinaMKW.png"
+  },
+  {
+   "name": "Funky Kong",
+   "slug": "funky-kong",
+   "file": "MK_Wii_Funky_Kong_icon.png"
+  },
+  {
+   "name": "Dry Bowser",
+   "slug": "dry-bowser",
+   "file": "MK_Wii_Dry_Bowser.png"
+  },
+  {
+   "name": "Mii",
+   "slug": "mii",
+   "file": "MKW Mii Outfit A select icon.png"
+  }
+ ],
+ "vehicles": [
+  {
+   "name": "Standard Kart S",
+   "slug": "standard-kart-s",
+   "file": "MKW Icon vehicle TT Standard Kart S.png"
+  },
+  {
+   "name": "Standard Bike S",
+   "slug": "standard-bike-s",
+   "file": "MKW Icon vehicle TT Standard Bike S.png"
+  },
+  {
+   "name": "Booster Seat",
+   "slug": "booster-seat",
+   "file": "MKW Icon vehicle TT Booster Seat.png"
+  },
+  {
+   "name": "Bullet Bike",
+   "slug": "bullet-bike",
+   "file": "MKW Icon vehicle TT Bullet Bike.png"
+  },
+  {
+   "name": "Mini Beast",
+   "slug": "mini-beast",
+   "file": "MKW Icon vehicle TT Mini Beast.png"
+  },
+  {
+   "name": "Bit Bike",
+   "slug": "bit-bike",
+   "file": "MKW Icon vehicle TT Bit Bike.png"
+  },
+  {
+   "name": "Standard Kart M",
+   "slug": "standard-kart-m",
+   "file": "MKW Icon vehicle TT Standard Kart M.png"
+  },
+  {
+   "name": "Standard Bike M",
+   "slug": "standard-bike-m",
+   "file": "MKW Icon vehicle TT Standard Bike M.png"
+  },
+  {
+   "name": "Classic Dragster",
+   "slug": "classic-dragster",
+   "file": "MKW Icon vehicle TT Classic Dragster.png"
+  },
+  {
+   "name": "Mach Bike",
+   "slug": "mach-bike",
+   "file": "MKW Icon vehicle TT Mach Bike.png"
+  },
+  {
+   "name": "Wild Wing",
+   "slug": "wild-wing",
+   "file": "MKW Icon vehicle TT Wild Wing.png"
+  },
+  {
+   "name": "Sugarscoot",
+   "slug": "sugarscoot",
+   "file": "MKW Icon vehicle TT Sugarscoot.png"
+  },
+  {
+   "name": "Standard Kart L",
+   "slug": "standard-kart-l",
+   "file": "MKW Icon vehicle TT Standard Kart L.png"
+  },
+  {
+   "name": "Standard Bike L",
+   "slug": "standard-bike-l",
+   "file": "MKW Icon vehicle TT Standard Bike L.png"
+  },
+  {
+   "name": "Offroader",
+   "slug": "offroader",
+   "file": "MKW Icon vehicle TT Offroader.png"
+  },
+  {
+   "name": "Flame Runner",
+   "slug": "flame-runner",
+   "file": "MKW Icon vehicle TT Flame Runner.png"
+  },
+  {
+   "name": "Flame Flyer",
+   "slug": "flame-flyer",
+   "file": "MKW Icon vehicle TT Flame Flyer.png"
+  },
+  {
+   "name": "Wario Bike",
+   "slug": "wario-bike",
+   "file": "MKW Icon vehicle TT Wario Bike.png"
+  },
+  {
+   "name": "Cheep Charger",
+   "slug": "cheep-charger",
+   "file": "MKW Icon vehicle TT Cheep Charger.png"
+  },
+  {
+   "name": "Quacker",
+   "slug": "quacker",
+   "file": "MKW Icon vehicle TT Quacker.png"
+  },
+  {
+   "name": "Tiny Titan",
+   "slug": "tiny-titan",
+   "file": "MKW Icon vehicle TT Tiny Titan.png"
+  },
+  {
+   "name": "Magikruiser",
+   "slug": "magikruiser",
+   "file": "MKW Icon vehicle TT Magikruiser.png"
+  },
+  {
+   "name": "Blue Falcon",
+   "slug": "blue-falcon",
+   "file": "MKW Icon vehicle TT Blue Falcon.png"
+  },
+  {
+   "name": "Jet Bubble",
+   "slug": "jet-bubble",
+   "file": "MKW Icon vehicle TT Jet Bubble.png"
+  },
+  {
+   "name": "Super Blooper",
+   "slug": "super-blooper",
+   "file": "MKW Icon vehicle TT Super Blooper.png"
+  },
+  {
+   "name": "Zip Zip",
+   "slug": "zip-zip",
+   "file": "MKW Icon vehicle TT Zip Zip.png"
+  },
+  {
+   "name": "Daytripper",
+   "slug": "daytripper",
+   "file": "MKW Icon vehicle TT Daytripper.png"
+  },
+  {
+   "name": "Sneakster",
+   "slug": "sneakster",
+   "file": "MKW Icon vehicle TT Sneakster.png"
+  },
+  {
+   "name": "Sprinter",
+   "slug": "sprinter",
+   "file": "MKW Icon vehicle TT Sprinter.png"
+  },
+  {
+   "name": "Dolphin Dasher",
+   "slug": "dolphin-dasher",
+   "file": "MKW Icon vehicle TT Dolphin Dasher.png"
+  },
+  {
+   "name": "Piranha Prowler",
+   "slug": "piranha-prowler",
+   "file": "MKW Icon vehicle TT Piranha Prowler.png"
+  },
+  {
+   "name": "Shooting Star",
+   "slug": "shooting-star",
+   "file": "MKW Icon vehicle TT Shooting Star.png"
+  },
+  {
+   "name": "Jetsetter",
+   "slug": "jetsetter",
+   "file": "MKW Icon vehicle TT Jetsetter.png"
+  },
+  {
+   "name": "Spear",
+   "slug": "spear",
+   "file": "MKW Icon vehicle TT Spear.png"
+  },
+  {
+   "name": "Honeycoupe",
+   "slug": "honeycoupe",
+   "file": "MKW Icon vehicle TT Honeycoupe.png"
+  },
+  {
+   "name": "Phantom",
+   "slug": "phantom",
+   "file": "MKW Icon vehicle TT Phantom.png"
+  }
+ ],
+ "tracks": [
+  {
+   "name": "Luigi Circuit",
+   "slug": "luigi-circuit",
+   "file": "Luigi Circuit MKWii.png"
+  },
+  {
+   "name": "Moo Moo Meadows",
+   "slug": "moo-moo-meadows",
+   "file": "Moo Moo Meadows MKWii.png"
+  },
+  {
+   "name": "Mushroom Gorge",
+   "slug": "mushroom-gorge",
+   "file": "Mushroom Gorge MKWii.png"
+  },
+  {
+   "name": "Toad's Factory",
+   "slug": "toads-factory",
+   "file": "Toad's Factory MKWii.png"
+  },
+  {
+   "name": "Mario Circuit",
+   "slug": "mario-circuit",
+   "file": "MarioCircuit MKWii.png"
+  },
+  {
+   "name": "Coconut Mall",
+   "slug": "coconut-mall",
+   "file": "Coconut Mall MKWii.png"
+  },
+  {
+   "name": "DK Summit",
+   "slug": "dk-summit",
+   "file": "DK Summit MKWii.png"
+  },
+  {
+   "name": "Wario's Gold Mine",
+   "slug": "warios-gold-mine",
+   "file": "MKW Wario's Gold Mine Course Overview.png"
+  },
+  {
+   "name": "Daisy Circuit",
+   "slug": "daisy-circuit",
+   "file": "Daisy circuit1.png"
+  },
+  {
+   "name": "Koopa Cape",
+   "slug": "koopa-cape",
+   "file": "MKW Koopa Cape.png"
+  },
+  {
+   "name": "Maple Treeway",
+   "slug": "maple-treeway",
+   "file": "MKW Maple Treeway Overlook.png"
+  },
+  {
+   "name": "Grumble Volcano",
+   "slug": "grumble-volcano",
+   "file": "Grumble Volcano.png"
+  },
+  {
+   "name": "Dry Dry Ruins",
+   "slug": "dry-dry-ruins",
+   "file": "Dry Dry Ruins.png",
+   "band": [
+    0.2,
+    0.88
+   ]
+  },
+  {
+   "name": "Moonview Highway",
+   "slug": "moonview-highway",
+   "file": "Moonviewhighway.png",
+   "band": [
+    0.2,
+    0.88
+   ]
+  },
+  {
+   "name": "Bowser's Castle",
+   "slug": "bowsers-castle",
+   "file": "BowsersCastleMKW.png"
+  },
+  {
+   "name": "Rainbow Road",
+   "slug": "rainbow-road",
+   "file": "MKW Rainbow Road Overview.png"
+  },
+  {
+   "name": "GCN Peach Beach",
+   "slug": "gcn-peach-beach",
+   "file": "Peach Beach MKWii.png"
+  },
+  {
+   "name": "DS Yoshi Falls",
+   "slug": "ds-yoshi-falls",
+   "file": "Yoshi Falls MKWii.png"
+  },
+  {
+   "name": "SNES Ghost Valley 2",
+   "slug": "snes-ghost-valley-2",
+   "file": "Ghost Valley 2 MKWii.png"
+  },
+  {
+   "name": "N64 Mario Raceway",
+   "slug": "n64-mario-raceway",
+   "file": "Mario Raceway 64 MKWii.png"
+  },
+  {
+   "name": "N64 Sherbet Land",
+   "slug": "n64-sherbet-land",
+   "file": "Sherbet Land N64 MKWii.png"
+  },
+  {
+   "name": "GBA Shy Guy Beach",
+   "slug": "gba-shy-guy-beach",
+   "file": "Shy Guy Beach MKWii.png"
+  },
+  {
+   "name": "DS Delfino Square",
+   "slug": "ds-delfino-square",
+   "file": "Delfino Square MKWii.png"
+  },
+  {
+   "name": "GCN Waluigi Stadium",
+   "slug": "gcn-waluigi-stadium",
+   "file": "Waluigi Stadium MKWii.png"
+  },
+  {
+   "name": "DS Desert Hills",
+   "slug": "ds-desert-hills",
+   "file": "Desert Hills.png",
+   "band": [
+    0.2,
+    0.88
+   ]
+  },
+  {
+   "name": "GBA Bowser Castle 3",
+   "slug": "gba-bowser-castle-3",
+   "file": "MKW GBA Bowser Castle 3 Intro.png",
+   "band": [
+    0.2,
+    0.88
+   ]
+  },
+  {
+   "name": "N64 DK's Jungle Parkway",
+   "slug": "n64-dks-jungle-parkway",
+   "file": "DK's Jungle Parkway.png",
+   "band": [
+    0.2,
+    0.88
+   ]
+  },
+  {
+   "name": "GCN Mario Circuit",
+   "slug": "gcn-mario-circuit",
+   "file": "MKWii GCNMario.png",
+   "band": [
+    0.2,
+    0.88
+   ]
+  },
+  {
+   "name": "SNES Mario Circuit 3",
+   "slug": "snes-mario-circuit-3",
+   "file": "MKW SNES Mario Circuit 3 Overview.png",
+   "band": [
+    0.2,
+    0.88
+   ]
+  },
+  {
+   "name": "DS Peach Gardens",
+   "slug": "ds-peach-gardens",
+   "file": "MKWii Peach Gardens.png",
+   "band": [
+    0.2,
+    0.88
+   ]
+  },
+  {
+   "name": "GCN DK Mountain",
+   "slug": "gcn-dk-mountain",
+   "file": "DK Mountain.png",
+   "band": [
+    0.2,
+    0.88
+   ]
+  },
+  {
+   "name": "N64 Bowser's Castle",
+   "slug": "n64-bowsers-castle",
+   "file": "N64BowserCastle-MKWii.png",
+   "band": [
+    0.2,
+    0.88
+   ]
+  }
+ ],
+ "battle": [
+  {
+   "name": "Block Plaza",
+   "slug": "block-plaza",
+   "file": "Block Plaza.png",
+   "band": [
+    0.535,
+    0.895
+   ]
+  },
+  {
+   "name": "Delfino Pier",
+   "slug": "delfino-pier",
+   "file": "Delfino Pier.png",
+   "band": [
+    0.535,
+    0.895
+   ]
+  },
+  {
+   "name": "Funky Stadium",
+   "slug": "funky-stadium",
+   "file": "MKW Funky Stadium Overview.png",
+   "band": [
+    0.535,
+    0.895
+   ]
+  },
+  {
+   "name": "Chain Chomp Wheel",
+   "slug": "chain-chomp-wheel",
+   "file": "Chain Chomp Roulette.png",
+   "band": [
+    0.535,
+    0.895
+   ]
+  },
+  {
+   "name": "Thwomp Desert",
+   "slug": "thwomp-desert",
+   "file": "Thwomp Desert.png",
+   "band": [
+    0.535,
+    0.895
+   ]
+  },
+  {
+   "name": "SNES Battle Course 4",
+   "slug": "snes-battle-course-4",
+   "file": "Battle Course 4 (SNES).png",
+   "band": [
+    0.535,
+    0.895
+   ]
+  },
+  {
+   "name": "GBA Battle Course 3",
+   "slug": "gba-battle-course-3",
+   "file": "Battle Course 3 (GBA).png",
+   "band": [
+    0.535,
+    0.895
+   ]
+  },
+  {
+   "name": "N64 Skyscraper",
+   "slug": "n64-skyscraper",
+   "file": "N64Skyscraper-MKWii.png",
+   "band": [
+    0.535,
+    0.895
+   ]
+  },
+  {
+   "name": "GCN Cookie Land",
+   "slug": "gcn-cookie-land",
+   "file": "Cookie Land.png",
+   "band": [
+    0.535,
+    0.895
+   ]
+  },
+  {
+   "name": "DS Twilight House",
+   "slug": "ds-twilight-house",
+   "file": "Twilight House.png",
+   "band": [
+    0.535,
+    0.895
+   ]
+  }
+ ],
+ "cups": [
+  {
+   "name": "Mushroom",
+   "slug": "mushroom",
+   "file": "MKW Mushroom Cup Icon.png"
+  },
+  {
+   "name": "Flower",
+   "slug": "flower",
+   "file": "MKW Flower Cup Icon.png"
+  },
+  {
+   "name": "Star",
+   "slug": "star",
+   "file": "MKW Star Cup Icon.png"
+  },
+  {
+   "name": "Special",
+   "slug": "special",
+   "file": "MKW Special Cup Icon.png"
+  },
+  {
+   "name": "Shell",
+   "slug": "shell",
+   "file": "MKW Shell Cup Icon.png"
+  },
+  {
+   "name": "Banana",
+   "slug": "banana",
+   "file": "MKW Banana Cup Icon.png"
+  },
+  {
+   "name": "Leaf",
+   "slug": "leaf",
+   "file": "MKW Leaf Cup Icon.png"
+  },
+  {
+   "name": "Lightning",
+   "slug": "lightning",
+   "file": "MKW Lightning Cup Icon.png"
+  }
+ ],
+ "keyart": {
+  "file": "Poster MKWii.jpg",
+  "slug": "mario-kart-wii-keyart",
+  "crop": [
+   0,
+   1780,
+   3100,
+   1744
+  ]
+ }
+}

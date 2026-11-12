@@ -233,9 +233,23 @@ interface RunRow {
   score: number | null; stars: number | null; asked: boolean; started_at: string; finished_at: string | null;
   /** Tools used in this run (supabase/trainer-road-m6.sql). */
   tools?: number;
+  /** The duel room this run is in (a race against friends, supabase/versus-m1.sql): no tools, no tips. */
+  versus_room?: string | null;
 }
 const RUN_COLS_BASE = "id, player, user_id, trainer_id, month, level, state, steps, version, status, result, turns, cards_left, seconds, score, stars, asked, started_at, finished_at";
-const runCols = async () => `${RUN_COLS_BASE}${(await toolsReady()) ? ", tools" : ""}`;
+const runCols = async () => `${RUN_COLS_BASE}${(await toolsReady()) ? ", tools" : ""}${(await roomColReady()) ? ", versus_room" : ""}`;
+
+let roomColYes = false;
+let roomColNoAt = 0;
+/** road_runs.versus_room exists (versus-m1): a yes is kept, a no is asked again after a minute. */
+async function roomColReady(): Promise<boolean> {
+  if (roomColYes) return true;
+  if (Date.now() - roomColNoAt < 60_000) return false;
+  const { error } = await createServiceClient().from("road_runs").select("versus_room").limit(1);
+  if (!error) return (roomColYes = true);
+  roomColNoAt = Date.now();
+  return false;
+}
 
 const isHard = (r: Pick<RunRow, "level">) => r.level === "hard";
 const levelOf = (r: Pick<RunRow, "level">): DuelLevel => r.level ?? "normal";
@@ -245,9 +259,10 @@ const levelOf = (r: Pick<RunRow, "level">): DuelLevel => r.level ?? "normal";
  * `road_tools_duel` lever), none in Hard. A run that already used more than the lever allows now keeps
  * what it used, so it always replays.
  */
-function setupOf(r: Pick<RunRow, "level" | "state">, d: RoadDuel): DuelSetup {
+function setupOf(r: Pick<RunRow, "level" | "state" | "versus_room">, d: RoadDuel): DuelSetup {
   const setup = levelSetup(d.setup, r.level);
-  const cap = isHard(r) ? 0 : cachedLevers().toolsDuel;
+  // A duel against friends: everyone plays it straight (duels pick 5A).
+  const cap = isHard(r) || r.versus_room ? 0 : cachedLevers().toolsDuel;
   const tools = Math.max(cap, r.state?.used?.length ?? 0);
   return tools ? { ...setup, tools } : setup;
 }
@@ -276,7 +291,7 @@ function scoreOf(r: RunRow, d: RoadDuel): DuelScoreParts | null {
 function playView(r: RunRow, d: RoadDuel) {
   const setup = setupOf(r, d);
   const play = viewOf(setup, r.state, d.trainer);
-  if (play.event?.kind === "advice" && !play.over && !isHard(r)) play.hint = adviceFor(setup, r.state);
+  if (play.event?.kind === "advice" && !play.over && !isHard(r) && !r.versus_room) play.hint = adviceFor(setup, r.state);
   return play;
 }
 
@@ -317,17 +332,29 @@ async function keepBest(r: RunRow): Promise<boolean> {
 
 export type RoadStartResult = { ok: true; run: DuelRunView } | { ok: false; error: "not_ready" | "not_found" | "hard_off" | "easy_off" | "failed" };
 
-/** Starts a duel against a team (an unfinished one for the same duel is put away). */
-export async function startRoadRun(player: DuelPlayer, trainerId: string, level: DuelLevel = "normal"): Promise<RoadStartResult> {
-  const month = currentRoadMonth();
+/** Whether a level is open on a team's duel (Hard needs a Hard par; Easy needs rules 6 and the database). */
+export async function roadLevelOpen(d: RoadDuel, level: DuelLevel): Promise<boolean> {
+  if (level === "hard") return !!d.hardPar;
+  if (level === "easy") return easyOn(d);
+  return true;
+}
+
+/**
+ * Starts a duel against a team (an unfinished one for the same duel is put away). `room`: a duel room's key (a race
+ * against friends): the run is tagged with it, plays with no tools or tips, and tells the room after every step.
+ * `month`: the room's month, so a duel made at a month's end stays the same duel.
+ */
+export async function startRoadRun(player: DuelPlayer, trainerId: string, level: DuelLevel = "normal", opts: { room?: string; month?: string } = {}): Promise<RoadStartResult> {
+  const month = opts.month ?? currentRoadMonth();
   const d = await getRoadDuel(trainerId, month, { fresh: true });
   if (!d) return { ok: false, error: "not_ready" };
   if (level === "hard" && !d.hardPar) return { ok: false, error: "hard_off" };
   if (level === "easy" && !(await easyOn(d))) return { ok: false, error: "easy_off" };
+  if (opts.room && !(await roomColReady())) return { ok: false, error: "not_ready" };
   const key = keyOf(player);
   const svc = createServiceClient();
   await svc.from("road_runs").update({ status: "done" }).eq("player", key).eq("trainer_id", trainerId).eq("month", month).eq("status", "playing");
-  const row = { player: key, user_id: player.kind === "u" ? player.id : null, trainer_id: trainerId, month, level, state: startState(levelSetup(d.setup, level)), steps: [] };
+  const row = { player: key, user_id: player.kind === "u" ? player.id : null, trainer_id: trainerId, month, level, state: startState(levelSetup(d.setup, level)), steps: [], ...(opts.room ? { versus_room: opts.room } : {}) };
   const { data, error } = await svc.from("road_runs").insert(row).select(await runCols()).single();
   if (error || !data) { if (!missing(error)) console.error("[road] start failed:", error); return { ok: false, error: missing(error) ? "not_ready" : "failed" }; }
   return { ok: true, run: runView(data as unknown as RunRow, d) };
@@ -346,6 +373,7 @@ export async function roadAct(runId: string, player: DuelPlayer, st: DuelStep, a
   const next = applyStep(setupOf(r, d), r.state, st);
   if (!next) return { ok: false, error: "illegal" };
   const patch: Partial<RunRow> = { state: next, steps: [...(r.steps ?? []), st], turns: next.turn };
+  if ("tool" in st && r.versus_room) return { ok: false, error: "no_tool" };
   if ("tool" in st) {
     // A tool comes out of the account's bag (or a kept tool); it ends the solo bonus and marks the run.
     const n = next.used?.length ?? 1;
@@ -366,6 +394,13 @@ export async function roadAct(runId: string, player: DuelPlayer, st: DuelStep, a
   }
   const saved = await save(r, patch);
   if (!saved) return attempt < 2 ? roadAct(runId, player, st, attempt + 1) : { ok: false, error: "busy" };
+  // A duel against friends: the room hears how far this player has got (knockouts by turn, then won or lost).
+  if (saved.versus_room && saved.user_id) {
+    const lane = duelLaneOf(saved, d);
+    const roomKey = saved.versus_room;
+    const userId = saved.user_id;
+    await import("@/lib/versus/duel").then((m) => m.duelRunMoved(roomKey, userId, lane)).catch((e) => console.error("[road] duel lane:", e));
+  }
   const view: DuelRunView & { stars: number | null; best: boolean; path?: RoadPathResult | null } = runView(saved, d);
   if (saved.status === "done") {
     view.best = await keepBest(saved);
@@ -375,12 +410,36 @@ export async function roadAct(runId: string, player: DuelPlayer, st: DuelStep, a
   return { ok: true, run: view };
 }
 
-/** A tip for the turn in progress. Asking ends this run's solo bonus (Hard has no tips). */
+/** Where a duel-room run stands, as the room's lane: the turn each of the trainer's cards was knocked out on (replayed
+ *  from its steps), the turn it's on, then won (fewest turns wins, the time breaks a tie) or lost. */
+export interface DuelLane { reached: number; times: (number | null)[]; current: number; status?: "done" | "out"; finalMs?: number; tieMs?: number; reason?: "lost" }
+function duelLaneOf(r: RunRow, d: RoadDuel): DuelLane {
+  const setup = setupOf(r, d);
+  let st = startState(setup);
+  const times: (number | null)[] = setup.foe.map(() => null);
+  let ko = 0;
+  for (const step of r.steps ?? []) {
+    const next = applyStep(setup, st, step);
+    if (!next) break;
+    const k = next.foe.filter((c) => c.out).length;
+    for (; ko < k; ko++) times[ko] = next.turn;
+    st = next;
+  }
+  const lane: DuelLane = { reached: ko, times, current: r.state.turn };
+  if (r.status === "done") {
+    const ms = r.seconds != null ? r.seconds * 1000 : undefined;
+    if (r.result === "won") Object.assign(lane, { status: "done", finalMs: r.turns, tieMs: ms });
+    else Object.assign(lane, { status: "out", reason: "lost", tieMs: ms });
+  }
+  return lane;
+}
+
+/** A tip for the turn in progress. Asking ends this run's solo bonus (Hard and duels against friends have no tips). */
 export async function roadTip(runId: string, player: DuelPlayer): Promise<DuelHintView | null | "not_found"> {
   const r = await getRun(runId);
   if (!r || r.player !== keyOf(player)) return "not_found";
   const d = await getRoadDuel(r.trainer_id, r.month, { after: r.started_at });
-  if (!d || r.status === "done" || isHard(r)) return null;
+  if (!d || r.status === "done" || isHard(r) || r.versus_room) return null;
   if (!r.asked) await save(r, { asked: true });
   return adviceFor(setupOf(r, d), r.state);
 }

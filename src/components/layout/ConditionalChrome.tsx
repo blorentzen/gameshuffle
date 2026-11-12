@@ -36,6 +36,7 @@ const CHROME_FREE_PATTERNS: RegExp[] = [
   /^\/social(\/|$)/, // hidden 9:16 stages filmed for social videos
   /^\/mmr\/[^/]+/, // the MMR card's OBS link
   /^\/run\/[^/]+/, // a runner's speedrun overlay (OBS link)
+  /^\/races\/[^/]+\/obs$/, // a speedrun race's restream link (OBS)
   /^\/speedrun\/remote(\/|$)/, // the speedrun phone remote (a full-screen timer)
   /^\/war\/[^/]+/, // a channel's war overlay (GameShuffle Competitive)
 ];

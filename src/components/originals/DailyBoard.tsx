@@ -23,6 +23,8 @@ import { ordinal, PERIOD_LABEL, tidyName, type BoardGame, type BoardPeriod } fro
 import type { BoardRow, BoardView, ScoreResult } from "@/lib/daily/boardTypes";
 import { formatTime } from "@/lib/originals/dailies";
 import { useShareChallenge } from "@/components/share/ShareChallenge";
+import { RACE_NAME, isRace, type PlaceTotal } from "@/lib/daily/placeRace";
+import "@/styles/dailies-together.css";
 
 const GUEST_KEY = "gs-daily-guest";
 const SENT_KEY = "gs-daily-guest-sent";
@@ -205,6 +207,22 @@ function PlayerAvatar({ name, src, place }: { name: string; src?: string; place:
   );
 }
 
+/** Today's race between the places people play (co-op picks 2026-11-11): each place's points on the day board, most first. */
+function RaceLine({ totals }: { totals: PlaceTotal[] }) {
+  return (
+    <div className="daily-board__race">
+      <span className="daily-board__race-label">Today&apos;s race</span>
+      {totals.map((t, i) => (
+        <span key={t.place} className={`daily-board__race-team${i === 0 ? " daily-board__race-team--lead" : ""}`}>
+          <span aria-hidden><PlayerAvatar name={RACE_NAME[t.place].slice(0, 1)} place={t.place} /></span>
+          {RACE_NAME[t.place]} <strong>{t.points.toLocaleString("en-US")}</strong>
+          <span className="sr-only"> points from {t.players} {t.players === 1 ? "player" : "players"}</span>
+        </span>
+      ))}
+    </div>
+  );
+}
+
 /** `pictures`: off inside the Discord Activity, which only loads images from our own site. */
 function BoardTable({ view, main, pictures, scored = false }: { view: BoardView; main: number; pictures: boolean; scored?: boolean }) {
   const day = view.period === "day";
@@ -247,6 +265,7 @@ function BoardTable({ view, main, pictures, scored = false }: { view: BoardView;
   const places = (["site", "discord", "guest"] as Place[]).filter((p) => [...shown, ...(pinned ? [pinned] : [])].some((r) => placeOf(r) === p));
   return (
     <>
+    {day && isRace(view.race) && <RaceLine totals={view.race} />}
     <div className="daily-board__table" tabIndex={0} role="region" aria-label={`${PERIOD_LABEL[view.period]} leaderboard`}>
       <Table dense>
         <TableHeader>
@@ -268,11 +287,12 @@ function BoardTable({ view, main, pictures, scored = false }: { view: BoardView;
       </Table>
     </div>
     {places.length > 0 && (
-      <p className="daily-board__key">
+      // A div, not a p: the marks are CDS Avatars (divs), which can't sit inside a paragraph.
+      <div className="daily-board__key">
         {places.map((p) => (
           <span key={p}><span aria-hidden><PlayerAvatar name={p === "guest" ? "G" : p === "discord" ? "D" : "S"} place={p} /></span>{PLACES[p].key}</span>
         ))}
-      </p>
+      </div>
     )}
     </>
   );

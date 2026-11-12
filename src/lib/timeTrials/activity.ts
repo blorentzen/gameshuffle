@@ -113,7 +113,7 @@ export async function ttRoomAdd(s: ActivitySession, input: { game: unknown; trac
     laps: read?.laps ?? null, readMs: read?.timeMs ?? null, readLaps: read?.laps ?? null,
   });
   if (!res.ok) return { ok: false, error: res.error === "bad_class" || res.error === "bad_track" || res.error === "not_ready" || res.error === "faster_than_record" ? res.error : "failed" };
-  const recordPosted = guildId && prior ? await postServerRecord({ guildId, actor, track, cc, items, vehicle, timeMs, prior, res }).catch(() => false) : false;
+  const recordPosted = guildId && prior ? await postServerRecord({ guildId, actor, track, cc, items, vehicle, timeMs, prior, res, proofUrl }).catch(() => false) : false;
   if (guildId) await refreshPanels(guildId, game).catch((err) => console.error("[tt room] panel refresh failed:", err));
   return { ok: true, saved: { best: res.best, previousMs: res.previousMs, place: res.place, total: res.total, server: res.server, needsVideo: res.needsVideo && !res.trusted, recordPosted } };
 }

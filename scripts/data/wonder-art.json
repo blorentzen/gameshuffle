@@ -1,0 +1,391 @@
+{
+ "checkedOn": "2026-11-11",
+ "note": "Super Mario Bros. Wonder art for the randomizer and its space, pulled through Super Mario Wiki's file host (mariowiki.com API), which keeps Nintendo's own files: the character renders come from Nintendo's official sites (each row's `source`), 10 badge pictures are official artwork from nintendo.com/jp, the other 14 badges of the original game are the game's own badge icons, and the 18 Switch 2 Edition badges are the game's icons cropped from its badge screen (`crop`: the dark screen around each badge is cut away). The header is the official key art from supermariobroswonder.nintendo.com, cropped to 16:9. No fan art. Run scripts/pull-wonder-art.ts.",
+ "characters": [
+  {
+   "name": "Mario",
+   "slug": "mario",
+   "file": "SMBW Mario Jump.png",
+   "source": "https://www.nintendo.com/jp/switch/aqmxa/"
+  },
+  {
+   "name": "Luigi",
+   "slug": "luigi",
+   "file": "SMBWLuigi.png",
+   "source": "https://supermariobroswonder.nintendo.com/"
+  },
+  {
+   "name": "Peach",
+   "slug": "peach",
+   "file": "SMBW Peach Artwork.png",
+   "source": "https://www.nintendo.com/jp/switch/aqmxa/everyone/"
+  },
+  {
+   "name": "Daisy",
+   "slug": "daisy",
+   "file": "SMBW Daisy.png",
+   "source": "https://supermariobroswonder.nintendo.com/"
+  },
+  {
+   "name": "Yellow Toad",
+   "slug": "yellow-toad",
+   "file": "SMBW Yellow Toad Artwork.png",
+   "source": "https://www.nintendo.com/jp/switch/aqmxa/everyone/"
+  },
+  {
+   "name": "Blue Toad",
+   "slug": "blue-toad",
+   "file": "SMBW Blue Toad Artwork.png",
+   "source": "https://www.nintendo.com/jp/switch/aqmxa/everyone/"
+  },
+  {
+   "name": "Toadette",
+   "slug": "toadette",
+   "file": "SMBW Toadette.png",
+   "source": "https://supermariobroswonder.nintendo.com/"
+  },
+  {
+   "name": "Rosalina",
+   "slug": "rosalina",
+   "file": "SMBW NS2E Artwork Rosalina and Luma.png",
+   "source": "https://www.nintendo.com/us/store/products/super-mario-bros-wonder-nintendo-switch-2-edition-plus-meetup-in-bellabel-park-switch-2/"
+  },
+  {
+   "name": "Yoshi",
+   "slug": "yoshi",
+   "file": "SMBW Yoshi.png",
+   "source": "https://supermariobroswonder.nintendo.com/"
+  },
+  {
+   "name": "Red Yoshi",
+   "slug": "red-yoshi",
+   "file": "SMBW Red Yoshi Artwork.png",
+   "source": "https://supermariobroswonder.nintendo.com/"
+  },
+  {
+   "name": "Yellow Yoshi",
+   "slug": "yellow-yoshi",
+   "file": "SMBW Yellow Yoshi.png",
+   "source": "https://supermariobroswonder.nintendo.com/"
+  },
+  {
+   "name": "Light-Blue Yoshi",
+   "slug": "light-blue-yoshi",
+   "file": "SMBW Light Blue Yoshi Artwork.png",
+   "source": "https://supermariobroswonder.nintendo.com/"
+  },
+  {
+   "name": "Nabbit",
+   "slug": "nabbit",
+   "file": "SMBW Nabbit.png",
+   "source": "https://supermariobroswonder.nintendo.com/"
+  }
+ ],
+ "badges": [
+  {
+   "name": "Parachute Cap",
+   "slug": "parachute-cap",
+   "file": "Badge Parachute Cap.png",
+   "kind": "art",
+   "source": "https://www.nintendo.com/jp/switch/aqmxa/"
+  },
+  {
+   "name": "Wall-Climb Jump",
+   "slug": "wall-climb-jump",
+   "file": "Badge Wall-Climb Jump.png",
+   "kind": "art",
+   "source": "https://www.nintendo.com/jp/switch/aqmxa/"
+  },
+  {
+   "name": "Dolphin Kick",
+   "slug": "dolphin-kick",
+   "file": "Badge Dolphin Kick.png",
+   "kind": "art",
+   "source": "https://www.nintendo.com/jp/switch/aqmxa/"
+  },
+  {
+   "name": "Floating High Jump",
+   "slug": "floating-high-jump",
+   "file": "Badge Floating High Jump.png",
+   "kind": "icon",
+   "source": "In-game badge icon"
+  },
+  {
+   "name": "Crouching High Jump",
+   "slug": "crouching-high-jump",
+   "file": "Badge Crouching High Jump.png",
+   "kind": "art",
+   "source": "https://www.nintendo.com/jp/switch/aqmxa/"
+  },
+  {
+   "name": "Timed High Jump",
+   "slug": "timed-high-jump",
+   "file": "Badge Timed High Jump.png",
+   "kind": "icon",
+   "source": "In-game badge icon"
+  },
+  {
+   "name": "Fast Dash",
+   "slug": "fast-dash",
+   "file": "Badge Fast Dash.png",
+   "kind": "icon",
+   "source": "In-game badge icon"
+  },
+  {
+   "name": "Grappling Vine",
+   "slug": "grappling-vine",
+   "file": "Badge Grappling Vine.png",
+   "kind": "art",
+   "source": "https://www.nintendo.com/jp/switch/aqmxa/"
+  },
+  {
+   "name": "Boosting Spin Jump",
+   "slug": "boosting-spin-jump",
+   "file": "Badge Boosting Spin Jump.png",
+   "kind": "icon",
+   "source": "In-game badge icon"
+  },
+  {
+   "name": "Coin Reward",
+   "slug": "coin-reward",
+   "file": "Badge Coin Reward.png",
+   "kind": "art",
+   "source": "Official badge artwork (Super Mario Wiki's Wonder artwork; no page named)"
+  },
+  {
+   "name": "Auto Super Mushroom",
+   "slug": "auto-super-mushroom",
+   "file": "Badge Auto Super Mushroom.png",
+   "kind": "icon",
+   "source": "In-game badge icon"
+  },
+  {
+   "name": "Add ! Blocks",
+   "slug": "add-blocks",
+   "file": "Badge Add ! Blocks.png",
+   "kind": "icon",
+   "source": "In-game badge icon"
+  },
+  {
+   "name": "Safety Bounce",
+   "slug": "safety-bounce",
+   "file": "Badge Safety Bounce.png",
+   "kind": "art",
+   "source": "https://www.nintendo.com/jp/switch/aqmxa/"
+  },
+  {
+   "name": "Rhythm Jump",
+   "slug": "rhythm-jump",
+   "file": "Badge Rhythm Jump.png",
+   "kind": "icon",
+   "source": "In-game badge icon"
+  },
+  {
+   "name": "Sensor",
+   "slug": "sensor",
+   "file": "Badge Sensor.png",
+   "kind": "art",
+   "source": "https://www.nintendo.com/jp/switch/aqmxa/"
+  },
+  {
+   "name": "Coin Magnet",
+   "slug": "coin-magnet",
+   "file": "Badge Coin Magnet.png",
+   "kind": "art",
+   "source": "https://www.nintendo.com/jp/switch/aqmxa/"
+  },
+  {
+   "name": "All Elephant Power",
+   "slug": "all-elephant-power",
+   "file": "Badge All Elephant Power.png",
+   "kind": "icon",
+   "source": "In-game badge icon"
+  },
+  {
+   "name": "All Fire Power",
+   "slug": "all-fire-power",
+   "file": "Badge All Fire Power.png",
+   "kind": "icon",
+   "source": "In-game badge icon"
+  },
+  {
+   "name": "All Bubble Power",
+   "slug": "all-bubble-power",
+   "file": "Badge All Bubble Power.png",
+   "kind": "icon",
+   "source": "In-game badge icon"
+  },
+  {
+   "name": "All Drill Power",
+   "slug": "all-drill-power",
+   "file": "Badge All Drill Power.png",
+   "kind": "icon",
+   "source": "In-game badge icon"
+  },
+  {
+   "name": "Jet Run",
+   "slug": "jet-run",
+   "file": "Badge Jet Run.png",
+   "kind": "art",
+   "source": "https://www.nintendo.com/jp/switch/aqmxa/"
+  },
+  {
+   "name": "Spring Feet",
+   "slug": "spring-feet",
+   "file": "Badge Spring Feet.png",
+   "kind": "icon",
+   "source": "In-game badge icon"
+  },
+  {
+   "name": "Invisibility",
+   "slug": "invisibility",
+   "file": "Badge Invisibility.png",
+   "kind": "art",
+   "source": "https://www.nintendo.com/jp/switch/aqmxa/"
+  },
+  {
+   "name": "Sound Off?",
+   "slug": "sound-off",
+   "file": "Badge Sound Off.png",
+   "kind": "icon",
+   "source": "In-game badge icon"
+  },
+  {
+   "name": "All Flower Power",
+   "slug": "all-flower-power",
+   "file": "Badge All Flower Power.jpg",
+   "kind": "crop",
+   "source": "In-game badge icon (Switch 2 Edition), cropped from the badge screen"
+  },
+  {
+   "name": "Parachute Cap + Floating High Jump",
+   "slug": "parachute-cap-and-floating-high-jump",
+   "file": "Badge ParachuteCapAndFloatingHighJump.jpg",
+   "kind": "crop",
+   "source": "In-game badge icon (Switch 2 Edition), cropped from the badge screen"
+  },
+  {
+   "name": "Parachute Cap + Boosting Spin Jump",
+   "slug": "parachute-cap-and-boosting-spin-jump",
+   "file": "Badge ParachuteCapAndBoostingSpinJump.jpg",
+   "kind": "crop",
+   "source": "In-game badge icon (Switch 2 Edition), cropped from the badge screen"
+  },
+  {
+   "name": "Wall-Climb Jump + Grappling Vine",
+   "slug": "wall-climb-jump-and-grappling-vine",
+   "file": "Badge Wall-ClimbJumpAndGrapplingVine.jpg",
+   "kind": "crop",
+   "source": "In-game badge icon (Switch 2 Edition), cropped from the badge screen"
+  },
+  {
+   "name": "Dolphin Kick + Boosting Spin Jump",
+   "slug": "dolphin-kick-and-boosting-spin-jump",
+   "file": "Badge DolphinKickAndBoostingSpinJump.jpg",
+   "kind": "crop",
+   "source": "In-game badge icon (Switch 2 Edition), cropped from the badge screen"
+  },
+  {
+   "name": "Floating High Jump + Crouching High Jump",
+   "slug": "floating-high-jump-and-crouching-high-jump",
+   "file": "Badge FloatingHighJumpAndCrouchingHighJump.jpg",
+   "kind": "crop",
+   "source": "In-game badge icon (Switch 2 Edition), cropped from the badge screen"
+  },
+  {
+   "name": "Timed High Jump + Floating High Jump",
+   "slug": "timed-high-jump-and-floating-high-jump",
+   "file": "Badge TimedHighJumpAndFloatingHighJump.jpg",
+   "kind": "crop",
+   "source": "In-game badge icon (Switch 2 Edition), cropped from the badge screen"
+  },
+  {
+   "name": "Coin Reward + Auto Super Mushroom",
+   "slug": "coin-reward-and-auto-super-mushroom",
+   "file": "Badge CoinRewardAndAutoSuperMushroom.jpg",
+   "kind": "crop",
+   "source": "In-game badge icon (Switch 2 Edition), cropped from the badge screen"
+  },
+  {
+   "name": "Coin Reward + Coin Magnet",
+   "slug": "coin-reward-and-coin-magnet",
+   "file": "Badge CoinRewardAndCoinMagnet.jpg",
+   "kind": "crop",
+   "source": "In-game badge icon (Switch 2 Edition), cropped from the badge screen"
+  },
+  {
+   "name": "Auto Super Mushroom + Add ! Blocks",
+   "slug": "auto-super-mushroom-and-add-blocks",
+   "file": "Badge AutoSuperMushroomAndAdd!Blocks.jpg",
+   "kind": "crop",
+   "source": "In-game badge icon (Switch 2 Edition), cropped from the badge screen"
+  },
+  {
+   "name": "Auto Super Mushroom + All Elephant Power",
+   "slug": "auto-super-mushroom-and-all-elephant-power",
+   "file": "Badge AutoSuperMushroomAndAllElephantPower.jpg",
+   "kind": "crop",
+   "source": "In-game badge icon (Switch 2 Edition), cropped from the badge screen"
+  },
+  {
+   "name": "Auto Super Mushroom + All Fire Power",
+   "slug": "auto-super-mushroom-and-all-fire-power",
+   "file": "Badge AutoSuperMushroomAndAllFirePower.jpg",
+   "kind": "crop",
+   "source": "In-game badge icon (Switch 2 Edition), cropped from the badge screen"
+  },
+  {
+   "name": "Auto Super Mushroom + All Bubble Power",
+   "slug": "auto-super-mushroom-and-all-bubble-power",
+   "file": "Badge AutoSuperMushroomAndAllBubblePower.jpg",
+   "kind": "crop",
+   "source": "In-game badge icon (Switch 2 Edition), cropped from the badge screen"
+  },
+  {
+   "name": "Auto Super Mushroom + All Drill Power",
+   "slug": "auto-super-mushroom-and-all-drill-power",
+   "file": "Badge AutoSuperMushroomAndAllDrillPower.jpg",
+   "kind": "crop",
+   "source": "In-game badge icon (Switch 2 Edition), cropped from the badge screen"
+  },
+  {
+   "name": "Auto Super Mushroom + All Flower Power",
+   "slug": "auto-super-mushroom-and-all-flower-power",
+   "file": "Badge AutoSuperMushroomAndAllFlowerPower.jpg",
+   "kind": "crop",
+   "source": "In-game badge icon (Switch 2 Edition), cropped from the badge screen"
+  },
+  {
+   "name": "Add ! Blocks + Sensor",
+   "slug": "add-blocks-and-sensor",
+   "file": "Badge Add!BlocksAndSensor.jpg",
+   "kind": "crop",
+   "source": "In-game badge icon (Switch 2 Edition), cropped from the badge screen"
+  },
+  {
+   "name": "Rhythm Jump + Sound Off?",
+   "slug": "rhythm-jump-and-sound-off",
+   "file": "Badge RhythmJumpAndSoundOff.jpg",
+   "kind": "crop",
+   "source": "In-game badge icon (Switch 2 Edition), cropped from the badge screen"
+  },
+  {
+   "name": "Spring Feet + Invisibility",
+   "slug": "spring-feet-and-invisibility",
+   "file": "Badge SpringFeetAndInvisibility.jpg",
+   "kind": "crop",
+   "source": "In-game badge icon (Switch 2 Edition), cropped from the badge screen"
+  }
+ ],
+ "keyart": {
+  "file": "Smbw-keyart.jpg",
+  "slug": "super-mario-bros-wonder-keyart",
+  "source": "https://supermariobroswonder.nintendo.com/",
+  "crop": [
+   0,
+   252,
+   3600,
+   2025
+  ]
+ }
+}

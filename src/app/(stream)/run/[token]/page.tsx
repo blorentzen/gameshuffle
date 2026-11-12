@@ -41,7 +41,8 @@ export default async function RunObsPage({ params, searchParams }: { params: Pro
   const predictionUrl = setup.settings.prediction.on ? `/api/speedrun/prediction/${encodeURIComponent(token)}` : null;
   return (
     <main className="sr-obs">
-      <SpeedrunOverlay socketUrl={`${relay}/watch/${token}`} initial={initial} look={look} game={setup.game} category={setup.category} predictionUrl={predictionUrl} />
+      <SpeedrunOverlay socketUrl={`${relay}/watch/${token}`} initial={initial} look={look} game={setup.game} category={setup.category} predictionUrl={predictionUrl}
+        raceUrl={`/api/speedrun/race/${encodeURIComponent(token)}`} />
     </main>
   );
 }

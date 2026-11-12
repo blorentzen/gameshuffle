@@ -156,7 +156,7 @@ export async function viewOfMarket(m: SpeedrunMarket): Promise<SpeedrunPredictio
 }
 
 /** The streamer's side of the economy: their Twitch identity owns the community the bets live in. */
-async function streamerEconomy(userId: string): Promise<{ communityId: string; hostIdentityId: string; name: string; twitchUserId: string } | null> {
+export async function streamerEconomy(userId: string): Promise<{ communityId: string; hostIdentityId: string; name: string; twitchUserId: string } | null> {
   const admin = createServiceClient();
   const [{ data: conn }, { data: user }] = await Promise.all([
     admin.from("twitch_connections").select("twitch_user_id, twitch_login, is_live").eq("user_id", userId).maybeSingle(),
@@ -175,7 +175,7 @@ async function streamerEconomy(userId: string): Promise<{ communityId: string; h
   return { communityId: community.id, hostIdentityId: host.identityId, name, twitchUserId: c.twitch_user_id };
 }
 
-async function streamerName(userId: string): Promise<{ name: string; twitchUserId: string | null }> {
+export async function streamerName(userId: string): Promise<{ name: string; twitchUserId: string | null }> {
   const admin = createServiceClient();
   const [{ data: conn }, { data: user }] = await Promise.all([
     admin.from("twitch_connections").select("twitch_user_id, twitch_login").eq("user_id", userId).maybeSingle(),
@@ -186,21 +186,21 @@ async function streamerName(userId: string): Promise<{ name: string; twitchUserI
   return { name: u?.display_name || c?.twitch_login || u?.username || u?.twitch_username || "The runner", twitchUserId: c?.twitch_user_id ?? null };
 }
 
-async function say(twitchUserId: string | null, message: string): Promise<void> {
+export async function say(twitchUserId: string | null, message: string): Promise<void> {
   const botId = process.env.TWITCH_BOT_USER_ID;
   if (!botId || !twitchUserId) return;
   await sendChatMessage({ broadcasterId: twitchUserId, senderId: botId, message }).catch((e) => console.error("[speedrun] prediction line:", e));
 }
 
 /** Claims the right to settle or refund (resolved_value is null until someone does). */
-async function claimEnd(marketId: string, what: string): Promise<boolean> {
+export async function claimEnd(marketId: string, what: string): Promise<boolean> {
   const { data } = await createServiceClient().from("gs_markets").update({ resolved_value: `claim:${what}` })
     .eq("id", marketId).in("status", ["open", "locked"]).is("resolved_value", null).select("id");
   return !!data?.length;
 }
 
 /** A one-off flag in notifications, set once (the lock line is said once). */
-async function claimFlag(marketId: string, key: string): Promise<boolean> {
+export async function claimFlag(marketId: string, key: string): Promise<boolean> {
   const admin = createServiceClient();
   const { data } = await admin.from("gs_markets").select("notifications").eq("id", marketId).maybeSingle();
   const cur = ((data as { notifications: Record<string, unknown> | null } | null)?.notifications ?? {}) as Record<string, unknown>;

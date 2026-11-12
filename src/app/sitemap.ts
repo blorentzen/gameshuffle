@@ -5,7 +5,8 @@ import { CHECKLISTS, CHECKLISTS_PATH, checklistUrl } from "@/data/tcg-checklists
 import type { MetadataRoute } from "next";
 import { compAppLive } from "@/lib/discord/appIds";
 import { publishedGuidesAsync } from "@/lib/guides/store";
-import { DUEL_PUBLIC, ROAD_PUBLIC, FIRE_ROUND_PUBLIC, GUIDES_PUBLIC, MK64_PUBLIC, PERFECT_DARK_PUBLIC, OVERWATCH_PUBLIC, MARVEL_RIVALS_PUBLIC, SPEEDRUN_PUBLIC } from "@/lib/games-visibility";
+import { DUEL_PUBLIC, ROAD_PUBLIC, FIRE_ROUND_PUBLIC, GUIDES_PUBLIC, MK64_PUBLIC, MKWII_PUBLIC, PERFECT_DARK_PUBLIC, OVERWATCH_PUBLIC, MARVEL_RIVALS_PUBLIC, SPEEDRUN_PUBLIC } from "@/lib/games-visibility";
+import { MELEE_PUBLIC } from "@/lib/games-visibility";
 import { createPublicClient } from "@/lib/supabase/public";
 import { listCompetitiveGames } from "@/lib/competitive/config";
 import { HELP_ARTICLES } from "@/lib/help/manifest";
@@ -30,7 +31,11 @@ import { BINGO_TEMPLATES } from "@/data/bingo-templates";
 import { TRUTH_OR_DARE_SETS } from "@/data/truth-or-dare";
 import { publicDestinations } from "@/lib/nav/pillars";
 import { N64_PARTY_PUBLIC, FRLG_PUBLIC, GOLDENEYE_PUBLIC, KIRBY_PUBLIC, STADIUM_PUBLIC, SMASH_PUBLIC, SPLATOON_PUBLIC, SONIC_PUBLIC } from "@/lib/games-visibility";
+import { WONDER_PUBLIC } from "@/lib/games-visibility";
+import { DOUBLE_DASH_PUBLIC, MARIO_KART_7_PUBLIC, MARIO_KART_DS_PUBLIC, SUPER_MARIO_KART_PUBLIC } from "@/lib/games-visibility";
 import LASTMOD from "@/data/sitemap-lastmod.json";
+import { POKEMON_CHAMPIONS_PUBLIC } from "@/lib/games-visibility";
+import { SPEEDRUN_ROSTER } from "@/data/speedrun/roster";
 import { ROAD_REGIONS, roadPath } from "@/lib/originals/duel/road";
 import { allRoadPeople } from "@/lib/originals/duel/roadPages";
 
@@ -46,7 +51,7 @@ export const revalidate = 3600; // regenerate every hour
 // /players signs visitors in first (the page redirects), so a crawler would only see /login.
 const UNLISTED = new Set(["/beta", "/features", "/tcg-companion", "/players"]);
 /** Tool pages marked noindex (prototypes), kept out of the tool list below. */
-const NOINDEX_TOOLS = new Set(["shuffle-dice"]);
+const NOINDEX_TOOLS = new Set(["shuffle-dice", "chat-brain"]);
 /** Registry entries whose page is listed elsewhere in the sitemap. */
 const LISTED_ELSEWHERE = new Set(["trivia"]);
 
@@ -226,6 +231,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       changeFrequency: "monthly",
       priority: 0.7,
     },
+    // The Pokémon Champions team builder: once the space opens (POKEMON_CHAMPIONS_PUBLIC).
+    ...(POKEMON_CHAMPIONS_PUBLIC ? [{ url: `${baseUrl}/pokemon-champions-team-builder`, lastModified: lm("/pokemon-champions-team-builder"), changeFrequency: "monthly" as const, priority: 0.7 }] : []),
     {
       url: `${baseUrl}/mmr-card`,
       lastModified: lm("/mmr-card"),
@@ -238,7 +245,17 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       lastModified: lm("/speedrun"),
       changeFrequency: "monthly" as const,
       priority: 0.6,
-    }] : []),
+    }, {
+      url: `${baseUrl}/speedrun/splits`,
+      lastModified: lm("/speedrun/splits"),
+      changeFrequency: "monthly" as const,
+      priority: 0.5,
+    }, ...SPEEDRUN_ROSTER.map((g) => ({
+      url: `${baseUrl}/speedrun/splits/${g.key}`,
+      lastModified: lm("/speedrun/splits/[game]"),
+      changeFrequency: "monthly" as const,
+      priority: 0.5,
+    }))] : []),
     ...(compAppLive() ? [{
       url: `${baseUrl}/mario-kart-discord-bot`,
       lastModified: lm("/mario-kart-discord-bot"),
@@ -422,6 +439,42 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       changeFrequency: "weekly" as const,
       priority: 0.8,
     }] : []),
+    ...(MELEE_PUBLIC ? [{
+      url: `${baseUrl}/randomizers/super-smash-bros-melee`,
+      lastModified: lm("/randomizers/super-smash-bros-melee"),
+      changeFrequency: "weekly" as const,
+      priority: 0.8,
+    }] : []),
+    ...(MKWII_PUBLIC ? [{
+      url: `${baseUrl}/randomizers/mario-kart-wii`,
+      lastModified: lm("/randomizers/mario-kart-wii"),
+      changeFrequency: "weekly" as const,
+      priority: 0.8,
+    }] : []),
+    ...(DOUBLE_DASH_PUBLIC ? [{
+      url: `${baseUrl}/randomizers/mario-kart-double-dash`,
+      lastModified: lm("/randomizers/mario-kart-double-dash"),
+      changeFrequency: "weekly" as const,
+      priority: 0.8,
+    }] : []),
+    ...(MARIO_KART_DS_PUBLIC ? [{
+      url: `${baseUrl}/randomizers/mario-kart-ds`,
+      lastModified: lm("/randomizers/mario-kart-ds"),
+      changeFrequency: "weekly" as const,
+      priority: 0.8,
+    }] : []),
+    ...(MARIO_KART_7_PUBLIC ? [{
+      url: `${baseUrl}/randomizers/mario-kart-7`,
+      lastModified: lm("/randomizers/mario-kart-7"),
+      changeFrequency: "weekly" as const,
+      priority: 0.8,
+    }] : []),
+    ...(SUPER_MARIO_KART_PUBLIC ? [{
+      url: `${baseUrl}/randomizers/super-mario-kart`,
+      lastModified: lm("/randomizers/super-mario-kart"),
+      changeFrequency: "weekly" as const,
+      priority: 0.8,
+    }] : []),
     ...(PERFECT_DARK_PUBLIC ? [{
       url: `${baseUrl}/randomizers/perfect-dark`,
       lastModified: lm("/randomizers/perfect-dark"),
@@ -455,6 +508,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     ...(SONIC_PUBLIC ? [{
       url: `${baseUrl}/randomizers/sonic-racing-crossworlds`,
       lastModified: lm("/randomizers/sonic-racing-crossworlds"),
+      changeFrequency: "weekly" as const,
+      priority: 0.8,
+    }] : []),
+    ...(WONDER_PUBLIC ? [{
+      url: `${baseUrl}/randomizers/super-mario-bros-wonder`,
+      lastModified: lm("/randomizers/super-mario-bros-wonder"),
       changeFrequency: "weekly" as const,
       priority: 0.8,
     }] : []),

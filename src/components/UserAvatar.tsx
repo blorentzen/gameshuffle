@@ -19,6 +19,7 @@
  */
 
 import { useMemo } from "react";
+import { avatarChoice } from "@/lib/avatar/choice";
 import { generateDicebearAvatar, type AvatarOptions } from "@/lib/avatar/dicebear";
 
 export type AvatarSource = "initials" | "dicebear" | "twitch" | "discord";
@@ -43,8 +44,9 @@ export interface UserAvatarProps {
 }
 
 export function UserAvatar({ user, size = 40, alt = "", className, style }: UserAvatarProps) {
-  const source = (user.avatar_source as AvatarSource | undefined) ?? "dicebear";
-  const seed = user.avatar_seed?.trim() || user.id;
+  // One rule for which picture shows (src/lib/avatar/choice.ts, shared with Shuffle Kart).
+  const choice = avatarChoice({ ...user, avatar_options: user.avatar_options ?? null });
+  const seed = choice.kind === "dicebear" ? choice.seed : user.avatar_seed?.trim() || user.id;
   const options = user.avatar_options ?? null;
 
   // Memo the SVG so repeated renders in long lists (tournament participants,
@@ -69,23 +71,10 @@ export function UserAvatar({ user, size = 40, alt = "", className, style }: User
   };
 
   // External URL paths (Twitch / Discord profile images)
-  if (source === "twitch" && user.twitch_avatar) {
+  if (choice.kind === "photo") {
     return (
       <img
-        src={user.twitch_avatar}
-        width={size}
-        height={size}
-        alt={alt}
-        className={className}
-        style={{ ...baseStyle, objectFit: "cover" }}
-        loading="lazy"
-      />
-    );
-  }
-  if (source === "discord" && user.discord_avatar) {
-    return (
-      <img
-        src={user.discord_avatar}
+        src={choice.url}
         width={size}
         height={size}
         alt={alt}

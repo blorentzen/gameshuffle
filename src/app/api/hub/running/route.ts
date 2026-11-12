@@ -5,7 +5,7 @@
  * stream page's control room: the game on stream (so the page can follow a
  * category change), the lobby count, the last roll on screen, and whatever
  * is running (picks and bans, a poll, bingo, a draft, Chat Brain, a
- * prediction, bounties). Only what's running comes back; the page shows a
+ * prediction, bounties, the level queue). Only what's running comes back; the page shows a
  * card per item, just in time. The owner, or a Full-access mod on their mod
  * page (src/lib/mods/acting.ts).
  */
@@ -21,6 +21,7 @@ import { breakView, getRunning as getRunningBreak, openBreakBounty, tickBreak } 
 import { getCurrentDraft } from "@/lib/drafts/store";
 import { getRunningGame, gameView } from "@/lib/chatbrain/streamGame";
 import { rollSlots, rollTitle, rollKind } from "@/lib/twitch/chatRoll";
+import { hubLevels } from "@/lib/levels/store";
 import type { HubRunning } from "@/lib/hub/types";
 
 export const runtime = "nodejs";
@@ -127,7 +128,7 @@ export async function GET(request: Request) {
     challenges: { open: 0, needsWinner: 0 },
     breakBounty: null,
   };
-  if (!communityId) return NextResponse.json(empty);
+  if (!communityId) return NextResponse.json({ ...empty, levels: await safe(() => hubLevels(ownerUserId), null) } satisfies HubRunning);
 
   const [poll, bingo, draft, brain, breakMode, market, bounties] = await Promise.all([
     safe(async () => {
@@ -185,5 +186,6 @@ export async function GET(request: Request) {
   const challenges = { open: openCh.count ?? 0, needsWinner: unpaidCh.count ?? 0 };
   const openBounty = communityId ? await safe(() => openBreakBounty(communityId), null) : null;
   const breakBounty = openBounty ? { text: openBounty.text, tokens: openBounty.tokens, voters: openBounty.voters } : null;
-  return NextResponse.json({ ...empty, poll, bingo, draft, brain, breakMode, market, bounties, challenges, breakBounty } satisfies HubRunning);
+  const levels = await safe(() => hubLevels(ownerUserId), null);
+  return NextResponse.json({ ...empty, poll, bingo, draft, brain, breakMode, market, bounties, challenges, breakBounty, levels } satisfies HubRunning);
 }

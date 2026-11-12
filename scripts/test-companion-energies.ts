@@ -47,11 +47,13 @@ test("Pokémon Mode exposes the expected 10 energy types", () => {
   ]);
 });
 
-test("Special Energy uses sparkles-2 icon (distinct from Psychic's sparkles)", () => {
-  const psychic = pokemonMode.energyTypes.find((d) => d.key === "psychic");
-  const special = pokemonMode.energyTypes.find((d) => d.key === "special");
-  assert.equal(psychic?.icon, "sparkles");
-  assert.equal(special?.icon, "sparkles-2");
+test("Special Energy is sparkles, Psychic the eye, Colorless the star; every icon distinct", () => {
+  const icon = (key: string) => pokemonMode.energyTypes.find((d) => d.key === key)?.icon;
+  assert.equal(icon("psychic"), "eye");
+  assert.equal(icon("special"), "sparkles");
+  assert.equal(icon("colorless"), "star");
+  const icons = pokemonMode.energyTypes.map((d) => d.icon);
+  assert.equal(new Set(icons).size, icons.length, `repeated icon in ${icons.join(", ")}`);
 });
 
 test("Empty slot starts with no energies attached", () => {

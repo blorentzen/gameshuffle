@@ -8,6 +8,7 @@
  * organizer, co-organizer or staff member also gets that tournament's own
  * answer (`tournament`: where its access comes from, its player cap (null =
  * no cap) and whether the paid organizer features are on), for the manage page.
+ * `paidFeatures` is the account's own answer (championship series on the create page).
  */
 
 import { NextResponse, type NextRequest } from "next/server";
@@ -21,12 +22,14 @@ export const runtime = "nodejs";
 
 export async function GET(req: NextRequest) {
   const billingEnabled = await getPlatformFlag("organizer_billing_enabled", false);
-  if (!billingEnabled) return NextResponse.json({ billingEnabled, launchedAt: null, graceUntil: null, plan: null });
+  // paidFeatures: whether this account can use the Circuit organizer tools now (championship series,
+  // leagues…), the same answer as organizerHasPaidFeatures. Everyone while billing is off.
+  if (!billingEnabled) return NextResponse.json({ billingEnabled, launchedAt: null, graceUntil: null, plan: null, paidFeatures: true });
 
   const launchedAt = (await getBillingEnabledAt())?.toISOString() ?? null;
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return NextResponse.json({ billingEnabled, launchedAt, graceUntil: null, plan: null });
+  if (!user) return NextResponse.json({ billingEnabled, launchedAt, graceUntil: null, plan: null, paidFeatures: false });
 
   const admin = createServiceClient();
   const { data } = await admin.from("users").select("role, circuit_tier").eq("id", user.id).maybeSingle();
@@ -35,7 +38,7 @@ export async function GET(req: NextRequest) {
   const grace = staff ? null : await circuitGraceFor(admin, user.id);
   const plan = staff ? "staff" : grace ? "grace" : row?.circuit_tier === "circuit_64" || row?.circuit_tier === "circuit_256" ? row.circuit_tier : "free";
   const tournament = await tournamentAnswer(admin, req.nextUrl.searchParams.get("tournament"), user.id, staff);
-  return NextResponse.json({ billingEnabled, launchedAt, graceUntil: grace?.toISOString() ?? null, plan, tournament });
+  return NextResponse.json({ billingEnabled, launchedAt, graceUntil: grace?.toISOString() ?? null, plan, paidFeatures: plan !== "free", tournament });
 }
 
 /** One tournament's Circuit access, for the people who manage it (else null). */

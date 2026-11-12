@@ -11,16 +11,15 @@ import "server-only";
  */
 
 import { SITE_URL } from "@/lib/seo";
-import { trackCode } from "@/lib/timeTrials/codes";
-import { ttTracks } from "@/lib/timeTrials/tracks";
 import type { ActivitySession } from "@/lib/activity/session";
 import { channelLabel } from "./channelLabel";
 import { warPagePath } from "./page";
-import { penaltyTeam, readTrack, warTrack, type WarGame, type WarSide } from "./rules";
+import { penaltyTeam, readTrack, warGameOr, warTrack, type WarGame, type WarSide } from "./rules";
+import { warTracks, wiiCodes } from "./tracks";
 import { pointsTable, roomOf } from "./format";
 import {
   addPenalty, addRace, endWar, getWar, latestWar, latestWarIn, liveWar, liveWarsIn, markRoom, pendingTrack, rememberChannel,
-  replaceRace, setPendingTrack, setTrack, startWar, tapPlace, tapsFit, undoRace, warChannel, warStanding, warTeams, type War, type WarTeamRef,
+  replaceRace, setPendingTrack, setTrack, startWar, tapPlace, tapsFit, undoRace, warChannel, warStanding, warTeams, WII_NOT_READY, type War, type WarTeamRef,
 } from "./store";
 import { answersFor, cansReady, lineupNow } from "@/lib/cans/store";
 import { headlineFor, leads, playerRows, tapGrid, waitingOn, type RoomTrack, type WarRoomView } from "./roomView";
@@ -44,12 +43,12 @@ export function roomImg(url: string | null): string | null {
 
 export function roomTrack(game: WarGame, id: string | null): RoomTrack | null {
   const t = id ? warTrack(game, id) : null;
-  return t ? { id: t.id, code: trackCode(t), name: t.name, image: roomImg(t.image) } : null;
+  return t ? { id: t.id, code: t.code, name: t.name, image: roomImg(t.image) } : null;
 }
 
 /** Every course in the game, for the track picker, in cup order. */
 export function roomTracks(game: WarGame): (RoomTrack & { cup: string })[] {
-  return ttTracks(game).map((t) => ({ id: t.id, code: trackCode(t), name: t.name, cup: t.cup, image: roomImg(t.image) }));
+  return warTracks(game).map((t) => ({ id: t.id, code: t.code, name: t.name, cup: t.cup, image: roomImg(t.image), ...(game === "mkwii" ? { also: wiiCodes(t.id).slice(1) } : {}) }));
 }
 
 const team = (t: WarTeamRef, total: number) => ({ tag: t.tag, name: t.name, logo: roomImg(t.logo), total });
@@ -218,12 +217,12 @@ export async function roomAction(session: ActivitySession, body: RoomAction): Pr
     if (!them) return fail("no_vs", "Who are you playing? Pick a team or type their tag.");
     if (!usTag) return fail("no_us", "Type your team's tag. The channel remembers it after this.");
     if (usTag.toLowerCase() === them.toLowerCase()) return fail("same", "Your team and theirs have the same tag.");
-    const game: WarGame = body.game === "mkworld" ? "mkworld" : "mk8dx";
+    const game: WarGame = warGameOr(body.game, "mk8dx");
     const { teamRef } = await import("@/lib/discord/commands/war");
     const remembered = (await warChannel(guildId, where.channelId))?.team ?? null;
     const [us, opp] = await Promise.all([teamRef(guildId, usTag, game, remembered), teamRef(guildId, them, game, null)]);
     const started = await startWar({ guildId, channelId: where.channelId, game, entry: "taps", us, them: opp, by });
-    if (!started.ok) return started.error === "live" ? { ok: true, war: started.war, card: null } : fail("failed", "The war couldn't start. Try again in a moment.");
+    if (!started.ok) return started.error === "live" ? { ok: true, war: started.war, card: null } : started.error === "wii_not_ready" ? fail("wii_not_ready", WII_NOT_READY) : fail("failed", "The war couldn't start. Try again in a moment.");
     await rememberChannel(guildId, where.channelId, { team: us, game });
     return { ok: true, war: started.war, card: { war: started.war.id, move: true } };
   }
@@ -300,7 +299,7 @@ export async function roomAction(session: ActivitySession, body: RoomAction): Pr
       const live = await liveWar(war.guildId, war.channelId);
       if (live) return { ok: true, war: live, card: null };
       const started = await startWar({ guildId: war.guildId, channelId: war.channelId, game: war.game, entry: war.entry, us: war.us, them: war.them, by, format: war.format, others: war.others, racesTotal: war.racesTotal });
-      if (!started.ok) return started.error === "live" ? { ok: true, war: started.war, card: null } : fail("failed", "The rematch couldn't start. Try again in a moment.");
+      if (!started.ok) return started.error === "live" ? { ok: true, war: started.war, card: null } : started.error === "wii_not_ready" ? fail("wii_not_ready", WII_NOT_READY) : fail("failed", "The rematch couldn't start. Try again in a moment.");
       return { ok: true, war: started.war, card: { war: started.war.id, move: true } };
     }
   }

@@ -130,6 +130,8 @@ export type AvatarOptionKey = keyof typeof ADVENTURER_OPTIONS;
 interface BuildOptions {
   seed: string;
   options?: AvatarOptions | null;
+  /** Raw DiceBear options applied last (e.g. `hairProbability: 0` for a face without its hair). */
+  extra?: Record<string, unknown>;
 }
 
 /**
@@ -144,7 +146,7 @@ interface BuildOptions {
  *     any other glasses value forces glassesProbability=100.
  *   - User-picked backgroundColor wins over the deterministic palette.
  */
-function buildAvatar({ seed, options }: BuildOptions) {
+function buildAvatar({ seed, options, extra }: BuildOptions) {
   const o = options ?? {};
   const overrides: Record<string, unknown> = { seed };
 
@@ -173,7 +175,7 @@ function buildAvatar({ seed, options }: BuildOptions) {
       overrides.glassesProbability = 100;
     }
   }
-  return createAvatar(adventurer, overrides);
+  return createAvatar(adventurer, extra ? { ...overrides, ...extra } : overrides);
 }
 
 /**
@@ -185,6 +187,17 @@ function buildAvatar({ seed, options }: BuildOptions) {
  */
 export function generateDicebearAvatar(seed: string, options?: AvatarOptions | null): string {
   return buildAvatar({ seed, options }).toString();
+}
+
+/**
+ * The avatar as DiceBear's object: `toString()` is the SVG, `toJson().extra`
+ * names the parts and colors it picked (hair, glasses, skinColor, hairColor…).
+ * `extra` sets raw DiceBear options last, e.g. `{ hairProbability: 0 }` for the
+ * same face without its hair (the other picks don't change: DiceBear draws
+ * every part's odds either way). Used by the 3D game characters.
+ */
+export function dicebearAvatar(seed: string, options?: AvatarOptions | null, extra?: Record<string, unknown>) {
+  return buildAvatar({ seed, options, extra });
 }
 
 /** Same avatar as a `data:image/svg+xml;base64,...` URI. */

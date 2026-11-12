@@ -16,7 +16,7 @@ import { embedText } from "@/lib/timeTrials/quaxly";
 import { carryBlock, carrySummary, carryTotals, readBlock, readCarry, type CarryRead, type CarryWar } from "@/lib/wars/carry";
 import { isDefaultFormat } from "@/lib/wars/format";
 import type { WarPenalty, WarRace } from "@/lib/wars/rules";
-import { formatsReady, liveWar, rememberChannel, startWar, endWar, warChannel, warsReady } from "@/lib/wars/store";
+import { formatsReady, liveWar, rememberChannel, startWar, endWar, warChannel, warsReady, WII_NOT_READY } from "@/lib/wars/store";
 import { postCard, warTitle, WAR_PREFIX } from "@/lib/wars/discord";
 import { teamRef } from "./war";
 
@@ -210,7 +210,7 @@ export async function carryInto(war: CarryWar, guildId: string, channelId: strin
     guildId, channelId, game: war.game, entry: "scorer", us: refs[0], them: refs[1], others: refs.slice(2), format: war.format,
     racesTotal: war.racesTotal, races, penalties, notes: [note], by: who,
   });
-  if (!started.ok) return started.error === "live" ? "Someone started a war here a moment ago, so this one wasn't carried over." : "The war couldn't be carried over. Try again in a moment.";
+  if (!started.ok) return started.error === "live" ? "Someone started a war here a moment ago, so this one wasn't carried over." : started.error === "wii_not_ready" ? WII_NOT_READY : "The war couldn't be carried over. Try again in a moment.";
   await rememberChannel(guildId, channelId, { team: refs[0], game: war.game, races: war.racesTotal, ...(war.format.teams === 2 ? { size: war.format.size } : {}) });
   const posted = await postCard(started.war.id);
   if (posted !== "ok") {

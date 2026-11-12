@@ -22,8 +22,7 @@ export default function Page() {
         GameShuffle Competitive is our Discord bot for competitive Mario Kart: time trials, lounge MMR,
         room reads, wars and results. It&apos;s a separate app from the main GameShuffle bot, which keeps the
         daily games and community tools (see <Link href="/help/community/discord-bot">the Discord bot</Link>).
-        Both can sit in the same server. Competitive is free; <code>/result</code>, division roles and the
-        Monday board need GS Pro.
+        Both can sit in the same server. Competitive is free; division roles and the Monday board need GS Pro.
       </p>
 
       <h2>Adding it</h2>
@@ -64,7 +63,7 @@ export default function Page() {
       <ul>
         <li><code>/mmr</code>: a lounge player&apos;s MMR, division and rank. Leave the name out for your own <Link href="/help/competitive/mmr-card">MMR card</Link>. Add <code>versus</code>{" "}for a head-to-head, and <code>game</code>{" "}for Mario Kart World (Mario Kart 8 Deluxe if left out).</li>
         <li><code>/room</code>: paste the room&apos;s lounge names, separated by commas (teams separated by slashes). You get the room&apos;s average and who&apos;s favored. Add <code>me</code>{" "}with your lounge name for your seed, where you break even and what each place pays.</li>
-        <li><code>/result</code>: posts the results of the last <Link href="/help/apps/competitive-lounge">Live scoring</Link>{" "}session you hosted on GameShuffle. Needs GS Pro and your Discord connected to your account.</li>
+        <li><code>/result</code>: posts the results of the last <Link href="/help/apps/competitive-lounge">Live scoring</Link>{" "}session you hosted on GameShuffle. Needs your Discord connected to your account.</li>
       </ul>
 
       <h2>Wars</h2>

@@ -5,6 +5,7 @@ import { Input } from "@empac/cascadeds";
 import { CardActions } from "./CardActions";
 import { KartSlot, SlotCaptionContext } from "./KartSlot";
 import { SaveKartBuild } from "./SaveKartBuild";
+import { vehicleNoteText } from "@/lib/randomizers/vehicleNote";
 import type { Player, GameData } from "@/data/types";
 
 /**
@@ -77,6 +78,8 @@ interface PlayerCardProps {
   canRemove: boolean;
   /** 0-based seat, for button labels when no name is typed ("Player 2"). */
   seat?: number;
+  /** A line under the vehicle saying what it is (Mario Kart Wii: "Large bike, inside drift"). */
+  vehicleNote?: boolean;
 }
 
 /** The Mario Kart card: the character is the picture; vehicle, wheels and glider line up beside it. */
@@ -93,6 +96,7 @@ export function PlayerCard({
   onNameChange,
   canRemove,
   seat,
+  vehicleNote = false,
 }: PlayerCardProps) {
   const who = player.name.trim() || (seat !== undefined ? `Player ${seat + 1}` : "this player");
   const parts = [hasVehicle, hasWheels, hasGlider].filter(Boolean).length;
@@ -155,6 +159,9 @@ export function PlayerCard({
             />
           )}
         </ul>
+      )}
+      {vehicleNote && player.combo && vehicleNoteText(player.combo.vehicle) && (
+        <p className="party-muted">{vehicleNoteText(player.combo.vehicle)}</p>
       )}
       {player.combo && (
         <div className="player-card__save">

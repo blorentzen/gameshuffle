@@ -221,3 +221,9 @@
 .space-ask-line__form .labeled-combobox { flex: 1 1 28rem; min-width: 0; }
 .space-ask-line__note { margin: 0; color: var(--text-secondary); font-size: var(--font-size-14); }
 @media (max-width: 559px) { .space-ask-line__form > .empac-button { flex: 1 1 100%; justify-content: center; } }
+
+/* A Smash space's tournament stages (Melee, 2026-11-11): the starters as small stage pictures with their names. */
+.space-strikes { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--spacing-12); grid-template-columns: repeat(auto-fit, minmax(9.6rem, 1fr)); }
+.space-strikes li { display: grid; align-content: start; gap: var(--spacing-6, 0.6rem); min-width: 0; }
+.space-strikes img { display: block; width: 100%; aspect-ratio: 16 / 9; object-fit: cover; border-radius: var(--radius-8, 8px); background: var(--background-tertiary); }
+.space-strikes span { font-size: var(--font-size-14); font-weight: var(--font-weight-semibold, 600); }

@@ -61,7 +61,7 @@ import { isTtBracket } from "@/lib/tournaments/tt/bracketTt";
 import { isTtSwiss } from "@/lib/tournaments/tt/swissTt";
 import { DeckListPicker } from "@/components/tournament/decks/DeckListPicker";
 import { MyDeckListCard, PublicDeckLists } from "@/components/tournament/decks/TournamentDeckLists";
-import { deckListSettingsOf, deckListsOn, deckNeededToJoin } from "@/lib/tournaments/deckLists";
+import { deckListSettingsOf, deckListsOn, deckNeededToJoin, isTeamListGame } from "@/lib/tournaments/deckLists";
 import { SupportMoment } from "@/components/support/SupportMoment";
 
 export interface Tournament {
@@ -467,6 +467,9 @@ export function TournamentPageClient({ initial, baseUrl, circuitCap = null }: { 
     tournament.status === "in_progress" ||
     (tournament.settings?.randomizer?.enabled && Array.isArray(tournament.settings?.rounds))
   );
+  // A list still to send or swap before round 1 (team lists, deck lists due "Before round 1"). Its card sits in
+  // Activity when there is one, else at the top of Registration (an open event often has no Activity tab yet).
+  const listToSend = !!user && decksOn && !!myParticipation && myParticipation.status !== "waitlisted" && myParticipation.status !== "offered" && tournament.status === "open";
 
   /**
    * Lobby details: room code, lobby codes, the community link and every
@@ -821,9 +824,7 @@ export function TournamentPageClient({ initial, baseUrl, circuitCap = null }: { 
           )}
 
           {/* The player's deck list (Pokémon TCG events that take them): first while it can still be sent or swapped. */}
-          {user && decksOn && myParticipation && myParticipation.status !== "waitlisted" && myParticipation.status !== "offered" && tournament.status === "open" && (
-            <MyDeckListCard tournamentId={tournamentId} />
-          )}
+          {listToSend && <MyDeckListCard tournamentId={tournamentId} />}
 
           {/* Swiss: your match, the round's tables, standings and the top cut. */}
           {/* Time trial: your times or group first, then the round and the field. */}
@@ -832,7 +833,7 @@ export function TournamentPageClient({ initial, baseUrl, circuitCap = null }: { 
           {isTtBracket(tournament) && tournament.status !== "draft" && <TtBracketPanel tournamentId={tournamentId} />}
 
           {tournament.format === "swiss" && tournament.status !== "draft" && (
-            <SwissPublicPanel tournamentId={tournamentId} showDeckLink={decksOn && !!myParticipation} />
+            <SwissPublicPanel tournamentId={tournamentId} showDeckLink={decksOn && !!myParticipation} deckLabel={isTeamListGame(tournament.game_slug) ? "My team list" : undefined} />
           )}
 
           {/* Once the event runs, the list is locked: it sits below the match. */}
@@ -840,8 +841,9 @@ export function TournamentPageClient({ initial, baseUrl, circuitCap = null }: { 
             <MyDeckListCard tournamentId={tournamentId} />
           )}
 
-          {/* After the event: the deck lists the organizer chose to share. */}
-          {decksOn && tournament.status === "complete" && <PublicDeckLists tournamentId={tournamentId} signedIn={!!user} />}
+          {/* After the event: the deck lists the organizer chose to share. Team lists (Pokémon Champions) can show from
+              round 1 or once the top cut is set, so they're asked for as soon as the event runs. */}
+          {decksOn && (tournament.status === "complete" || (isTeamListGame(tournament.game_slug) && tournament.status === "in_progress")) && <PublicDeckLists tournamentId={tournamentId} signedIn={!!user} />}
           {tournament.status === "complete" && <SupportMoment from="tournament" title="Enjoyed the tournament?" />}
 
           {/* Live "Now racing" — the tournament's own real-time board (works with
@@ -940,7 +942,7 @@ export function TournamentPageClient({ initial, baseUrl, circuitCap = null }: { 
 
           {/* Smash: rules, live sets, rounds and crew battles (read-only) */}
           {isSmashGame(tournament.game_slug) && tournament.status !== "draft" && (
-            <SmashTournamentPanel settings={tournament.settings} participants={participants} format={tournament.format ?? ""} bracket={tournament.bracket} readOnly />
+            <SmashTournamentPanel gameSlug={tournament.game_slug} settings={tournament.settings} participants={participants} format={tournament.format ?? ""} bracket={tournament.bracket} readOnly />
           )}
 
           {/* Flights board (read-only) */}
@@ -1048,6 +1050,8 @@ export function TournamentPageClient({ initial, baseUrl, circuitCap = null }: { 
           badge: seated.length,
           content: (
             <>
+          {/* No Activity tab yet: the list to send before round 1 leads Registration instead. */}
+          {listToSend && !hasActivity && <MyDeckListCard tournamentId={tournamentId} />}
           {/* Participants */}
           <div className="comp-card" style={{ marginBottom: "2rem" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1rem" }}>

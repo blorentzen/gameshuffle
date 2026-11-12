@@ -15,8 +15,8 @@ import type { ReactElement } from "react";
 import { ImageResponse } from "next/og";
 import sharp from "sharp";
 import { fonts, svgUri } from "@/lib/og/eventCard";
-import { trackTitle } from "@/lib/timeTrials/codes";
-import { signed, warTrack, type Standing, type WarSide } from "./rules";
+import { warTrackTitle as trackTitle } from "./tracks";
+import { signed, WAR_GAME_LABELS, warTrack, type Standing, type WarSide } from "./rules";
 import { formatLabel, isDefaultFormat, placesOf, placePoints, pointsTable, raceWinner, roomOf, teamColor, teamScores } from "./format";
 import { warStanding, warTeams, type War, type WarTeamRef } from "./store";
 
@@ -219,7 +219,7 @@ function ScoreRow({ war, us, them, pill, pillColor, logos }: { war: War; us: num
   );
 }
 
-const GAME_LABEL: Record<War["game"], string> = { mk8dx: "Mario Kart 8 Deluxe", mkworld: "Mario Kart World" };
+const GAME_LABEL: Record<War["game"], string> = WAR_GAME_LABELS;
 /** A side's name: yours, or `them` = the other team (two teams) or the standing's rival (several). */
 const sideName = (war: War, side: WarSide, s?: Standing) => teamName(side === "us" ? war.us : warTeams(war)[s?.rival ?? 1] ?? war.them);
 

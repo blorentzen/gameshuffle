@@ -87,6 +87,10 @@ export function RandomizerClient({
   // The second race mode's pool: knockout rallies (Mario Kart World) or battle courses (Mario Kart 64).
   const altPool = gameData.knockoutRallies ?? gameData.battleCourses;
 
+  // Mario Kart Wii names its own character and vehicle filters (size classes; karts and the two kinds of bike).
+  const weightOptions = gameConfig.weightFilter?.options ?? CHAR_WEIGHT_OPTIONS;
+  const vehicleOptions = gameConfig.vehicleFilter?.options ?? DRIFT_OPTIONS;
+
   const hasCups = Boolean(gameData.cups && gameData.cups.length > 0);
   /** No vehicle choice (Mario Kart 64): the first tab rolls characters only. */
   const charOnly = gameData.vehicles.length === 0;
@@ -514,14 +518,14 @@ export function RandomizerClient({
                     title="Any special modifiers?"
                     empty={charOnly ? "Every character is in the mix" : "Every character and kart is in the mix"}
                     summary={[
-                      ...kart.charFilters.map((v) => CHAR_WEIGHT_OPTIONS.find((o) => o.value === v)?.label ?? v),
-                      ...kart.vehiFilters.map((v) => DRIFT_OPTIONS.find((o) => o.value === v)?.label ?? v),
+                      ...kart.charFilters.map((v) => weightOptions.find((o) => o.value === v)?.label ?? v),
+                      ...kart.vehiFilters.map((v) => vehicleOptions.find((o) => o.value === v)?.label ?? v),
                     ]}
                   >
                     {gameConfig.hasWeightFilter && (
                       <FilterGroup
-                        label="Character Weights"
-                        options={CHAR_WEIGHT_OPTIONS}
+                        label={gameConfig.weightFilter?.label ?? "Character Weights"}
+                        options={weightOptions}
                         activeValues={kart.charFilters}
                         onToggle={(w) => {
                           kart.toggleCharFilter(w);
@@ -531,8 +535,8 @@ export function RandomizerClient({
                     )}
                     {gameConfig.hasDriftFilter && (
                       <FilterGroup
-                        label="Drift Type"
-                        options={DRIFT_OPTIONS}
+                        label={gameConfig.vehicleFilter?.label ?? "Drift Type"}
+                        options={vehicleOptions}
                         activeValues={kart.vehiFilters}
                         onToggle={(d) => {
                           kart.toggleVehiFilter(d);
@@ -555,6 +559,7 @@ export function RandomizerClient({
                     hasVehicle={gameData.vehicles.length > 0}
                     hasWheels={Boolean(gameData.wheels && gameData.wheels.length > 0)}
                     hasGlider={Boolean(gameData.gliders && gameData.gliders.length > 0)}
+                    vehicleNote={gameConfig.vehicleNote}
                     onRefresh={() => {
                       kart.refreshOne(player.id, gameData, gameConfig.uniqueCharacters);
                       trackEvent("Refresh One Kart");

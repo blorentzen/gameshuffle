@@ -10,6 +10,7 @@
  */
 
 import { readSpots, readTrack, type ReadSpots, type WarGame, type WarSide } from "./rules";
+import { nickTrack } from "./tracks";
 import { isDefaultFormat, readPlaces as readFormatPlaces, roomOf, type WarFormat } from "./format";
 import { tagKey } from "./tags";
 
@@ -55,7 +56,8 @@ const halfWidth = (s: string) => s.replace(/[０-９]/g, (c) => String.fromCharC
 export function trackFrom(text: string, ctx: TypedContext): string | null {
   const t = text.trim();
   if (!t || t.length > 24) return null;
-  return readTrack(ctx.game, t)?.id ?? ctx.trackNames?.[tagKey(t)] ?? null;
+  // A nickname counts for its own game: Mario Kart Wii's are stored as "mkwii:<id>" (tracks.ts nickTrack).
+  return readTrack(ctx.game, t)?.id ?? nickTrack(ctx.game, ctx.trackNames?.[tagKey(t)]) ?? null;
 }
 
 /** Kiwi's way with a run of digits: 10 and 11 are places, 12 is always 1st and 2nd, any other digit is one place. */

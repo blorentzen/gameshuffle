@@ -1,0 +1,663 @@
+{
+  "characters": [
+    {
+      "name": "Baby Mario",
+      "img": "/images/mario-kart-wii/characters/baby-mario.webp",
+      "weight": "Small"
+    },
+    {
+      "name": "Baby Luigi",
+      "img": "/images/mario-kart-wii/characters/baby-luigi.webp",
+      "weight": "Small"
+    },
+    {
+      "name": "Baby Peach",
+      "img": "/images/mario-kart-wii/characters/baby-peach.webp",
+      "weight": "Small"
+    },
+    {
+      "name": "Baby Daisy",
+      "img": "/images/mario-kart-wii/characters/baby-daisy.webp",
+      "weight": "Small"
+    },
+    {
+      "name": "Toad",
+      "img": "/images/mario-kart-wii/characters/toad.webp",
+      "weight": "Small"
+    },
+    {
+      "name": "Toadette",
+      "img": "/images/mario-kart-wii/characters/toadette.webp",
+      "weight": "Small"
+    },
+    {
+      "name": "Koopa Troopa",
+      "img": "/images/mario-kart-wii/characters/koopa-troopa.webp",
+      "weight": "Small"
+    },
+    {
+      "name": "Dry Bones",
+      "img": "/images/mario-kart-wii/characters/dry-bones.webp",
+      "weight": "Small"
+    },
+    {
+      "name": "Mario",
+      "img": "/images/mario-kart-wii/characters/mario.webp",
+      "weight": "Medium"
+    },
+    {
+      "name": "Luigi",
+      "img": "/images/mario-kart-wii/characters/luigi.webp",
+      "weight": "Medium"
+    },
+    {
+      "name": "Peach",
+      "img": "/images/mario-kart-wii/characters/peach.webp",
+      "weight": "Medium"
+    },
+    {
+      "name": "Daisy",
+      "img": "/images/mario-kart-wii/characters/daisy.webp",
+      "weight": "Medium"
+    },
+    {
+      "name": "Yoshi",
+      "img": "/images/mario-kart-wii/characters/yoshi.webp",
+      "weight": "Medium"
+    },
+    {
+      "name": "Birdo",
+      "img": "/images/mario-kart-wii/characters/birdo.webp",
+      "weight": "Medium"
+    },
+    {
+      "name": "Diddy Kong",
+      "img": "/images/mario-kart-wii/characters/diddy-kong.webp",
+      "weight": "Medium"
+    },
+    {
+      "name": "Bowser Jr.",
+      "img": "/images/mario-kart-wii/characters/bowser-jr.webp",
+      "weight": "Medium"
+    },
+    {
+      "name": "Wario",
+      "img": "/images/mario-kart-wii/characters/wario.webp",
+      "weight": "Large"
+    },
+    {
+      "name": "Waluigi",
+      "img": "/images/mario-kart-wii/characters/waluigi.webp",
+      "weight": "Large"
+    },
+    {
+      "name": "Donkey Kong",
+      "img": "/images/mario-kart-wii/characters/donkey-kong.webp",
+      "weight": "Large"
+    },
+    {
+      "name": "Bowser",
+      "img": "/images/mario-kart-wii/characters/bowser.webp",
+      "weight": "Large"
+    },
+    {
+      "name": "King Boo",
+      "img": "/images/mario-kart-wii/characters/king-boo.webp",
+      "weight": "Large"
+    },
+    {
+      "name": "Rosalina",
+      "img": "/images/mario-kart-wii/characters/rosalina.webp",
+      "weight": "Large"
+    },
+    {
+      "name": "Funky Kong",
+      "img": "/images/mario-kart-wii/characters/funky-kong.webp",
+      "weight": "Large"
+    },
+    {
+      "name": "Dry Bowser",
+      "img": "/images/mario-kart-wii/characters/dry-bowser.webp",
+      "weight": "Large"
+    },
+    {
+      "name": "Mii (Small)",
+      "img": "/images/mario-kart-wii/characters/mii.webp",
+      "weight": "Small"
+    },
+    {
+      "name": "Mii (Medium)",
+      "img": "/images/mario-kart-wii/characters/mii.webp",
+      "weight": "Medium"
+    },
+    {
+      "name": "Mii (Large)",
+      "img": "/images/mario-kart-wii/characters/mii.webp",
+      "weight": "Large"
+    }
+  ],
+  "vehicles": [
+    {
+      "name": "Standard Kart S",
+      "img": "/images/mario-kart-wii/vehicles/standard-kart-s.webp",
+      "type": "Kart",
+      "size": "Small",
+      "kind": "Kart"
+    },
+    {
+      "name": "Standard Bike S",
+      "img": "/images/mario-kart-wii/vehicles/standard-bike-s.webp",
+      "type": "Bike",
+      "size": "Small",
+      "drift": "Outside",
+      "kind": "Outside-drift bike"
+    },
+    {
+      "name": "Booster Seat",
+      "img": "/images/mario-kart-wii/vehicles/booster-seat.webp",
+      "type": "Kart",
+      "size": "Small",
+      "kind": "Kart"
+    },
+    {
+      "name": "Bullet Bike",
+      "img": "/images/mario-kart-wii/vehicles/bullet-bike.webp",
+      "type": "Bike",
+      "size": "Small",
+      "drift": "Inside",
+      "kind": "Inside-drift bike"
+    },
+    {
+      "name": "Mini Beast",
+      "img": "/images/mario-kart-wii/vehicles/mini-beast.webp",
+      "type": "Kart",
+      "size": "Small",
+      "kind": "Kart"
+    },
+    {
+      "name": "Bit Bike",
+      "img": "/images/mario-kart-wii/vehicles/bit-bike.webp",
+      "type": "Bike",
+      "size": "Small",
+      "drift": "Outside",
+      "kind": "Outside-drift bike"
+    },
+    {
+      "name": "Standard Kart M",
+      "img": "/images/mario-kart-wii/vehicles/standard-kart-m.webp",
+      "type": "Kart",
+      "size": "Medium",
+      "kind": "Kart"
+    },
+    {
+      "name": "Standard Bike M",
+      "img": "/images/mario-kart-wii/vehicles/standard-bike-m.webp",
+      "type": "Bike",
+      "size": "Medium",
+      "drift": "Outside",
+      "kind": "Outside-drift bike"
+    },
+    {
+      "name": "Classic Dragster",
+      "img": "/images/mario-kart-wii/vehicles/classic-dragster.webp",
+      "type": "Kart",
+      "size": "Medium",
+      "kind": "Kart"
+    },
+    {
+      "name": "Mach Bike",
+      "img": "/images/mario-kart-wii/vehicles/mach-bike.webp",
+      "type": "Bike",
+      "size": "Medium",
+      "drift": "Inside",
+      "kind": "Inside-drift bike"
+    },
+    {
+      "name": "Wild Wing",
+      "img": "/images/mario-kart-wii/vehicles/wild-wing.webp",
+      "type": "Kart",
+      "size": "Medium",
+      "kind": "Kart"
+    },
+    {
+      "name": "Sugarscoot",
+      "img": "/images/mario-kart-wii/vehicles/sugarscoot.webp",
+      "type": "Bike",
+      "size": "Medium",
+      "drift": "Outside",
+      "kind": "Outside-drift bike"
+    },
+    {
+      "name": "Standard Kart L",
+      "img": "/images/mario-kart-wii/vehicles/standard-kart-l.webp",
+      "type": "Kart",
+      "size": "Large",
+      "kind": "Kart"
+    },
+    {
+      "name": "Standard Bike L",
+      "img": "/images/mario-kart-wii/vehicles/standard-bike-l.webp",
+      "type": "Bike",
+      "size": "Large",
+      "drift": "Outside",
+      "kind": "Outside-drift bike"
+    },
+    {
+      "name": "Offroader",
+      "img": "/images/mario-kart-wii/vehicles/offroader.webp",
+      "type": "Kart",
+      "size": "Large",
+      "kind": "Kart"
+    },
+    {
+      "name": "Flame Runner",
+      "img": "/images/mario-kart-wii/vehicles/flame-runner.webp",
+      "type": "Bike",
+      "size": "Large",
+      "drift": "Inside",
+      "kind": "Inside-drift bike"
+    },
+    {
+      "name": "Flame Flyer",
+      "img": "/images/mario-kart-wii/vehicles/flame-flyer.webp",
+      "type": "Kart",
+      "size": "Large",
+      "kind": "Kart"
+    },
+    {
+      "name": "Wario Bike",
+      "img": "/images/mario-kart-wii/vehicles/wario-bike.webp",
+      "type": "Bike",
+      "size": "Large",
+      "drift": "Outside",
+      "kind": "Outside-drift bike"
+    },
+    {
+      "name": "Cheep Charger",
+      "img": "/images/mario-kart-wii/vehicles/cheep-charger.webp",
+      "type": "Kart",
+      "size": "Small",
+      "kind": "Kart"
+    },
+    {
+      "name": "Quacker",
+      "img": "/images/mario-kart-wii/vehicles/quacker.webp",
+      "type": "Bike",
+      "size": "Small",
+      "drift": "Inside",
+      "kind": "Inside-drift bike"
+    },
+    {
+      "name": "Tiny Titan",
+      "img": "/images/mario-kart-wii/vehicles/tiny-titan.webp",
+      "type": "Kart",
+      "size": "Small",
+      "kind": "Kart"
+    },
+    {
+      "name": "Magikruiser",
+      "img": "/images/mario-kart-wii/vehicles/magikruiser.webp",
+      "type": "Bike",
+      "size": "Small",
+      "drift": "Inside",
+      "kind": "Inside-drift bike"
+    },
+    {
+      "name": "Blue Falcon",
+      "img": "/images/mario-kart-wii/vehicles/blue-falcon.webp",
+      "type": "Kart",
+      "size": "Small",
+      "kind": "Kart"
+    },
+    {
+      "name": "Jet Bubble",
+      "img": "/images/mario-kart-wii/vehicles/jet-bubble.webp",
+      "type": "Bike",
+      "size": "Small",
+      "drift": "Inside",
+      "kind": "Inside-drift bike"
+    },
+    {
+      "name": "Super Blooper",
+      "img": "/images/mario-kart-wii/vehicles/super-blooper.webp",
+      "type": "Kart",
+      "size": "Medium",
+      "kind": "Kart"
+    },
+    {
+      "name": "Zip Zip",
+      "img": "/images/mario-kart-wii/vehicles/zip-zip.webp",
+      "type": "Bike",
+      "size": "Medium",
+      "drift": "Outside",
+      "kind": "Outside-drift bike"
+    },
+    {
+      "name": "Daytripper",
+      "img": "/images/mario-kart-wii/vehicles/daytripper.webp",
+      "type": "Kart",
+      "size": "Medium",
+      "kind": "Kart"
+    },
+    {
+      "name": "Sneakster",
+      "img": "/images/mario-kart-wii/vehicles/sneakster.webp",
+      "type": "Bike",
+      "size": "Medium",
+      "drift": "Inside",
+      "kind": "Inside-drift bike"
+    },
+    {
+      "name": "Sprinter",
+      "img": "/images/mario-kart-wii/vehicles/sprinter.webp",
+      "type": "Kart",
+      "size": "Medium",
+      "kind": "Kart"
+    },
+    {
+      "name": "Dolphin Dasher",
+      "img": "/images/mario-kart-wii/vehicles/dolphin-dasher.webp",
+      "type": "Bike",
+      "size": "Medium",
+      "drift": "Inside",
+      "kind": "Inside-drift bike"
+    },
+    {
+      "name": "Piranha Prowler",
+      "img": "/images/mario-kart-wii/vehicles/piranha-prowler.webp",
+      "type": "Kart",
+      "size": "Large",
+      "kind": "Kart"
+    },
+    {
+      "name": "Shooting Star",
+      "img": "/images/mario-kart-wii/vehicles/shooting-star.webp",
+      "type": "Bike",
+      "size": "Large",
+      "drift": "Outside",
+      "kind": "Outside-drift bike"
+    },
+    {
+      "name": "Jetsetter",
+      "img": "/images/mario-kart-wii/vehicles/jetsetter.webp",
+      "type": "Kart",
+      "size": "Large",
+      "kind": "Kart"
+    },
+    {
+      "name": "Spear",
+      "img": "/images/mario-kart-wii/vehicles/spear.webp",
+      "type": "Bike",
+      "size": "Large",
+      "drift": "Inside",
+      "kind": "Inside-drift bike"
+    },
+    {
+      "name": "Honeycoupe",
+      "img": "/images/mario-kart-wii/vehicles/honeycoupe.webp",
+      "type": "Kart",
+      "size": "Large",
+      "kind": "Kart"
+    },
+    {
+      "name": "Phantom",
+      "img": "/images/mario-kart-wii/vehicles/phantom.webp",
+      "type": "Bike",
+      "size": "Large",
+      "drift": "Outside",
+      "kind": "Outside-drift bike"
+    }
+  ],
+  "cups": [
+    {
+      "name": "Mushroom",
+      "img": "/images/mario-kart-wii/cups/mushroom.webp",
+      "courses": [
+        {
+          "name": "Luigi Circuit",
+          "img": "/images/mario-kart-wii/tracks/luigi-circuit.webp",
+          "type": "Wii"
+        },
+        {
+          "name": "Moo Moo Meadows",
+          "img": "/images/mario-kart-wii/tracks/moo-moo-meadows.webp",
+          "type": "Wii"
+        },
+        {
+          "name": "Mushroom Gorge",
+          "img": "/images/mario-kart-wii/tracks/mushroom-gorge.webp",
+          "type": "Wii"
+        },
+        {
+          "name": "Toad's Factory",
+          "img": "/images/mario-kart-wii/tracks/toads-factory.webp",
+          "type": "Wii"
+        }
+      ]
+    },
+    {
+      "name": "Flower",
+      "img": "/images/mario-kart-wii/cups/flower.webp",
+      "courses": [
+        {
+          "name": "Mario Circuit",
+          "img": "/images/mario-kart-wii/tracks/mario-circuit.webp",
+          "type": "Wii"
+        },
+        {
+          "name": "Coconut Mall",
+          "img": "/images/mario-kart-wii/tracks/coconut-mall.webp",
+          "type": "Wii"
+        },
+        {
+          "name": "DK Summit",
+          "img": "/images/mario-kart-wii/tracks/dk-summit.webp",
+          "type": "Wii"
+        },
+        {
+          "name": "Wario's Gold Mine",
+          "img": "/images/mario-kart-wii/tracks/warios-gold-mine.webp",
+          "type": "Wii"
+        }
+      ]
+    },
+    {
+      "name": "Star",
+      "img": "/images/mario-kart-wii/cups/star.webp",
+      "courses": [
+        {
+          "name": "Daisy Circuit",
+          "img": "/images/mario-kart-wii/tracks/daisy-circuit.webp",
+          "type": "Wii"
+        },
+        {
+          "name": "Koopa Cape",
+          "img": "/images/mario-kart-wii/tracks/koopa-cape.webp",
+          "type": "Wii"
+        },
+        {
+          "name": "Maple Treeway",
+          "img": "/images/mario-kart-wii/tracks/maple-treeway.webp",
+          "type": "Wii"
+        },
+        {
+          "name": "Grumble Volcano",
+          "img": "/images/mario-kart-wii/tracks/grumble-volcano.webp",
+          "type": "Wii"
+        }
+      ]
+    },
+    {
+      "name": "Special",
+      "img": "/images/mario-kart-wii/cups/special.webp",
+      "courses": [
+        {
+          "name": "Dry Dry Ruins",
+          "img": "/images/mario-kart-wii/tracks/dry-dry-ruins.webp",
+          "type": "Wii"
+        },
+        {
+          "name": "Moonview Highway",
+          "img": "/images/mario-kart-wii/tracks/moonview-highway.webp",
+          "type": "Wii"
+        },
+        {
+          "name": "Bowser's Castle",
+          "img": "/images/mario-kart-wii/tracks/bowsers-castle.webp",
+          "type": "Wii"
+        },
+        {
+          "name": "Rainbow Road",
+          "img": "/images/mario-kart-wii/tracks/rainbow-road.webp",
+          "type": "Wii"
+        }
+      ]
+    },
+    {
+      "name": "Shell",
+      "img": "/images/mario-kart-wii/cups/shell.webp",
+      "courses": [
+        {
+          "name": "GCN Peach Beach",
+          "img": "/images/mario-kart-wii/tracks/gcn-peach-beach.webp",
+          "type": "GCN"
+        },
+        {
+          "name": "DS Yoshi Falls",
+          "img": "/images/mario-kart-wii/tracks/ds-yoshi-falls.webp",
+          "type": "DS"
+        },
+        {
+          "name": "SNES Ghost Valley 2",
+          "img": "/images/mario-kart-wii/tracks/snes-ghost-valley-2.webp",
+          "type": "SNES"
+        },
+        {
+          "name": "N64 Mario Raceway",
+          "img": "/images/mario-kart-wii/tracks/n64-mario-raceway.webp",
+          "type": "N64"
+        }
+      ]
+    },
+    {
+      "name": "Banana",
+      "img": "/images/mario-kart-wii/cups/banana.webp",
+      "courses": [
+        {
+          "name": "N64 Sherbet Land",
+          "img": "/images/mario-kart-wii/tracks/n64-sherbet-land.webp",
+          "type": "N64"
+        },
+        {
+          "name": "GBA Shy Guy Beach",
+          "img": "/images/mario-kart-wii/tracks/gba-shy-guy-beach.webp",
+          "type": "GBA"
+        },
+        {
+          "name": "DS Delfino Square",
+          "img": "/images/mario-kart-wii/tracks/ds-delfino-square.webp",
+          "type": "DS"
+        },
+        {
+          "name": "GCN Waluigi Stadium",
+          "img": "/images/mario-kart-wii/tracks/gcn-waluigi-stadium.webp",
+          "type": "GCN"
+        }
+      ]
+    },
+    {
+      "name": "Leaf",
+      "img": "/images/mario-kart-wii/cups/leaf.webp",
+      "courses": [
+        {
+          "name": "DS Desert Hills",
+          "img": "/images/mario-kart-wii/tracks/ds-desert-hills.webp",
+          "type": "DS"
+        },
+        {
+          "name": "GBA Bowser Castle 3",
+          "img": "/images/mario-kart-wii/tracks/gba-bowser-castle-3.webp",
+          "type": "GBA"
+        },
+        {
+          "name": "N64 DK's Jungle Parkway",
+          "img": "/images/mario-kart-wii/tracks/n64-dks-jungle-parkway.webp",
+          "type": "N64"
+        },
+        {
+          "name": "GCN Mario Circuit",
+          "img": "/images/mario-kart-wii/tracks/gcn-mario-circuit.webp",
+          "type": "GCN"
+        }
+      ]
+    },
+    {
+      "name": "Lightning",
+      "img": "/images/mario-kart-wii/cups/lightning.webp",
+      "courses": [
+        {
+          "name": "SNES Mario Circuit 3",
+          "img": "/images/mario-kart-wii/tracks/snes-mario-circuit-3.webp",
+          "type": "SNES"
+        },
+        {
+          "name": "DS Peach Gardens",
+          "img": "/images/mario-kart-wii/tracks/ds-peach-gardens.webp",
+          "type": "DS"
+        },
+        {
+          "name": "GCN DK Mountain",
+          "img": "/images/mario-kart-wii/tracks/gcn-dk-mountain.webp",
+          "type": "GCN"
+        },
+        {
+          "name": "N64 Bowser's Castle",
+          "img": "/images/mario-kart-wii/tracks/n64-bowsers-castle.webp",
+          "type": "N64"
+        }
+      ]
+    }
+  ],
+  "battleCourses": [
+    {
+      "name": "Block Plaza",
+      "img": "/images/mario-kart-wii/battle/block-plaza.webp"
+    },
+    {
+      "name": "Delfino Pier",
+      "img": "/images/mario-kart-wii/battle/delfino-pier.webp"
+    },
+    {
+      "name": "Funky Stadium",
+      "img": "/images/mario-kart-wii/battle/funky-stadium.webp"
+    },
+    {
+      "name": "Chain Chomp Wheel",
+      "img": "/images/mario-kart-wii/battle/chain-chomp-wheel.webp"
+    },
+    {
+      "name": "Thwomp Desert",
+      "img": "/images/mario-kart-wii/battle/thwomp-desert.webp"
+    },
+    {
+      "name": "SNES Battle Course 4",
+      "img": "/images/mario-kart-wii/battle/snes-battle-course-4.webp"
+    },
+    {
+      "name": "GBA Battle Course 3",
+      "img": "/images/mario-kart-wii/battle/gba-battle-course-3.webp"
+    },
+    {
+      "name": "N64 Skyscraper",
+      "img": "/images/mario-kart-wii/battle/n64-skyscraper.webp"
+    },
+    {
+      "name": "GCN Cookie Land",
+      "img": "/images/mario-kart-wii/battle/gcn-cookie-land.webp"
+    },
+    {
+      "name": "DS Twilight House",
+      "img": "/images/mario-kart-wii/battle/ds-twilight-house.webp"
+    }
+  ]
+}

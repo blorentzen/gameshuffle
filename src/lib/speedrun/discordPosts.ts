@@ -32,9 +32,9 @@ const PACE = 0x2bd17e;
 const BLUE = 0x2b52d6;
 const wait = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
 
-interface Runner { userId: string; name: string; discordId: string | null; twitch: string | null; live: boolean }
+export interface Runner { userId: string; name: string; discordId: string | null; twitch: string | null; live: boolean }
 
-async function runner(userId: string): Promise<Runner> {
+export async function runner(userId: string): Promise<Runner> {
   const db = createServiceClient();
   const [{ data: u }, { data: tc }] = await Promise.all([
     db.from("users").select("display_name, username, twitch_username, discord_id").eq("id", userId).maybeSingle(),
@@ -52,20 +52,20 @@ async function runner(userId: string): Promise<Runner> {
 }
 
 /** "Super Mario Odyssey · Any%". */
-const runTitle = (game: string, category: string) => [game, category].filter(Boolean).join(" · ") || "Speedrun";
+export const runTitle = (game: string, category: string) => [game, category].filter(Boolean).join(" · ") || "Speedrun";
 const gameShown = (game: string | null) => (game ? gameEntry(game)?.name ?? game : "");
-function cover(game: string | null): string | null {
+export function cover(game: string | null): string | null {
   const art = boxArt(gameEntry(game));
   return art ? `${SITE_URL}${art}` : null;
 }
 
-interface Target { guildId: string; channel: string; role: string | null }
+export interface Target { guildId: string; channel: string; role: string | null }
 
 /**
  * The Competitive servers that want this post for this runner: the switch on, a channel picked, and the runner is the
  * server's owner or a member (Discord says so). Pace alerts also need the owner on GS Pro.
  */
-async function targets(r: Runner, kind: "pbs" | "pace"): Promise<Target[]> {
+export async function targets(r: Runner, kind: "pbs" | "pace" | "races"): Promise<Target[]> {
   if (!(await appGuildsReady())) return [];
   const { data } = await createServiceClient().from("discord_app_guilds").select("guild_id, owner_user_id, settings").eq("app", "comp").is("removed_at", null);
   const rows = (data ?? []) as { guild_id: string; owner_user_id: string; settings: Record<string, unknown> | null }[];
@@ -90,7 +90,7 @@ async function targets(r: Runner, kind: "pbs" | "pace"): Promise<Target[]> {
   return out;
 }
 
-async function send(t: Target, embed: DiscordEmbed, button: { label: string; url: string } | null, ping: boolean): Promise<void> {
+export async function send(t: Target, embed: DiscordEmbed, button: { label: string; url: string } | null, ping: boolean): Promise<void> {
   const res = await withDiscordApp("comp", () => postEmbed({
     channelId: t.channel,
     embed,

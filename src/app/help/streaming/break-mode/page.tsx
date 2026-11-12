@@ -39,7 +39,7 @@ export default function Page() {
       </ul>
 
       <h2>The games</h2>
-      <p>Pick which ones play, and in what order, under <strong>Lineup</strong> on the Break mode screen. The lineup loops until you&apos;re back.</p>
+      <p>Pick which ones play, and in what order, under <strong>Lineup</strong> on the Break mode screen. The lineup loops until you&apos;re back. <strong>All together</strong> sets it to the games chat plays as one team: Boss Fight, Five Letters, Four in a Row, Shuffle Dice, Roster Rush and Chat Sets the Bounty.</p>
       <ul>
         <li><strong>Higher or Lower:</strong> two characters, which is heavier or came first. Chat types <code>1</code> or <code>2</code>.</li>
         <li><strong>Odd One Out:</strong> four characters, one doesn&apos;t belong. <code>1</code> to <code>4</code>.</li>

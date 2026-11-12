@@ -9,7 +9,10 @@ import { useAuth } from "@/components/auth/AuthProvider";
 import { useToast } from "@/components/toast/ToastProvider";
 import { EVENTS, track } from "@/lib/analytics/events";
 import { SortableList } from "@/components/ui/SortableList";
-import { NIGHT_GAMES, type NightGame } from "@/lib/nights/games";
+import { openNightGames, type NightGame } from "@/lib/nights/games";
+
+/** A Gauntlet is a competition: gated co-op games (Chat Brain at the table) stay out. */
+const NIGHT_GAMES = openNightGames();
 
 /**
  * The Gauntlet (a GameShuffle Original): a multi-game decathlon on one

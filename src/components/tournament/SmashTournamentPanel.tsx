@@ -3,7 +3,6 @@
 import { useMemo, useState } from "react";
 import { Accordion, Alert, Badge, Button, Chip, Input, Select, Switch } from "@empac/cascadeds";
 import { IconDice5, IconSwords, IconUsersGroup } from "@tabler/icons-react";
-import { ULTIMATE } from "@/data/smash/ultimate";
 import { SMASH_CARDS } from "@/data/smash/cards";
 import { useGameCollection } from "@/hooks/useGameCollection";
 import { defaultCollection } from "@/lib/collection/catalog";
@@ -11,7 +10,7 @@ import type { Bracket } from "@/lib/tournaments/bracket";
 import { MissionBonusSection } from "@/components/tournament/MissionBonusSection";
 import {
   counterpickOptions, newSet, nextStriker, readRules, remainingStarters, rollSetFighters, rollSetStage, rollSmashRound,
-  setScore, setWinner, stageName, stageStatusLabel, STARTER_PRESETS, starterPresetOf, type Side, type SmashRound, type SmashSet, type SmashTourneyRules,
+  setScore, setWinner, smashTourneyGame, stageName, stageStatusLabel, starterPresetOf, starterPresetsFor, type Side, type SmashRound, type SmashSet, type SmashTourneyRules,
 } from "@/lib/smash/tournament";
 import { crewState, newCrewBattle, recordCrewGame, undoCrewGame, type CrewBattle, type CrewSide } from "@/lib/smash/crew";
 
@@ -32,9 +31,11 @@ const FIGHTER_MODES: Record<SmashTourneyRules["fighters"], string> = {
 };
 
 export function SmashTournamentPanel({
-  settings, participants, format, bracket, onReport, onSettings, readOnly = false,
+  settings, participants, format, bracket, onReport, onSettings, readOnly = false, gameSlug,
 }: {
   settings: Record<string, unknown> | null | undefined;
+  /** The tournament's game: Ultimate or Melee (each with its own stages, starter lists and rules). */
+  gameSlug?: string | null;
   participants: Participant[];
   format: string;
   bracket?: Bracket | null;
@@ -42,7 +43,8 @@ export function SmashTournamentPanel({
   onSettings?: (patch: Record<string, unknown>) => Promise<void> | void;
   readOnly?: boolean;
 }) {
-  const game = ULTIMATE;
+  const game = smashTourneyGame(gameSlug);
+  const name = (id: string | null | undefined) => stageName(id, game);
   const rules = useMemo(() => readRules(settings?.smash, game), [settings, game]);
   const sets = useMemo(() => ((settings?.smashSets as Record<string, SmashSet> | undefined) ?? {}), [settings]);
   const rounds = useMemo(() => ((settings?.smashRounds as SmashRound[] | undefined) ?? []), [settings]);
@@ -80,7 +82,8 @@ export function SmashTournamentPanel({
     void saveRules({ starters });
   };
   const listed = game.stages.filter((s) => s.status !== "banned" || rules.legal.includes(s.id));
-  const starterPreset = starterPresetOf(rules.starters);
+  const presets = starterPresetsFor(game);
+  const starterPreset = starterPresetOf(rules.starters, game);
   const [customStarters, setCustomStarters] = useState(false);
 
   const rulesEditor = (
@@ -104,19 +107,19 @@ export function SmashTournamentPanel({
         <>
           <Select floatingLabel="Starters, struck for game 1" value={customStarters ? "custom" : starterPreset}
             onChange={(v) => {
-              const preset = STARTER_PRESETS.find((x) => x.id === v);
+              const preset = presets.find((x) => x.id === v);
               if (!preset) { setCustomStarters(true); return; }
               setCustomStarters(false);
               void saveRules({ starters: preset.stages, legal: [...new Set([...rules.legal, ...preset.stages])] });
             }}
-            options={[...STARTER_PRESETS.map((x) => ({ value: x.id, label: x.label })), { value: "custom", label: `Custom (${rules.starters.length} chosen)` }]} />
+            options={[...presets.map((x) => ({ value: x.id, label: x.label })), { value: "custom", label: `Custom (${rules.starters.length} chosen)` }]} />
           {(starterPreset === "custom" || customStarters) && (
             <>
               <p className="party-muted">Tap the legal stages to strike from. An odd number keeps the strike fair; five uses the 1-2-1 order.</p>
               <div className="party-chips">
                 {rules.legal.map((id) => {
                   const on = rules.starters.includes(id);
-                  return <Chip key={id} size="small" clickable selected={on} variant={on ? "primary" : "default"} label={stageName(id)} onClick={() => toggleStarter(id)} />;
+                  return <Chip key={id} size="small" clickable selected={on} variant={on ? "primary" : "default"} label={name(id)} onClick={() => toggleStarter(id)} />;
                 })}
               </div>
             </>
@@ -181,7 +184,7 @@ export function SmashTournamentPanel({
                 <p className="party-muted">{who(strikerNow)} strikes a stage.</p>
                 {!readOnly && (
                   <div className="party-chips">
-                    {remainingStarters(s, rules).map((id) => <Chip key={id} clickable label={stageName(id)} onClick={() => {
+                    {remainingStarters(s, rules).map((id) => <Chip key={id} clickable label={name(id)} onClick={() => {
                       const strikes = [...s.strikes, id];
                       const left = rules.starters.filter((x) => !strikes.includes(x));
                       // The last strike settles game 1's stage.
@@ -194,17 +197,17 @@ export function SmashTournamentPanel({
             {cp?.picker && !playing?.stageId && (
               <>
                 <p className="party-muted">{who(cp.picker)} lost the last game and picks the stage.</p>
-                {!readOnly && <div className="party-chips">{cp.stages.map((id) => <Chip key={id} clickable label={stageName(id)} onClick={() => withDraft({ stageId: id })} />)}</div>}
+                {!readOnly && <div className="party-chips">{cp.stages.map((id) => <Chip key={id} clickable label={name(id)} onClick={() => withDraft({ stageId: id })} />)}</div>}
               </>
             )}
             {rules.stages === "random" && !playing?.stageId && !readOnly && (
               <Button variant="secondary" size="small" iconBefore={IconDice5} onClick={() => withDraft({ stageId: rollSetStage(s, rules) })}>Roll the stage</Button>
             )}
-            {playing?.stageId && <p><strong>Stage:</strong> {stageName(playing.stageId)}</p>}
+            {playing?.stageId && <p><strong>Stage:</strong> {name(playing.stageId)}</p>}
             {rules.fighters !== "pick" && (
               playing?.fighters.a
                 ? <p><strong>Fighters:</strong> {who("a")} plays {playing.fighters.a.name}, {who("b")} plays {playing.fighters.b?.name}</p>
-                : !readOnly && <Button variant="secondary" size="small" iconBefore={IconDice5} onClick={() => { const f = rollSetFighters(s, rules, exclude); if (f) withDraft({ fighters: f }); }}>Roll fighters</Button>
+                : !readOnly && <Button variant="secondary" size="small" iconBefore={IconDice5} onClick={() => { const f = rollSetFighters(s, rules, exclude, game); if (f) withDraft({ fighters: f }); }}>Roll fighters</Button>
             )}
             {!readOnly && (
               <span className="party-row">
@@ -219,7 +222,7 @@ export function SmashTournamentPanel({
         {s.games.some((g) => g.winner) && (
           <ol className="party-list smash-set__games">
             {s.games.filter((g) => g.winner).map((g, i) => (
-              <li key={i}>{[g.stageId ? stageName(g.stageId) : null, g.fighters.a ? `${g.fighters.a.name} vs ${g.fighters.b?.name}` : null].filter(Boolean).join(" · ") || `Game ${i + 1}`}: <strong>{who(g.winner!)}</strong></li>
+              <li key={i}>{[g.stageId ? name(g.stageId) : null, g.fighters.a ? `${g.fighters.a.name} vs ${g.fighters.b?.name}` : null].filter(Boolean).join(" · ") || `Game ${i + 1}`}: <strong>{who(g.winner!)}</strong></li>
             ))}
           </ol>
         )}
@@ -240,7 +243,8 @@ export function SmashTournamentPanel({
 
   const [crewNames, setCrewNames] = useState({ a: "", b: "" });
   const [crewPlayers, setCrewPlayers] = useState<{ a: string[]; b: string[] }>({ a: [], b: [] });
-  const [crewStocks, setCrewStocks] = useState("3");
+  // Crews play the game's competitive stock count (Ultimate 3, Melee 4).
+  const [crewStocks, setCrewStocks] = useState(String(game.rules?.competitive.stocks ?? 3));
   const [crewLeft, setCrewLeft] = useState<Record<string, string>>({});
   const pickCrew = (side: CrewSide, id: string) => setCrewPlayers((c) => {
     const otherSide: CrewSide = side === "a" ? "b" : "a";
@@ -295,7 +299,7 @@ export function SmashTournamentPanel({
 
   return (
     <div className="comp-card party-tourney smash-tourney" style={{ marginBottom: "2rem" }}>
-      <h2 style={{ fontSize: "var(--font-size-18)" }}><IconSwords size={18} stroke={1.9} aria-hidden /> Smash rules</h2>
+      <h2 style={{ fontSize: "var(--font-size-18)" }}><IconSwords size={18} stroke={1.9} aria-hidden /> {game.rules ? `${game.shortLabel} rules` : "Smash rules"}</h2>
       <p className="party-muted">
         Best of {rules.bestOf} (finals best of {rules.finalsBestOf}) · {FIGHTER_MODES[rules.fighters]} · {stageLine} · {rules.legal.length} legal stages
       </p>
@@ -329,14 +333,14 @@ export function SmashTournamentPanel({
           {latest ? (
             <div className="party-tourney__round">
               <span className="party-options__label">Round {latest.round}</span>
-              <strong className="party-tourney__board">{stageName(latest.stageId)}</strong>
+              <strong className="party-tourney__board">{name(latest.stageId)}</strong>
               {latest.fighters.length > 0 && <span className="party-muted">{latest.fighters.map((f, i) => `Seat ${i + 1}: ${f.name}`).join(" · ")}</span>}
             </div>
           ) : <p className="party-muted">{readOnly ? "The organizer hasn't rolled a round yet." : "No rounds rolled yet."}</p>}
           {!readOnly && (
             <div className="party-row">
               <Switch label="Same fighter for each seat" checked={roundFighters} onChange={(e) => setRoundFighters(e.target.checked)} />
-              <Button variant="primary" size="small" iconBefore={IconDice5} disabled={busy} onClick={() => { const r = rollSmashRound(rounds, rules, roundFighters, exclude); if (r) void save({ smashRounds: [...rounds, r] }); }}>Roll round {rounds.length + 1}</Button>
+              <Button variant="primary" size="small" iconBefore={IconDice5} disabled={busy} onClick={() => { const r = rollSmashRound(rounds, rules, roundFighters, exclude, game); if (r) void save({ smashRounds: [...rounds, r] }); }}>Roll round {rounds.length + 1}</Button>
               {rounds.length > 0 && <Button variant="ghost" size="small" disabled={busy} onClick={() => void save({ smashRounds: rounds.slice(0, -1) })}>Undo last roll</Button>}
             </div>
           )}
@@ -371,7 +375,7 @@ export function SmashTournamentPanel({
         }]} />
       )}
 
-      <MissionBonusSection missions={SMASH_CARDS.filter((c) => c.kind === "mission")} lookup={(id) => SMASH_CARDS.find((c) => c.id === id)}
+      <MissionBonusSection missions={SMASH_CARDS.filter((c) => c.kind === "mission" && (game.rules?.finalSmash !== false || !/Final Smash/.test(c.text)))} lookup={(id) => SMASH_CARDS.find((c) => c.id === id)}
         settings={settings} participants={participants} round={rounds.length || null} onSettings={onSettings} readOnly={readOnly} />
       {err && <Alert variant="warning">{err}</Alert>}
     </div>

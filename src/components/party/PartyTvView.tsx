@@ -10,6 +10,9 @@ import { wheelFor } from "@/data/originals/consequences";
 import { LETTERS, letterFor } from "@/lib/originals/bingo";
 import { EVENTS, track } from "@/lib/analytics/events";
 import { GameCover } from "@/components/games/GameCover";
+import { BrainSlots, BrainStrikes } from "@/components/party/BrainTablePanel";
+import { CoopTv } from "@/components/party/CoopTv";
+import { isCoopView } from "@/components/party/CoopPanel";
 
 /**
  * A live night on the big screen (chrome-free, see ConditionalChrome). Always
@@ -226,6 +229,39 @@ export function PartyTvView({ code }: { code: string }) {
                       </div>
                       <p className="bgn-display__foot">{a.current.votesIn} of {a.current.voters} voted · votes are anonymous</p>
                     </>
+                  )}
+                </>
+              )
+            ) : a && isCoopView(a) ? (
+              <CoopTv a={a} name={name} />
+            ) : a && a.slug === "chat-brain" ? (
+              !a.current ? (
+                <>
+                  <p className="party-tv__big">Chat Brain</p>
+                  <p className="bgn-display__meta">A question goes up here. Everyone types an answer on their phone; the answer most of you gave counts for the room. Bank {a.target} points to win together.</p>
+                  <p className="bgn-display__foot">{a.players.length < 2 ? "Needs at least two players. Scan to join." : "Waiting for the host's first board."}</p>
+                </>
+              ) : (
+                <>
+                  <p className="bgn-display__eyebrow">Board {a.current.round} of {a.totalRounds} · {a.total} of {a.target} banked</p>
+                  <p className="party-tv__big">{a.current.question}</p>
+                  <div className="brain-table__tv-status">
+                    <span><strong>{a.current.score}</strong> on this board</span>
+                    <BrainStrikes strikes={a.current.strikes} max={a.current.maxStrikes} />
+                  </div>
+                  <BrainSlots slots={a.current.slots} tv />
+                  {a.current.last && <p className="brain-table__tv-last">{a.current.last.line}</p>}
+                  {a.result ? (
+                    <p className="bgn-display__meta">{a.result.won ? `You won together: ${a.result.total} points, ${a.result.target} needed.` : `${a.result.total} points, ${a.result.target} needed. Not this time.`}</p>
+                  ) : a.current.phase === "playing" ? (
+                    <>
+                      <div className="party-tv__voters">
+                        {a.players.map((s) => <span key={s} className={`party-tv__voter${a.current!.answered.includes(s) ? " party-tv__voter--in" : ""}`}>{name(s)}</span>)}
+                      </div>
+                      <p className="bgn-display__foot">{a.current.answered.length} of {a.players.length} answered · answers stay hidden until everyone&apos;s in</p>
+                    </>
+                  ) : (
+                    <p className="bgn-display__foot">{a.current.cleared ? "Board cleared!" : "Three strikes."} Waiting for the host.</p>
                   )}
                 </>
               )

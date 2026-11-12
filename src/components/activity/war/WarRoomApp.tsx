@@ -270,6 +270,7 @@ function StartWar({ start, auth, act, onBack }: { start: RoomStart; auth: (init?
         <div className="wr-row">
           <Button variant={game === "mk8dx" ? "primary" : "secondary"} aria-pressed={game === "mk8dx"} onClick={() => setGame("mk8dx")}>Mario Kart 8 Deluxe</Button>
           <Button variant={game === "mkworld" ? "primary" : "secondary"} aria-pressed={game === "mkworld"} onClick={() => setGame("mkworld")}>Mario Kart World</Button>
+          <Button variant={game === "mkwii" ? "primary" : "secondary"} aria-pressed={game === "mkwii"} onClick={() => setGame("mkwii")}>Mario Kart Wii</Button>
         </div>
       </div>
       <p className="wr-help">The card goes in {start.channel ? `#${start.channel}` : "this channel"}, so everyone outside the call sees the score too.</p>

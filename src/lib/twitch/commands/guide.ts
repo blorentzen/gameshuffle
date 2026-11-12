@@ -27,7 +27,7 @@ export const COMMAND_GROUPS: { id: CommandGroup; label: string; blurb: string }[
 ];
 
 /** What a command needs before it can do anything on a stream. */
-export type CommandNeed = "mario-kart" | "mario-kart-world" | "rollable-game" | "party-night" | "tournament" | "wheel" | "speedrun";
+export type CommandNeed = "mario-kart" | "mario-kart-world" | "rollable-game" | "party-night" | "tournament" | "wheel" | "speedrun" | "levels";
 
 export const NEED_LABELS: Record<CommandNeed, string> = {
   "mario-kart": "Mario Kart 8 Deluxe or World",
@@ -37,6 +37,7 @@ export const NEED_LABELS: Record<CommandNeed, string> = {
   tournament: "a live tournament",
   wheel: "a wheel",
   speedrun: "a speedrun overlay (gameshuffle.co/speedrun)",
+  levels: "a level queue (Live games ▸ Level queue)",
 };
 
 export interface CommandGuide {
@@ -55,6 +56,10 @@ export const COMMAND_GUIDE: Record<string, CommandGuide> = {
   "pb": { group: "fun", needs: ["speedrun"], example: ["!pb", "🏆 Nova's PB in Mario Kart 8 Deluxe, 48 Tracks: 1:40:24.1, set Nov 2. Sum of best: 1:39:17.8."] },
   "pace": { group: "fun", needs: ["speedrun"], example: ["!pace", "⏱️ Leaf done, 8.1 ahead of PB. On pace for 1:40:16.0 if the rest matches the PB."] },
   "splits": { group: "fun", needs: ["speedrun"], example: ["!splits", "📋 Mushroom ▼2.3 · Flower ▲1.0 · Star ▼7.3 ⭐ · now Lightning"] },
+  "add": { group: "live", needs: ["levels"], example: ["!add 2J5-3K2-Y9G", "@kartkev you're #2 in line. !position checks, !remove takes it out."] },
+  "position": { group: "live", needs: ["levels"], example: ["!position", "@kartkev you're #2 in line (2J5-3K2-Y9G)."] },
+  "remove": { group: "live", needs: ["levels"], example: ["!remove", "@kartkev took 2J5-3K2-Y9G out of the line."] },
+  "level": { group: "live", needs: ["levels"], example: ["!level next", "🎮 Now playing 2J5-3K2-Y9G from @kartkev. 3 in line."] },
   "a": { group: "live", example: ["!a pizza", "(counted quietly)"] },
   "bet": { group: "tokens", needs: ["mario-kart"], example: ["!bet 1 200", "kartkev bet 200 on 1st place."] },
   "bingocard": { group: "live" },

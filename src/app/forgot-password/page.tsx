@@ -33,7 +33,8 @@ export default function ForgotPasswordPage() {
   useEffect(() => {
     if (!turnstileReady || !turnstileRef.current || !TURNSTILE_SITE_KEY) return;
     if (widgetIdRef.current) return;
-    widgetIdRef.current = (window as any).turnstile.render(turnstileRef.current, {
+    const turnstile = (window as unknown as { turnstile: { render: (el: HTMLElement, opts: Record<string, unknown>) => string } }).turnstile;
+    widgetIdRef.current = turnstile.render(turnstileRef.current, {
       sitekey: TURNSTILE_SITE_KEY,
       callback: (token: string) => setCaptchaToken(token),
       "expired-callback": () => setCaptchaToken(null),

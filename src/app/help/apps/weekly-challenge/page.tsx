@@ -74,9 +74,9 @@ export default function Page() {
 
       <h2>For streamers</h2>
       <p>
-        Route the <strong>Weekly Challenge</strong> category on your <strong>Discord Bot</strong>{" "}tab, and every Monday your server
-        gets a post with the new challenge, last week&apos;s winner and a <strong>Play</strong> button. It only posts if you
-        route it. Members with Manage Server can also post the card any time with <code>/gs-weekly</code>. As members of your
+        Turn on <strong>Post the Weekly each Monday</strong>{" "}under Discord bot ▸ Channels and posts (free), and every Monday your
+        server&apos;s default channel gets a post with the new challenge, last week&apos;s winner and a <strong>Play</strong>{" "}
+        button. With GS Pro you can route it to its own channel. Members with Manage Server can also post the card any time with <code>/gs-weekly</code>. As members of your
         server play, the post updates with how many have answered there and their names.
       </p>
 

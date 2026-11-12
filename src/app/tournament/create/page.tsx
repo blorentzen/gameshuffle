@@ -9,7 +9,7 @@ import { Select } from "@/components/ui/Select";
 import { isReservedName, RESERVED_TITLE_MESSAGE, reservedNameError } from "@/lib/reservedName";
 import { PlaceAutocompleteInput } from "@/components/maps/PlaceAutocompleteInput";
 import { isPartyGame, PARTY_SCORING_TABLE, PARTY_TABLE_ADVANCE, PARTY_TABLE_SIZE } from "@/lib/party/tournament";
-import { defaultRules as smashDefaultRules, isSmashGame, SMASH_FLIGHT_SIZE, SMASH_SCORING_TABLE } from "@/lib/smash/tournament";
+import { defaultRules as smashDefaultRules, isSmashGame, smashTourneyGame, SMASH_FLIGHT_SIZE, SMASH_SCORING_TABLE } from "@/lib/smash/tournament";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { createClient } from "@/lib/supabase/client";
 import { canCreateTournament, generateShareToken } from "@/lib/tournaments";
@@ -19,12 +19,13 @@ import { circuitLaunch } from "@/lib/tournaments/circuit";
 /** Circuit launch wording (ORGANIZER_BILLING_LAUNCH). */
 const circuitPhase = circuitLaunch();
 import { getGameLobbySize } from "@/lib/tournaments/gameData";
-import { effectiveTier, normalizeTier } from "@/lib/subscription";
 import { isEmailVerified } from "@/lib/auth-utils";
 import { useAnalytics } from "@/hooks/useAnalytics";
 import { detectBrowserTimeZone, currentZoneLabel } from "@/lib/time/format";
 import { IconSparkles, IconTournament, IconTrophy } from "@tabler/icons-react";
-import { KIRBY_PUBLIC, MARVEL_RIVALS_PUBLIC, OVERWATCH_PUBLIC, SMASH_PUBLIC, SONIC_PUBLIC, SPLATOON_PUBLIC } from "@/lib/games-visibility";
+import { KIRBY_PUBLIC, MARVEL_RIVALS_PUBLIC, OVERWATCH_PUBLIC, SMASH_PUBLIC, SONIC_PUBLIC, MKWII_PUBLIC, SPLATOON_PUBLIC } from "@/lib/games-visibility";
+import { meleeShown } from "@/lib/games-visibility";
+import { doubleDashShown, mario7Shown, marioKartDsShown, superMarioKartShown } from "@/lib/games-visibility";
 import { GameCover } from "@/components/games/GameCover";
 import { LabeledCombobox } from "@/components/ui/LabeledCombobox";
 import { GAME_CATALOG, catalogGame } from "@/data/game-catalog";
@@ -36,11 +37,21 @@ import { TtBracketFields } from "@/components/tournament/tt/TtBracketFields";
 import type { TtBestOf } from "@/lib/tournaments/tt/bracketTt";
 import { defaultTtSettings, type TtEventSettings } from "@/lib/tournaments/tt/event";
 import { gameBySlug } from "@/lib/timeTrials/tracks";
-import { DEFAULT_DECK_LISTS, isDeckListGame, type DeckListSettings } from "@/lib/tournaments/deckLists";
+import { DEFAULT_DECK_LISTS, LIST_WORDS, isDeckListGame, isTeamListGame, listKindOf, takesLists, type DeckListSettings } from "@/lib/tournaments/deckLists";
+import { championsShown } from "@/lib/games-visibility";
 import { HANDOFF_KEY, readHandoff, type Handoff } from "@/lib/brackets/tool";
 import { useToast } from "@/components/toast/ToastProvider";
 
 const ORGANIZER_TZ = typeof window !== "undefined" ? detectBrowserTimeZone() : null;
+
+/** What POST /api/championships answers, in words. */
+const CHAMPIONSHIP_ERRORS: Record<string, string> = {
+  circuit_required: "Championship series is part of GS Circuit.",
+  unverified: "Confirm your email address first, then try again.",
+  reserved_name: RESERVED_TITLE_MESSAGE,
+  blocked: "That name or description has a word we don't allow. Try different wording.",
+  bad_name: "Give the championship a name.",
+};
 
 const MODES = [
   { value: "ffa", label: "FFA" },
@@ -63,6 +74,19 @@ const GAMES = [
   ...(SPLATOON_PUBLIC ? [{ value: "splatoon-3", label: "Splatoon 3" }] : []),
   ...(KIRBY_PUBLIC ? [{ value: "kirby-air-riders", label: "Kirby Air Riders" }] : []),
   ...(SONIC_PUBLIC ? [{ value: "sonic-racing-crossworlds", label: "Sonic Racing: CrossWorlds" }] : []),
+  // Brackets, Swiss or points by name (no race settings yet); a card once its randomizer is public. Before that the
+  // search and the space's ?game= link still pick it by its catalog name.
+  ...(MKWII_PUBLIC ? [{ value: "mario-kart-wii", label: "Mario Kart Wii" }] : []),
+  // Retro Mario Kart (picks 2026-11-12): brackets, Swiss or points by name; staff only until the space opens.
+  ...(doubleDashShown() ? [{ value: "mario-kart-double-dash", label: "Mario Kart: Double Dash!!" }] : []),
+  ...(marioKartDsShown() ? [{ value: "mario-kart-ds", label: "Mario Kart DS" }] : []),
+  ...(mario7Shown() ? [{ value: "mario-kart-7", label: "Mario Kart 7" }] : []),
+  // Two players a race: 1v1 brackets (Match Race) fit it best.
+  ...(superMarioKartShown() ? [{ value: "super-mario-kart", label: "Super Mario Kart" }] : []),
+  // Melee (space picks 2026-11-11): sets with stage strikes on its own stage list; staff only until its space opens.
+  ...(meleeShown() ? [{ value: "super-smash-bros-melee", label: "Super Smash Bros. Melee" }] : []),
+  // Swiss or brackets with team lists (game space picks 2026-11-11); shown with the team builder.
+  ...(championsShown() ? [{ value: "pokemon-champions", label: "Pokémon Champions" }] : []),
   { value: "other", label: "Another game" },
 ];
 
@@ -77,7 +101,7 @@ const SEARCH_OPTIONS = (() => {
 })();
 
 /** Games where a racing ladder (Heat → Mains) makes no sense: one-on-one fighters and team hero shooters. */
-const NO_HEAT_GAMES = new Set(["street-fighter-6", "tekken-8", "overwatch", "marvel-rivals", "splatoon-3"]);
+const NO_HEAT_GAMES = new Set(["street-fighter-6", "tekken-8", "overwatch", "marvel-rivals", "splatoon-3", "pokemon-champions"]);
 
 // Mario Kart games carry rich track/build config; any other game runs the
 // game-agnostic formats (brackets / points / heat→mains) on named participants.
@@ -111,9 +135,9 @@ export default function CreateTournamentPage() {
   // AI text lands in More options, so it opens when the helper fills it.
   const [moreOpen, setMoreOpen] = useState(false);
 
-  // Championship creation is Pro-only — read the user's effective tier for a
-  // clean upsell (RLS also enforces this server-side).
-  const [isPro, setIsPro] = useState(true); // optimistic until loaded (avoids a flash of the upsell)
+  // Championship series is a GS Circuit organizer tool (picks 2026-11-11): free while Circuit
+  // billing is off. Read from billing-status below (POST /api/championships checks it again).
+  const [circuitOk, setCircuitOk] = useState(true); // optimistic until loaded (avoids a flash of the wall)
   // Admins can host as GameShuffle (an official event; supabase/official-events-m1.sql).
   const [isAdmin, setIsAdmin] = useState(false);
   const [hostedByGs, setHostedByGs] = useState(false);
@@ -121,8 +145,7 @@ export default function CreateTournamentPage() {
     if (!user) return;
     const supabase = createClient();
     (async () => {
-      const { data } = await supabase.from("users").select("subscription_tier, role, circuit_tier, circuit_status").eq("id", user.id).maybeSingle();
-      setIsPro(effectiveTier({ tier: normalizeTier(data?.subscription_tier), role: data?.role, circuitTier: data?.circuit_tier ?? null, circuitStatus: data?.circuit_status ?? null }) === "pro");
+      const { data } = await supabase.from("users").select("role").eq("id", user.id).maybeSingle();
       setIsAdmin(data?.role === "admin");
     })();
   }, [user]);
@@ -174,6 +197,8 @@ export default function CreateTournamentPage() {
   };
   const [ttReady, setTtReady] = useState(false);
   const [deckLists, setDeckLists] = useState<DeckListSettings>({ ...DEFAULT_DECK_LISTS, when: "join" });
+  // Pokémon Champions: team lists before round 1, open from round 1 like Play! Pokémon's open team lists.
+  const [teamLists, setTeamLists] = useState<DeckListSettings>({ ...DEFAULT_DECK_LISTS, when: "start", after: "open" });
   useEffect(() => {
     fetch("/api/tournaments/swiss-ready").then((r) => (r.ok ? r.json() : null)).then((d) => { setSwissReady(!!d?.ready); setTtReady(!!d?.tt); }).catch(() => {});
   }, []);
@@ -261,9 +286,10 @@ export default function CreateTournamentPage() {
   useEffect(() => {
     fetch("/api/tournaments/billing-status")
       .then((r) => (r.ok ? r.json() : null))
-      .then((d: { billingEnabled?: boolean; plan?: string | null; graceUntil?: string | null } | null) => {
+      .then((d: { billingEnabled?: boolean; plan?: string | null; graceUntil?: string | null; paidFeatures?: boolean } | null) => {
         if (!d) return;
         setBillingEnabled(!!d.billingEnabled);
+        setCircuitOk(d.paidFeatures !== false);
         setCircuitPlan({
           plan: d.plan ?? null,
           graceLabel: d.graceUntil ? new Date(d.graceUntil).toLocaleDateString("en-US", { month: "long", day: "numeric", timeZone: "America/Los_Angeles" }) : null,
@@ -400,14 +426,14 @@ export default function CreateTournamentPage() {
               ? { game_label: gameLabel, partyGame: true, useFlights: true, flightSize: PARTY_TABLE_SIZE, flightRounds: 3, racesPerRound: 1, flightReseed: "standings" }
             : isSmash
               // Best-of sets, legal stages and striking live in settings.smash (organizer-editable).
-              ? { game_label: gameLabel, smashGame: true, smash: smashDefaultRules(), useFlights: true, flightSize: SMASH_FLIGHT_SIZE, flightRounds: 3, racesPerRound: 1, flightReseed: "standings" }
+              ? { game_label: gameLabel, smashGame: true, smash: smashDefaultRules(smashTourneyGame(gameSlug)), useFlights: true, flightSize: SMASH_FLIGHT_SIZE, flightRounds: 3, racesPerRound: 1, flightReseed: "standings" }
             : gameSlug === "mario-kart-world"
               ? { raceCount: 12, items: "normal", game_label: gameLabel }
               : { raceCount: 12, cc: "150cc", items: "normal", cpu: "hard", game_label: gameLabel }),
           ...(isElim ? (elimTtOn ? { lobbySize: 2, advance: 1, timeTrial: true, ttBestOf: elimBestOf } : { lobbySize: gkLobby, advance: gkAdvance }) : {}),
           ...(format === "swiss" ? { swiss: swissSettings } : {}),
           ...((format === "time_trial" || (format === "swiss" && swissSettings.timeTrial) || elimTtOn) && ttSettings ? { tt: ttSettings } : {}),
-          ...(isDeckListGame(resolvedSlug) && swissReady ? { deckLists } : {}),
+          ...(takesLists(resolvedSlug) && swissReady ? { deckLists: isTeamListGame(resolvedSlug) ? teamLists : deckLists } : {}),
           locationType,
           location: locationType === "in_person" ? (locationText.trim() || null) : null,
         },
@@ -437,26 +463,25 @@ export default function CreateTournamentPage() {
   };
 
   const handleCreateChampionship = async () => {
-    const supabase = createClient();
-    const { data, error: dbError } = await supabase
-      .from("championships")
-      .insert({
-        owner_id: user.id,
-        name: title.trim(),
-        description: description.trim() || null,
-        game_slug: resolvedSlug,
-        settings: { series: hmSeries, heatSize: hmHeatSize, mode: "ffa", items: "normal", game_label: gameLabel },
-        share_token: generateShareToken(),
-      })
-      .select("id")
-      .single();
-
-    if (dbError) { setError(dbError.message); setSaving(false); return; }
-    if (data) { trackEvent("Championship Created", { game: resolvedSlug }); router.push(`/tournament/championship/${data.id}/manage`); }
+    // Written by the server after its own GS Circuit check (src/app/api/championships/route.ts).
+    const res = await fetch("/api/championships", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name: title.trim(), description: description.trim(), gameSlug: resolvedSlug, gameLabel, series: hmSeries, heatSize: hmHeatSize }),
+    }).catch(() => null);
+    const data = (await res?.json().catch(() => null)) as { id?: string; error?: string } | null;
+    if (!res?.ok || !data?.id) {
+      if (data?.error === "circuit_required") setCircuitOk(false);
+      setError(CHAMPIONSHIP_ERRORS[data?.error ?? ""] ?? "Couldn't start the championship. Try again.");
+      setSaving(false);
+      return;
+    }
+    trackEvent("Championship Created", { game: resolvedSlug });
+    router.push(`/tournament/championship/${data.id}/manage`);
   };
 
   const handleCreate = async () => {
-    if (runMode === "championship" && !isPro) { setError("Championship series is a GS Pro feature."); return; }
+    if (runMode === "championship" && !circuitOk) { setError("Championship series is part of GS Circuit."); return; }
     if (runMode === "championship" && noHeat) { setError(`Championship series runs Heat → Mains, which doesn't suit ${isSmash ? "Smash" : isParty ? "Mario Party" : gameLabel}. Run a single tournament instead.`); return; }
     if (!title.trim()) { setError(`${runMode === "championship" ? "Championship" : "Tournament"} name is required.`); return; }
     if (isReservedName(title) && !(runMode === "single" && hostedByGs)) { setError(RESERVED_TITLE_MESSAGE); return; }
@@ -480,7 +505,7 @@ export default function CreateTournamentPage() {
       <span className="run-pick__icon" aria-hidden>{id === "single" ? <IconTournament size={20} stroke={1.9} /> : <IconTrophy size={20} stroke={1.9} />}</span>
       <span className="run-pick__title">
         {heading}
-        {id === "championship" && !isPro && <Badge variant="info" size="small">Pro</Badge>}
+        {id === "championship" && !circuitOk && <Badge variant="info" size="small">Circuit</Badge>}
       </span>
       <span className="run-pick__text">{blurb}</span>
     </Card>
@@ -621,12 +646,17 @@ export default function CreateTournamentPage() {
                           timeTrial={ttReady && ttSettings ? { settings: ttSettings, onChange: setTtPicked } : null} />
                       </div>
                     )}
-                    {isDeckListGame(resolvedSlug) && swissReady && (
-                      <div className="swiss-decks-panel">
-                        <div className="swiss-decks-panel__head"><span className="account-card__label">Deck lists</span><Badge variant="info" size="small">Pokémon TCG</Badge></div>
-                        <DeckListSettingsFields value={deckLists} onChange={setDeckLists} swiss={format === "swiss"} />
-                      </div>
-                    )}
+                    {takesLists(resolvedSlug) && swissReady && (() => {
+                      const kind = listKindOf(resolvedSlug)!;
+                      return (
+                        <div className="swiss-decks-panel">
+                          <div className="swiss-decks-panel__head"><span className="account-card__label">{LIST_WORDS[kind].title}</span><Badge variant="info" size="small">{LIST_WORDS[kind].game}</Badge></div>
+                          {kind === "team"
+                            ? <DeckListSettingsFields kind="team" value={teamLists} onChange={setTeamLists} swiss={format === "swiss"} />
+                            : <DeckListSettingsFields value={deckLists} onChange={setDeckLists} swiss={format === "swiss"} />}
+                        </div>
+                      );
+                    })()}
                     {isElim && (
                       <div style={{ marginTop: "0.85rem", display: "flex", flexDirection: "column", gap: "0.75rem" }}>
                         {ttReady && ttSettings && (
@@ -894,20 +924,21 @@ export default function CreateTournamentPage() {
             </Modal>
           )}
 
-          {runMode === "championship" && !isPro && (
-            <div className="comp-card" style={{ marginBottom: "1rem", display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "0.75rem" }}>
+          {/* GS Circuit's wall, like trivia leagues: only once Circuit billing is on and this account has no plan. */}
+          {runMode === "championship" && !circuitOk && (
+            <div className="comp-card" style={{ marginBottom: "var(--spacing-16)", display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "var(--spacing-12)" }}>
               <div>
-                <strong style={{ fontSize: "var(--font-size-16)" }}><IconTrophy size={16} stroke={1.9} aria-hidden /> Championship series is a GS Pro feature</strong>
-                <p style={{ color: "var(--text-secondary)", fontSize: "var(--font-size-14)", margin: "0.25rem 0 0" }}>
-                  Run a full season with accumulating points, roster invites, and live standings. Single tournaments are free, so switch above to run one now.
+                <strong style={{ fontSize: "var(--font-size-16)" }}><IconTrophy size={16} stroke={1.9} aria-hidden /> Championship series is part of GS Circuit</strong>
+                <p style={{ color: "var(--text-secondary)", fontSize: "var(--font-size-14)", margin: "var(--spacing-4) 0 0" }}>
+                  A season of Heat → Mains events with roster invites and points that add up into one standings table. Single tournaments stay free, so switch above to run one now.
                 </p>
               </div>
-              <Link href="/gs-pro" className={tagged(EVENTS.upgradeClicked, { from: "championship" })}><Button variant="primary">Upgrade to Pro</Button></Link>
+              <Link href="/gs-circuit" className={tagged(EVENTS.circuitClicked, { from: "championship" })}><Button variant="primary">See the plans</Button></Link>
             </div>
           )}
 
-          <Button variant="primary" onClick={handleCreate} disabled={saving || (runMode === "championship" && !isPro)} fullWidth>
-            {saving ? "Creating..." : runMode === "championship" ? (isPro ? "Create championship" : "Championship requires GS Pro") : "Create Tournament"}
+          <Button variant="primary" onClick={handleCreate} disabled={saving || (runMode === "championship" && !circuitOk)} fullWidth>
+            {saving ? "Creating..." : runMode === "championship" ? (circuitOk ? "Create championship" : "Championship needs GS Circuit") : "Create Tournament"}
           </Button>
         </div>
       </Container>

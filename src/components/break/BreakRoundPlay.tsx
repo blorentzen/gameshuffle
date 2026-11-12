@@ -13,7 +13,7 @@
 import { useState } from "react";
 import { Button, Input } from "@empac/cascadeds";
 import type { BreakReveal, BreakRound } from "@/lib/break/types";
-import { BossBar, ConnectBoard, DerbyTrack, LetterGrid, ZoomFrame } from "@/components/overlay/BreakScreenOverlay";
+import { BossBar, ConnectBoard, DerbyTrack, DiceTable, LetterGrid, ZoomFrame } from "@/components/overlay/BreakScreenOverlay";
 
 export interface BreakRoundPlayProps {
   round: BreakRound;
@@ -34,9 +34,11 @@ export interface BreakRoundPlayProps {
   meta?: string | null;
   /** Unique id for the answer box on the page. */
   inputId: string;
+  /** Who plays against the house in Shuffle Dice ("Chat" on stream, "You" for people playing together). */
+  team?: string;
 }
 
-export function BreakRoundPlay({ round: r, reveal: rv, open, mine, found, answering, roundKey, now, onAnswer, meta, inputId }: BreakRoundPlayProps) {
+export function BreakRoundPlay({ round: r, reveal: rv, open, mine, found, answering, roundKey, now, onAnswer, meta, inputId, team = "Chat" }: BreakRoundPlayProps) {
   // What's typed, for one round only (a new round starts with an empty box).
   const [draft, setDraft] = useState({ round: "", text: "" });
   // Roster Rush takes many names: the last one sent, for this round only.
@@ -65,7 +67,7 @@ export function BreakRoundPlay({ round: r, reveal: rv, open, mine, found, answer
       <p className="live-break__prompt">{r.prompt}</p>
       {r.layout === "choice" && r.item && <p className="live-break__item">{r.item}</p>}
       {r.layout === "bingo" && <p className="live-break__line">Grab a card in the Stream Bingo box on this page, then mark your numbers as they&apos;re called.</p>}
-      {table && <p className="live-break__line">Chat {table.chat}, House {table.house} (first to {table.target}). {table.turnPoints} riding, {table.bombs} of 3 Bombs out.</p>}
+      {table && <DiceTable t={table} base="live-break" team={team} />}
       {r.layout === "word" && !rv && <p className="live-break__tiles" aria-label="Scrambled letters">{r.tiles.join(" ")}</p>}
       {r.layout === "text" && r.big && <p className="live-break__big">{r.big}</p>}
       {r.layout === "zoom" && <ZoomFrame className="live-break__zoom" img={r.img} focus={r.focus} steps={r.steps} stepSeconds={r.stepSeconds} openedAt={r.openedAt} reveal={!!rv} now={now} />}
@@ -121,7 +123,7 @@ export function BreakRoundPlay({ round: r, reveal: rv, open, mine, found, answer
             return (
               <Button key={o.key} size="small" variant={picked || right ? "primary" : "secondary"} disabled={busy || !open}
                 onClick={() => void answer(o.key)} aria-pressed={picked}>
-                {r.layout === "connect" ? `Column ${o.key}` : `${o.key}. ${o.label}`}{rv?.counts ? ` · ${rv.counts[o.key] ?? 0}` : ""}
+                {r.layout === "connect" ? `Column ${o.key}` : o.key.length <= 2 ? `${o.key}. ${o.label}` : o.label}{rv?.counts ? ` · ${rv.counts[o.key] ?? 0}` : ""}
               </Button>
             );
           })}

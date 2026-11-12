@@ -12,6 +12,11 @@ import { describeSmashSetup } from "@/data/smash";
 import { describeSplatoonSetup } from "@/data/splatoon";
 import { describeKirbySetup } from "@/data/kirby";
 import { describeSonicSetup } from "@/data/sonic";
+import { describeWonderSetup } from "@/data/wonder";
+import { describeDoubleDashSetup } from "@/data/double-dash";
+import { describeMarioKartDsSetup } from "@/data/mario-kart-ds";
+import { describeMarioKart7Setup } from "@/data/mario-kart-7";
+import { describeSuperMarioKartSetup } from "@/data/super-mario-kart";
 import { describeStadiumSetup } from "@/data/pokemon/stadium-setup";
 
 type ImgItem = { img?: string; name?: string };
@@ -110,6 +115,41 @@ export function ConfigVisual({ cfg }: { cfg: Record<string, unknown> }) {
     return (
       <ul className="cfg-list">
         {describeSonicSetup(cfg).map((r) => <li key={r.label}>{r.label}: {r.value}</li>)}
+      </ul>
+    );
+  }
+  if (type === "wonder-setup") {
+    return (
+      <ul className="cfg-list">
+        {describeWonderSetup(cfg).map((r) => <li key={r.label}>{r.label}: {r.value}</li>)}
+      </ul>
+    );
+  }
+  if (type === "double-dash-setup") {
+    return (
+      <ul className="cfg-list">
+        {describeDoubleDashSetup(cfg).map((r) => <li key={r.label}>{r.label}: {r.value}</li>)}
+      </ul>
+    );
+  }
+  if (type === "mario-kart-ds-setup") {
+    return (
+      <ul className="cfg-list">
+        {describeMarioKartDsSetup(cfg).map((r) => <li key={r.label}>{r.label}: {r.value}</li>)}
+      </ul>
+    );
+  }
+  if (type === "mario-kart-7-setup") {
+    return (
+      <ul className="cfg-list">
+        {describeMarioKart7Setup(cfg).map((r) => <li key={r.label}>{r.label}: {r.value}</li>)}
+      </ul>
+    );
+  }
+  if (type === "super-mario-kart-setup") {
+    return (
+      <ul className="cfg-list">
+        {describeSuperMarioKartSetup(cfg).map((r) => <li key={r.label}>{r.label}: {r.value}</li>)}
       </ul>
     );
   }

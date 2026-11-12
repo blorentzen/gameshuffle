@@ -12,7 +12,6 @@ import Link from "next/link";
 import { Alert, Badge, Button, EmptyState, Input, Select, Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@empac/cascadeds";
 import { useToast } from "@/components/toast/ToastProvider";
 import { MAX_POLL_OPTIONS, MIN_POLL_OPTIONS, type Poll, type PollTally } from "@/lib/polls/types";
-import { EVENTS, tagged } from "@/lib/analytics/events";
 import { IconAction } from "@/components/actions/IconAction";
 import { IconChartBar, IconX } from "@tabler/icons-react";
 import { AdminPanel, AdminScreen, AdminSection, AdminTable } from "@/components/account/admin/AdminKit";
@@ -24,6 +23,7 @@ const STATUS_BADGE: Record<string, { label: string; variant: "success" | "warnin
   closed: { label: "Closed", variant: "default" },
 };
 import { LoadingLines } from "@/components/loading/LoadingLines";
+import { ProTrialPrompt } from "@/components/billing/ProTrialPrompt";
 
 export function PollsTab() {
   const toast = useToast();
@@ -135,10 +135,9 @@ export function PollsTab() {
   if (!isPro) {
     return (
       <AdminScreen title="Polls" intro={intro}>
-        <Alert variant="info" title="Polls are part of GS Pro">
-          Run live polls your viewers vote on from chat, Discord and your stream.{" "}
-          <Link href="/gs-pro?from=polls" className={tagged(EVENTS.upgradeClicked, { from: "polls" })}>See GS Pro</Link>
-        </Alert>
+        <ProTrialPrompt title="Polls are part of GS Pro" from="polls" headingLevel={2}>
+          <p>Run live polls your viewers vote on from chat, Discord and your stream.</p>
+        </ProTrialPrompt>
       </AdminScreen>
     );
   }

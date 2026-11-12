@@ -9,6 +9,7 @@
 import { createServiceClient } from "@/lib/supabase/admin";
 import { callerFrom, guildOwner } from "../guildOwner";
 import { ephemeralMessage } from "../respond";
+import { proWallReply } from "@/lib/discord/proReply";
 
 interface Option {
   name: string;
@@ -40,7 +41,7 @@ function humanize(secs: number): string {
 export async function handleGsRemind(interaction: Record<string, unknown>): Promise<Response> {
   const owner = await guildOwner((interaction.guild_id as string | undefined) ?? null);
   if (!owner) return ephemeralMessage("GameShuffle isn't linked to this server yet.");
-  if (!owner.isPro) return ephemeralMessage("⏰ Reminders are a GS Pro feature.");
+  if (!owner.isPro) return ephemeralMessage(proWallReply("⏰ Reminders are", "discord-bot"));
 
   const data = interaction.data as { options?: Option[] };
   const opt = (n: string) => String(data.options?.find((o) => o.name === n)?.value ?? "").trim();

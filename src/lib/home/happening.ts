@@ -83,7 +83,7 @@ export interface HappeningWorld {
 }
 
 export const TESTY = /\b(test|testing|tester|demo|sandbox|e2e|qa|dummy|sample|placeholder|asdf)\b/i;
-const MK_SLUGS = ["mario-kart-8-deluxe", "mario-kart-world", "mario-kart-64"];
+const MK_SLUGS = ["mario-kart-8-deluxe", "mario-kart-world", "mario-kart-64", "mario-kart-wii", "mario-kart-double-dash", "mario-kart-ds", "mario-kart-7", "super-mario-kart"];
 const DAY_MS = 86_400_000;
 type Db = ReturnType<typeof createServiceClient>;
 

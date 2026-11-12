@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { HelpArticle } from "@/components/help/HelpArticle";
 import { findArticle } from "@/lib/help/manifest";
+import { MELEE_PUBLIC, MKWII_PUBLIC, WONDER_PUBLIC } from "@/lib/games-visibility";
+import { DOUBLE_DASH_PUBLIC, MARIO_KART_7_PUBLIC, MARIO_KART_DS_PUBLIC, SUPER_MARIO_KART_PUBLIC } from "@/lib/games-visibility";
 
 const HREF = "/help/apps/randomizers";
 const meta = findArticle(HREF)!;
@@ -26,12 +28,48 @@ export default function Page() {
       <h2>The games</h2>
       <ul>
         <li>
-          <strong>Mario Kart:</strong> <Link href="/randomizers/mario-kart-8-deluxe">Mario Kart 8 Deluxe</Link> (character,
-          vehicle, wheels and glider, up to 48 races) and <Link href="/randomizers/mario-kart-world">Mario Kart World</Link>{" "}
+          <strong>Mario Kart:</strong> the <Link href="/randomizers/mario-kart-8-deluxe">Mario Kart 8 Deluxe randomizer</Link>{" "}
+          (character, vehicle, wheels and glider, up to 48 races) and the{" "}
+          <Link href="/randomizers/mario-kart-world">Mario Kart World randomizer</Link>{" "}
           (character and vehicle, tracks and knockout rallies), plus items for both. The{" "}
           <Link href="/randomizers/mario-kart-64">Mario Kart 64</Link>{" "}randomizer gives up to four players a different
           character (the game&apos;s own rule) and rolls tracks and battle courses. See{" "}
           <a href="/help/apps/mario-kart-64-randomizer">the Mario Kart 64 randomizer</a>.
+          {MKWII_PUBLIC && (
+            <>
+              {" "}The <Link href="/randomizers/mario-kart-wii">Mario Kart Wii</Link>{" "}randomizer rolls a character and a kart
+              or bike in their size class for up to 12 players, plus tracks and battle arenas. See{" "}
+              <a href="/help/apps/mario-kart-wii-randomizer">the Mario Kart Wii randomizer</a>.
+            </>
+          )}
+          {DOUBLE_DASH_PUBLIC && (
+            <>
+              {" "}The <Link href="/randomizers/mario-kart-double-dash">Mario Kart Double Dash</Link>{" "}randomizer gives every
+              kart a driver, an item thrower and a kart that fits them, pairs people two to a kart, and rolls cups and battles.
+              See <a href="/help/apps/mario-kart-double-dash-randomizer">the Double Dash randomizer</a>.
+            </>
+          )}
+          {MARIO_KART_DS_PUBLIC && (
+            <>
+              {" "}The <Link href="/randomizers/mario-kart-ds">Mario Kart DS</Link>{" "}randomizer rolls a character and a kart
+              your save has opened for up to 8 players, plus cups, battles and Mission Mode challenges. See{" "}
+              <a href="/help/apps/mario-kart-ds-randomizer">the Mario Kart DS randomizer</a>.
+            </>
+          )}
+          {MARIO_KART_7_PUBLIC && (
+            <>
+              {" "}The <Link href="/randomizers/mario-kart-7">Mario Kart 7</Link>{" "}randomizer builds a kart from a body, tires
+              and a glider for each player, from the parts your save has, plus cups and battles. See{" "}
+              <a href="/help/apps/mario-kart-7-randomizer">the Mario Kart 7 randomizer</a>.
+            </>
+          )}
+          {SUPER_MARIO_KART_PUBLIC && (
+            <>
+              {" "}The <Link href="/randomizers/super-mario-kart">Super Mario Kart</Link>{" "}randomizer gives each of two players
+              a different racer and rolls cups, race lists and battle courses. See{" "}
+              <a href="/help/apps/super-mario-kart-randomizer">the Super Mario Kart randomizer</a>.
+            </>
+          )}
         </li>
         <li>
           <strong>Mario Party:</strong> Jamboree, Superstars and the three Nintendo 64 games. Board, rules, turns, Bonus Stars,
@@ -49,7 +87,20 @@ export default function Page() {
           <strong>Smash Ultimate:</strong>{" "}<Link href="/randomizers/super-smash-bros-ultimate">fighters for up to eight</Link>,
           the stage and rules, and Squad Strike squads, with the DLC you own. See{" "}
           <a href="/help/apps/smash-ultimate-randomizer">the Smash Ultimate randomizer</a>.
+          {MELEE_PUBLIC && (
+            <>
+              {" "}The <Link href="/randomizers/super-smash-bros-melee">Melee</Link>{" "}randomizer gives up to four players a fighter
+              and costume and rolls a legal stage. See <a href="/help/apps/melee-randomizer">the Melee randomizer</a>.
+            </>
+          )}
         </li>
+        {WONDER_PUBLIC && (
+          <li>
+            <strong>Super Mario Bros. Wonder:</strong>{" "}<Link href="/randomizers/super-mario-bros-wonder">a character and a badge
+            for up to four</Link>, a level and challenge rules. See{" "}
+            <a href="/help/apps/super-mario-bros-wonder-randomizer">the Wonder randomizer</a>.
+          </li>
+        )}
         <li>
           <strong>Perfect Dark:</strong>{" "}<Link href="/randomizers/perfect-dark">a Combat Simulator match</Link>{" "}(scenario,
           arena, weapon set, time limit, simulants and an optional chaos rule) plus a character for everyone. Joanna counts

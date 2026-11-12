@@ -1,0 +1,31 @@
+/* ─── Speedrun splits pages (/speedrun/splits and /speedrun/splits/<game>, roster picks 2026-11-11). Flat sections split
+   by thin lines; the split lists sit in columns on wide screens. Sizes in CDS tokens (the root is 10px). ─── */
+
+.srs-page { padding-bottom: var(--spacing-48, 4.8rem); }
+.srs-body { width: 100%; max-width: 104rem; margin: 0 auto; padding: var(--spacing-24) var(--spacing-24) 0; display: grid; }
+.srs-sec { display: grid; gap: var(--spacing-16); padding: var(--spacing-24) 0; border-top: 1px solid var(--border-subtle); }
+.srs-sec:first-child { border-top: 0; padding-top: 0; }
+.srs-sec h2 { margin: 0; font-family: var(--font-display); font-size: var(--font-size-24); line-height: 1.25; }
+.srs-sec > p { margin: 0; font-size: var(--font-size-16); line-height: 1.55; max-width: 70ch; }
+.srs-meta { color: var(--text-secondary); }
+.srs-lists { columns: 2 24rem; column-gap: var(--spacing-32); }
+.srs-group { break-inside: avoid; padding-bottom: var(--spacing-12); }
+.srs-group h3 { margin: 0 0 var(--spacing-4); font-size: var(--font-size-14); font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--text-secondary); }
+.srs-group ol { margin: 0; padding-left: var(--spacing-32); display: grid; gap: var(--spacing-4); font-size: var(--font-size-16); line-height: 1.4; font-variant-numeric: tabular-nums; }
+.srs-acts { display: flex; flex-wrap: wrap; align-items: center; gap: var(--spacing-12) var(--spacing-24); }
+.srs-about summary { cursor: pointer; font-size: var(--font-size-16); font-weight: 600; min-height: 2.4rem; }
+.srs-about p { margin: var(--spacing-8) 0 0; font-size: var(--font-size-14); line-height: 1.55; color: var(--text-secondary); max-width: 75ch; }
+.srs-src a { color: var(--brand-ink, #3647c9); }
+.srs-more { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: var(--spacing-12) var(--spacing-24); }
+.srs-games { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(30rem, 1fr)); gap: var(--spacing-12); }
+.srs-game__link { display: grid; grid-template-columns: 5.4rem minmax(0, 1fr); gap: var(--spacing-12); align-items: center; padding: var(--spacing-12); border-radius: 1.2rem; color: inherit; text-decoration: none; }
+.srs-game__link:hover, .srs-game__link:focus-visible { background: var(--background-secondary, #eef0f6); }
+.srs-game__cover { width: 5.4rem; height: 7.2rem; border-radius: .6rem; overflow: hidden; }
+.srs-game__txt { display: grid; gap: var(--spacing-4); min-width: 0; }
+.srs-game__txt b { font-size: var(--font-size-16); }
+.srs-game__txt span { font-size: var(--font-size-14); color: var(--text-secondary); }
+.srs-note { margin: var(--spacing-24) 0 0; font-size: var(--font-size-16); line-height: 1.55; max-width: 70ch; }
+
+@media (max-width: 40rem) {
+  .srs-body { padding: var(--spacing-16) var(--spacing-16) 0; }
+}

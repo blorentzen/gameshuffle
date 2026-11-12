@@ -16,6 +16,7 @@ import { MmrOverlay } from "@/components/mmr/MmrOverlay";
 import { LoungeRoomOverlay } from "@/components/lounge/LoungeRoomOverlay";
 import { TtOverlay } from "@/components/tournament/tt/TtOverlay";
 import { SeriesOverlay } from "@/components/series/SeriesOverlay";
+import { LevelQueueOverlay } from "@/components/levels/LevelQueueOverlay";
 import { WarPiece } from "@/components/wars/WarOverlay";
 import { WarPieceNote, type StreamWarView } from "@/components/wars/WarPieceNote";
 import type { ComponentType } from "react";
@@ -64,7 +65,7 @@ import { ChatTimelineOverlay } from "@/components/overlay/ChatTimelineOverlay";
 import { ViewerCountOverlay } from "@/components/overlay/ViewerCountOverlay";
 import { ChatOverlaySettings } from "@/components/account/ChatOverlaySettings";
 import "@/styles/overlay.css";
-import { IconChartLine, IconBallBowling, IconBrain, IconBulb, IconCar, IconCards, IconChartBar, IconChecklist, IconCoffee, IconCoin, IconDice5, IconEye, IconFlagCheck, IconGridDots, IconHourglass, IconMessageCircle, IconRotate, IconStopwatch, IconSwords, IconTicket, IconTrophy, IconUsersGroup, IconWorld } from "@tabler/icons-react";
+import { IconChartLine, IconBallBowling, IconBrain, IconBulb, IconCar, IconCards, IconChartBar, IconChecklist, IconCoffee, IconCoin, IconDice5, IconEye, IconFlagCheck, IconGridDots, IconHourglass, IconListNumbers, IconMessageCircle, IconRotate, IconStopwatch, IconSwords, IconTicket, IconTrophy, IconUsersGroup, IconWorld } from "@tabler/icons-react";
 import { LoadingLines } from "@/components/loading/LoadingLines";
 
 type OverlayElement = {
@@ -108,6 +109,7 @@ const APPS: OverlayElement[] = [
   { id: "war", label: "War score", icon: IconSwords },
   { id: "series", label: "Team series", icon: IconTrophy },
   { id: "time_trial", label: "Time trial", icon: IconHourglass },
+  { id: "level_queue", label: "Level queue", icon: IconListNumbers },
 ];
 
 const ALL_ELEMENTS: OverlayElement[] = [...TOOLS, ...APPS];
@@ -575,6 +577,8 @@ export function OverlayLayoutTab({ bare = false }: { bare?: boolean } = {}) {
         return <SeriesOverlay sample style={style} />;
       case "time_trial":
         return <TtOverlay sample style={style} />;
+      case "level_queue":
+        return <LevelQueueOverlay sample style={style} />;
       case "viewers":
         return <ViewerCountOverlay sample style={style} />;
       default:

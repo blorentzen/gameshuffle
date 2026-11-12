@@ -34,6 +34,10 @@ async function resolveTargetOwner(
     const { data } = await admin.from("gs_post_comments").select("author_id").eq("id", targetId).maybeSingle();
     return (data as { author_id?: string } | null)?.author_id ?? null;
   }
+  if (targetType === "level") {
+    const { data } = await admin.from("level_shares").select("user_id").eq("id", targetId).maybeSingle();
+    return (data as { user_id?: string } | null)?.user_id ?? null;
+  }
   if (targetType === "gif") {
     const { data } = await admin.from("gifs").select("owner_user_id").eq("id", targetId).maybeSingle();
     return (data as { owner_user_id?: string } | null)?.owner_user_id ?? null;

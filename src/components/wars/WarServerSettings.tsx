@@ -44,7 +44,11 @@ export function WarServerSettings({ guild, view }: { guild: string; view: TeamsV
   const byCode = (text: string) => {
     const t = text.trim();
     if (!t) return null;
-    return tracks.find((o) => o.code === t) ?? (tracks.filter((o) => o.code.toLowerCase() === t.toLowerCase()).length === 1 ? tracks.find((o) => o.code.toLowerCase() === t.toLowerCase()) : null) ?? null;
+    const codes = (o: (typeof tracks)[number]) => [o.code, ...(o.also ?? [])];
+    const exact = tracks.filter((o) => codes(o).includes(t));
+    if (exact.length) return exact[0];
+    const any = tracks.filter((o) => codes(o).some((c) => c.toLowerCase() === t.toLowerCase()));
+    return any.length === 1 ? any[0] : null;
   };
   const match = byCode(code);
   const nickIsCode = !!byCode(nick);

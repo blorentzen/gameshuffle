@@ -15,7 +15,8 @@ import { DEFAULT_FORMAT, placePoints, teamScores, type WarFormat } from "./forma
 
 export interface RoomTeam { tag: string; name: string | null; logo: string | null; total: number }
 export interface RoomPerson { id: string; name: string }
-export interface RoomTrack { id: string; code: string | null; name: string; image: string | null }
+/** A course in the room; `also` is the other codes a Mario Kart Wii course answers to. */
+export interface RoomTrack { id: string; code: string | null; name: string; image: string | null; also?: string[] }
 export interface RoomRaceRow { n: number; track: RoomTrack | null; spots: number[]; diff: number; lead: number; by: string; tapped: boolean }
 export interface RoomPlayerRow { id: string; name: string; places: (number | null)[]; points: number }
 

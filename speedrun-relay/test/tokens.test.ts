@@ -7,12 +7,16 @@ const SECRET = "test-secret-0123456789abcdef0123456789";
 const RELAY = "AbCdEfGh12345678";
 const TIMER = "t1.AbCdEfGh12345678.1.4Wg53LFG6THcL-65ru8oQI";
 const OVERLAY = "o1.AbCdEfGh12345678.1.Owqqi3mshHyOYbuNt0Z_Zk";
+const ROOM = "r1.AbCdEfGh12345678.1.dqF0YB_KU0q9vuJ9l1563w";
 const BODY = JSON.stringify({ relayId: RELAY, event: "start" });
 const BODY_SIG = "83b9b2aecc2ac281c8a93bd563a3b04d7a2aa8f16f1e52dfae81c177a6a139f0";
 
 test("signs the contract's test vectors", async () => {
   assert.equal(await signToken(SECRET, "timer", RELAY, 1), TIMER);
   assert.equal(await signToken(SECRET, "overlay", RELAY, 1), OVERLAY);
+  assert.equal(await signToken(SECRET, "room", RELAY, 1), ROOM);
+  assert.deepEqual(await verifyToken(SECRET, ROOM, "room"), { kind: "room", relayId: RELAY, version: 1 });
+  assert.equal(await verifyToken(SECRET, ROOM, "overlay"), null);
   assert.equal(BODY, '{"relayId":"AbCdEfGh12345678","event":"start"}');
   assert.equal(await signBody(SECRET, BODY), BODY_SIG);
   assert.equal(await verifyBody(SECRET, BODY, BODY_SIG), true);

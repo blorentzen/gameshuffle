@@ -186,7 +186,17 @@ function renderTopicHelp(topic: string, callerTier: ActorTier): string {
   const usage = def.help.usage;
   const detail = def.help.detail ?? def.help.summary;
   const tags = formatTags(def);
-  return `🎲 ${formatTrigger(def.trigger)} → ${usage}: ${detail}${tags}`;
+  const head = `🎲 ${formatTrigger(def.trigger)} → ${usage}: `;
+  // Twitch refuses a chat message over 500 characters, so a long detail
+  // (Stream Bingo's runs past it) is cut at a word with "…".
+  return head + fitDetail(detail, CHAT_LIMIT - head.length - tags.length) + tags;
+}
+
+function fitDetail(detail: string, budget: number): string {
+  if (detail.length <= budget) return detail;
+  const cut = detail.slice(0, Math.max(0, budget - 1));
+  const word = cut.lastIndexOf(" ");
+  return `${(word > budget / 2 ? cut.slice(0, word) : cut).replace(/[\s,.;:·]+$/, "")}…`;
 }
 
 // ---------------------------------------------------------------------------

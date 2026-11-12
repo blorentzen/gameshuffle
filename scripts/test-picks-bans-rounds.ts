@@ -8,6 +8,11 @@
  *   - aggregate.ts ballot tallying (locked-only filter, top-N)
  *   - rate-limit bucket semantics (window roll-over, cap)
  *   - source-level contracts on schema migration + actions + chat handlers
+ *
+ * `supabase/` and `docs/` are gitignored, so a release worktree may not
+ * hold the migration or the messaging matrix: `findLocal` also looks in
+ * `supabase/archive/` and in the main checkout, and the checks that need
+ * a missing file are reported as SKIP (never as passed).
  */
 
 import assert from "node:assert/strict";
@@ -23,6 +28,42 @@ import type { PicksBansBallot } from "../src/lib/picks-bans/types";
 
 let passed = 0;
 let failed = 0;
+let skipped = 0;
+
+function skip(name: string, why: string) {
+  skipped += 1;
+  console.log(`  - SKIP ${name}: ${why}`);
+}
+
+/** First existing copy of a gitignored file: this checkout, then the
+ *  main checkout when this is a linked worktree. `rels` are tried in order. */
+async function findLocal(rels: string[]): Promise<string | null> {
+  const { access } = await import("node:fs/promises");
+  const { execFileSync } = await import("node:child_process");
+  const { dirname, resolve } = await import("node:path");
+  const roots = [process.cwd()];
+  try {
+    const common = execFileSync("/usr/bin/git", ["rev-parse", "--path-format=absolute", "--git-common-dir"], {
+      encoding: "utf8",
+    }).trim();
+    const main = dirname(common);
+    if (resolve(main) !== resolve(process.cwd())) roots.push(main);
+  } catch {
+    // Not a git checkout: only this folder.
+  }
+  for (const root of roots) {
+    for (const rel of rels) {
+      const path = resolve(root, rel);
+      try {
+        await access(path);
+        return path;
+      } catch {
+        // try the next one
+      }
+    }
+  }
+  return null;
+}
 
 function test(name: string, fn: () => void | Promise<void>) {
   const run = async () => {
@@ -201,42 +242,73 @@ async function main() {
   section("Source-level — schema migration + chat handlers");
 
   const fs = await import("node:fs/promises");
-  const migration = await fs.readFile(
-    new URL("../supabase/picks-bans-rounds.sql", import.meta.url),
-    "utf8"
-  );
+  const migrationPath = await findLocal([
+    "supabase/picks-bans-rounds.sql",
+    "supabase/archive/picks-bans-rounds.sql",
+  ]);
+  const migrationChecks: Array<[string, (sql: string) => void]> = [
+    ["Migration creates rounds + ballots tables", (migration) => {
+      assert.match(migration, /CREATE TABLE IF NOT EXISTS public\.session_picks_bans_rounds/);
+      assert.match(
+        migration,
+        /CREATE TABLE IF NOT EXISTS public\.session_picks_bans_ballots/
+      );
+    }],
+    ["Migration enforces one open round per (session, game)", (migration) => {
+      assert.match(
+        migration,
+        /idx_picks_bans_rounds_one_open_per_session_game/
+      );
+      assert.match(migration, /WHERE status = 'open'/);
+    }],
+    ["Migration enforces viewer identity XOR (twitch OR anon)", (migration) => {
+      assert.match(migration, /viewer_identity_xor/);
+    }],
+  ];
+  if (migrationPath) {
+    const migration = await fs.readFile(migrationPath, "utf8");
+    for (const [name, check] of migrationChecks) {
+      await test(name, () => check(migration));
+    }
+  } else {
+    for (const [name] of migrationChecks) {
+      skip(name, "picks-bans-rounds.sql not found in supabase/ or supabase/archive/ (gitignored)");
+    }
+  }
 
-  await test("Migration creates rounds + ballots tables", () => {
-    assert.match(migration, /CREATE TABLE IF NOT EXISTS public\.session_picks_bans_rounds/);
-    assert.match(
-      migration,
-      /CREATE TABLE IF NOT EXISTS public\.session_picks_bans_ballots/
-    );
-  });
-  await test("Migration enforces one open round per (session, game)", () => {
-    assert.match(
-      migration,
-      /idx_picks_bans_rounds_one_open_per_session_game/
-    );
-    assert.match(migration, /WHERE status = 'open'/);
-  });
-  await test("Migration enforces viewer identity XOR (twitch OR anon)", () => {
-    assert.match(migration, /viewer_identity_xor/);
-  });
+  // Chat commands are registry-driven now (Spec 03): the old
+  // `case "picks-open":` switch in dispatch.ts is gone, so check what a
+  // typed command actually reaches.
+  await import("../src/lib/twitch/commands/registrations");
+  const { parseCommand } = await import("../src/lib/twitch/commands/parse");
+  const { listCommands, resolveTypedCommand } = await import("../src/lib/twitch/commands/registry");
+  const routeTo = (text: string) => {
+    const parsed = parseCommand(text);
+    return parsed ? resolveTypedCommand(parsed.path, parsed.args).def ?? null : null;
+  };
 
-  const dispatcher = await fs.readFile(
-    new URL("../src/lib/twitch/commands/dispatch.ts", import.meta.url),
-    "utf8"
-  );
-
-  await test("Dispatcher routes !gs-picks-open + !gs-picks-close", () => {
-    assert.match(dispatcher, /case "picks-open":/);
-    assert.match(dispatcher, /case "picks-close":/);
+  await test("Chat routes !gs picks open / !gs-picks-open and close, host only", () => {
+    for (const [text, name] of [
+      ["!gs picks open", "gs.picks.open"],
+      ["!gs-picks-open", "gs.picks.open"],
+      ["!gs picks close", "gs.picks.close"],
+      ["!gs-picks-close", "gs.picks.close"],
+    ] as const) {
+      const def = routeTo(text);
+      assert.equal(def?.name, name, `${text} reached ${def?.name}`);
+      assert.equal(def?.actor, "host", `${text} should be host only`);
+    }
   });
-  await test("Dispatcher no longer routes !gs-pick-track / !gs-ban-track / etc.", () => {
-    assert.doesNotMatch(dispatcher, /case "pick-track":/);
-    assert.doesNotMatch(dispatcher, /case "ban-track":/);
-    assert.doesNotMatch(dispatcher, /case "clear-track-bans":/);
+  await test("No command answers to !gs-pick-track / !gs-ban-track / etc.", () => {
+    const legacy = ["pick-track", "ban-track", "clear-track-bans", "pick-item", "ban-item"];
+    for (const def of listCommands()) {
+      const shapes = [def.name, def.trigger.join("-"), ...(def.aliases ?? []).map((a) => a.join("-"))];
+      for (const shape of shapes) {
+        for (const word of legacy) {
+          assert.ok(!shape.includes(word), `${def.name} still answers to "${shape}"`);
+        }
+      }
+    }
   });
 
   const registry = await fs.readFile(
@@ -358,17 +430,19 @@ async function main() {
     assert.match(actionsSource, /picksBansCancelledMessage/);
   });
 
-  const messagingDoc = await fs.readFile(
-    new URL("../docs/picks-bans-messaging-matrix.md", import.meta.url),
-    "utf8"
-  );
-  await test("Messaging matrix doc exists + lists all 5 picks/bans event types", () => {
-    assert.match(messagingDoc, /picks_bans_opened/);
-    assert.match(messagingDoc, /picks_bans_closed/);
-    assert.match(messagingDoc, /picks_bans_applied/);
-    assert.match(messagingDoc, /picks_bans_cancelled/);
-    assert.match(messagingDoc, /picks_bans_ballot_locked/);
-  });
+  const messagingDocPath = await findLocal(["docs/picks-bans-messaging-matrix.md"]);
+  if (messagingDocPath) {
+    const messagingDoc = await fs.readFile(messagingDocPath, "utf8");
+    await test("Messaging matrix doc lists all 5 picks/bans event types", () => {
+      assert.match(messagingDoc, /picks_bans_opened/);
+      assert.match(messagingDoc, /picks_bans_closed/);
+      assert.match(messagingDoc, /picks_bans_applied/);
+      assert.match(messagingDoc, /picks_bans_cancelled/);
+      assert.match(messagingDoc, /picks_bans_ballot_locked/);
+    });
+  } else {
+    skip("Messaging matrix doc lists all 5 picks/bans event types", "docs/picks-bans-messaging-matrix.md not found (docs/ is gitignored)");
+  }
 
   // ---------- Command catalog --------------------------------------------
 
@@ -430,7 +504,7 @@ async function main() {
 
   // ---------- Summary -----------------------------------------------------
 
-  console.log(`\n${passed} passed, ${failed} failed`);
+  console.log(`\n${passed} passed, ${failed} failed${skipped ? `, ${skipped} skipped` : ""}`);
   if (failed > 0) {
     process.exit(1);
   }

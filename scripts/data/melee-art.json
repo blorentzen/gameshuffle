@@ -1,0 +1,368 @@
+{
+ "checkedOn": "2026-11-11",
+ "note": "Super Smash Bros. Melee art for the randomizer, all in-game art from the game itself (Nintendo, HAL Laboratory), never fan art. Fighters: the character select screen's player-slot portraits, one per costume, from Super Mario Wiki (mariowiki.com, Gallery:Super Smash Bros. Melee, 'Preview images'; files 'SSBM Icon fighter preview <name> c<n>.png'). The game has no such portrait for Sheik (she's picked by holding A on Zelda), so Sheik has none and the randomizer shows Image coming soon. Stages: SmashWiki's in-game stage views taken with the game's debug camera (ssbwiki.com, Category:Debug menu (SSBM), the '-NRML-' files), cropped to 16:9. Header: the official group artwork (Super Mario Wiki, File:SSBM.jpg), cropped to 16:9. Run scripts/pull-melee-art.ts.",
+ "fighters": [
+  {
+   "name": "Dr. Mario",
+   "slug": "dr-mario",
+   "costumes": 5,
+   "wiki": "mario",
+   "file": "SSBM Icon fighter preview Dr. Mario c{n}.png"
+  },
+  {
+   "name": "Mario",
+   "slug": "mario",
+   "costumes": 5,
+   "wiki": "mario",
+   "file": "SSBM Icon fighter preview Mario c{n}.png"
+  },
+  {
+   "name": "Luigi",
+   "slug": "luigi",
+   "costumes": 4,
+   "wiki": "mario",
+   "file": "SSBM Icon fighter preview Luigi c{n}.png"
+  },
+  {
+   "name": "Bowser",
+   "slug": "bowser",
+   "costumes": 4,
+   "wiki": "mario",
+   "file": "SSBM Icon fighter preview Bowser c{n}.png"
+  },
+  {
+   "name": "Peach",
+   "slug": "peach",
+   "costumes": 5,
+   "wiki": "mario",
+   "file": "SSBM Icon fighter preview Peach c{n}.png"
+  },
+  {
+   "name": "Yoshi",
+   "slug": "yoshi",
+   "costumes": 6,
+   "wiki": "mario",
+   "file": "SSBM Icon fighter preview Yoshi c{n}.png"
+  },
+  {
+   "name": "Donkey Kong",
+   "slug": "donkey-kong",
+   "costumes": 5,
+   "wiki": "mario",
+   "file": "SSBM Icon fighter preview Donkey Kong c{n}.png"
+  },
+  {
+   "name": "Captain Falcon",
+   "slug": "captain-falcon",
+   "costumes": 6,
+   "wiki": "mario",
+   "file": "SSBM Icon fighter preview Captain Falcon c{n}.png"
+  },
+  {
+   "name": "Ganondorf",
+   "slug": "ganondorf",
+   "costumes": 5,
+   "wiki": "mario",
+   "file": "SSBM Icon fighter preview Ganondorf c{n}.png"
+  },
+  {
+   "name": "Falco",
+   "slug": "falco",
+   "costumes": 4,
+   "wiki": "mario",
+   "file": "SSBM Icon fighter preview Falco c{n}.png"
+  },
+  {
+   "name": "Fox",
+   "slug": "fox",
+   "costumes": 4,
+   "wiki": "mario",
+   "file": "SSBM Icon fighter preview Fox c{n}.png"
+  },
+  {
+   "name": "Ness",
+   "slug": "ness",
+   "costumes": 4,
+   "wiki": "mario",
+   "file": "SSBM Icon fighter preview Ness c{n}.png"
+  },
+  {
+   "name": "Ice Climbers",
+   "slug": "ice-climbers",
+   "costumes": 4,
+   "wiki": "mario",
+   "file": "SSBM Icon fighter preview Ice Climbers c{n}.png"
+  },
+  {
+   "name": "Kirby",
+   "slug": "kirby",
+   "costumes": 6,
+   "wiki": "mario",
+   "file": "SSBM Icon fighter preview Kirby c{n}.png"
+  },
+  {
+   "name": "Samus",
+   "slug": "samus",
+   "costumes": 5,
+   "wiki": "mario",
+   "file": "SSBM Icon fighter preview Samus c{n}.png"
+  },
+  {
+   "name": "Zelda",
+   "slug": "zelda",
+   "costumes": 5,
+   "wiki": "mario",
+   "file": "SSBM Icon fighter preview Zelda c{n}.png"
+  },
+  {
+   "name": "Link",
+   "slug": "link",
+   "costumes": 5,
+   "wiki": "mario",
+   "file": "SSBM Icon fighter preview Link c{n}.png"
+  },
+  {
+   "name": "Young Link",
+   "slug": "young-link",
+   "costumes": 5,
+   "wiki": "mario",
+   "file": "SSBM Icon fighter preview Young Link c{n}.png"
+  },
+  {
+   "name": "Pichu",
+   "slug": "pichu",
+   "costumes": 4,
+   "wiki": "mario",
+   "file": "SSBM Icon fighter preview Pichu c{n}.png"
+  },
+  {
+   "name": "Pikachu",
+   "slug": "pikachu",
+   "costumes": 4,
+   "wiki": "mario",
+   "file": "SSBM Icon fighter preview Pikachu c{n}.png"
+  },
+  {
+   "name": "Jigglypuff",
+   "slug": "jigglypuff",
+   "costumes": 5,
+   "wiki": "mario",
+   "file": "SSBM Icon fighter preview Jigglypuff c{n}.png"
+  },
+  {
+   "name": "Mewtwo",
+   "slug": "mewtwo",
+   "costumes": 4,
+   "wiki": "mario",
+   "file": "SSBM Icon fighter preview Mewtwo c{n}.png"
+  },
+  {
+   "name": "Mr. Game & Watch",
+   "slug": "mr-game-and-watch",
+   "costumes": 4,
+   "wiki": "mario",
+   "file": "SSBM Icon fighter preview Mr. Game & Watch c{n}.png"
+  },
+  {
+   "name": "Marth",
+   "slug": "marth",
+   "costumes": 5,
+   "wiki": "mario",
+   "file": "SSBM Icon fighter preview Marth c{n}.png"
+  },
+  {
+   "name": "Roy",
+   "slug": "roy",
+   "costumes": 5,
+   "wiki": "mario",
+   "file": "SSBM Icon fighter preview Roy c{n}.png"
+  }
+ ],
+ "stages": [
+  {
+   "name": "Battlefield",
+   "slug": "battlefield",
+   "wiki": "smash",
+   "file": "BTLFD-NRML-SSBM.png"
+  },
+  {
+   "name": "Final Destination",
+   "slug": "final-destination",
+   "wiki": "smash",
+   "file": "FDEST-NRML-SSBM.png"
+  },
+  {
+   "name": "Dream Land",
+   "slug": "dream-land",
+   "wiki": "smash",
+   "file": "OLDDL-NRML-SSBM.jpg"
+  },
+  {
+   "name": "Fountain of Dreams",
+   "slug": "fountain-of-dreams",
+   "wiki": "smash",
+   "file": "DREAM-NRML-SSBM.png"
+  },
+  {
+   "name": "Yoshi's Story",
+   "slug": "yoshis-story",
+   "wiki": "smash",
+   "file": "STORY-NRML-SSBM.jpg"
+  },
+  {
+   "name": "Pokémon Stadium",
+   "slug": "pokemon-stadium",
+   "wiki": "smash",
+   "file": "PSTAD-NRML1-SSBM.png"
+  },
+  {
+   "name": "Princess Peach's Castle",
+   "slug": "princess-peachs-castle",
+   "wiki": "smash",
+   "file": "CASTL-NRML1-SSBM.jpg"
+  },
+  {
+   "name": "Rainbow Cruise",
+   "slug": "rainbow-cruise",
+   "wiki": "smash",
+   "file": "RNBOW-NRML1-SSBM.png"
+  },
+  {
+   "name": "Mushroom Kingdom",
+   "slug": "mushroom-kingdom",
+   "wiki": "smash",
+   "file": "MKI-NRML-SSBM.png"
+  },
+  {
+   "name": "Mushroom Kingdom II",
+   "slug": "mushroom-kingdom-ii",
+   "wiki": "smash",
+   "file": "MKII-NRML-SSBM.png"
+  },
+  {
+   "name": "Kongo Jungle",
+   "slug": "kongo-jungle",
+   "wiki": "smash",
+   "file": "KONGO-NRML-SSBM.jpg"
+  },
+  {
+   "name": "Jungle Japes",
+   "slug": "jungle-japes",
+   "wiki": "smash",
+   "file": "JAPES-NRML-SSBM.png"
+  },
+  {
+   "name": "Great Bay",
+   "slug": "great-bay",
+   "wiki": "smash",
+   "file": "GTBAY-NRML-SSBM.jpg"
+  },
+  {
+   "name": "Temple",
+   "slug": "temple",
+   "wiki": "smash",
+   "file": "TEMPL-NRML-SSBM.jpg"
+  },
+  {
+   "name": "Yoshi's Island",
+   "slug": "yoshis-island",
+   "wiki": "smash",
+   "file": "YOSHI-NRML-SSBM.jpg"
+  },
+  {
+   "name": "Green Greens",
+   "slug": "green-greens",
+   "wiki": "smash",
+   "file": "GREEN-NRML-SSBM.png"
+  },
+  {
+   "name": "Corneria",
+   "slug": "corneria",
+   "wiki": "smash",
+   "file": "STRFX-NRML-SSBM.jpg"
+  },
+  {
+   "name": "Venom",
+   "slug": "venom",
+   "wiki": "smash",
+   "file": "VENOM-NRML1-SSBM.png"
+  },
+  {
+   "name": "Brinstar",
+   "slug": "brinstar",
+   "wiki": "smash",
+   "file": "ZEBES-NRML-SSBM.jpg"
+  },
+  {
+   "name": "Brinstar Depths",
+   "slug": "brinstar-depths",
+   "wiki": "smash",
+   "file": "DEPTH-NRML1-SSBM.jpg"
+  },
+  {
+   "name": "Onett",
+   "slug": "onett",
+   "wiki": "smash",
+   "file": "ONETT-NRML-SSBM.jpg"
+  },
+  {
+   "name": "Fourside",
+   "slug": "fourside",
+   "wiki": "smash",
+   "file": "FOURS-NRML-SSBM.jpg"
+  },
+  {
+   "name": "Mute City",
+   "slug": "mute-city",
+   "wiki": "smash",
+   "file": "MCITY-NRML1-SSBM.jpg"
+  },
+  {
+   "name": "Big Blue",
+   "slug": "big-blue",
+   "wiki": "smash",
+   "file": "BBLUE-NRML-SSBM.jpg"
+  },
+  {
+   "name": "Poké Floats",
+   "slug": "poke-floats",
+   "wiki": "smash",
+   "file": "PKFLT-SLWPK-NRML2-SSBM.png"
+  },
+  {
+   "name": "Icicle Mountain",
+   "slug": "icicle-mountain",
+   "wiki": "smash",
+   "file": "ICEMT-NRML1-SSBM.jpg"
+  },
+  {
+   "name": "Flat Zone",
+   "slug": "flat-zone",
+   "wiki": "smash",
+   "file": "FLATZ-NRML-SSBM.png"
+  },
+  {
+   "name": "Yoshi's Island (N64)",
+   "slug": "yoshis-island-n64",
+   "wiki": "smash",
+   "file": "OLDYI-NRML-SSBM.jpg"
+  },
+  {
+   "name": "Kongo Jungle (N64)",
+   "slug": "kongo-jungle-n64",
+   "wiki": "smash",
+   "file": "OLDKJ-NRML-SSBM.png"
+  }
+ ],
+ "keyart": {
+  "wiki": "mario",
+  "file": "SSBM.jpg",
+  "slug": "super-smash-bros-melee-keyart",
+  "crop": [
+   0,
+   200,
+   1280,
+   720
+  ]
+ }
+}

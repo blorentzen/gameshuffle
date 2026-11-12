@@ -19,12 +19,16 @@ export function filterByWeight(
   return characters.filter((c) => c.weight && weights.includes(c.weight));
 }
 
+/** The vehicle filter: MK8DX's drift types, or a vehicle's `kind` where the game sets one (Mario Kart Wii). */
 export function filterByDrift(
   vehicles: Vehicle[],
   driftTypes: string[]
 ): Vehicle[] {
   if (driftTypes.length === 0) return vehicles;
-  return vehicles.filter((v) => v.drift && driftTypes.includes(v.drift));
+  return vehicles.filter((v) => {
+    const key = v.kind ?? v.drift;
+    return key && driftTypes.includes(key);
+  });
 }
 
 export function filterByVehicleType(
@@ -49,15 +53,22 @@ export function randomizeKartCombo(
       : data.characters;
   const open = filtered.filter((c) => !takenCharacters.includes(c.name));
   const chars = open.length > 0 ? open : filtered;
+  const character = chars[getRandomNumber(chars.length)];
   let vehis = data.vehicles;
   if (vehiFilters.length > 0) vehis = filterByDrift(vehis, vehiFilters);
   if (vehiTypeFilters.length > 0) vehis = filterByVehicleType(vehis, vehiTypeFilters);
+  // Mario Kart Wii: a driver only takes vehicles of their own size. When the filters leave none in that size,
+  // the size still wins (a Small driver never gets a Large bike).
+  if (character?.weight && data.vehicles.some((v) => v.size)) {
+    const sized = vehis.filter((v) => v.size === character.weight);
+    vehis = sized.length > 0 ? sized : data.vehicles.filter((v) => v.size === character.weight);
+  }
 
   const wheels = data.wheels ?? [];
   const gliders = data.gliders ?? [];
 
   return {
-    character: chars[getRandomNumber(chars.length)],
+    character,
     vehicle: vehis.length > 0
       ? vehis[getRandomNumber(vehis.length)]
       : { name: "N/A", img: "" },

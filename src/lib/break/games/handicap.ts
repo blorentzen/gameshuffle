@@ -12,7 +12,7 @@
 import type { BreakGame } from "./common";
 import { chatLine, count, pick, rightAwards, shuffle } from "./common";
 
-const MK = new Set(["mario-kart-8-deluxe", "mario-kart-world", "mario-kart-64"]);
+const MK = new Set(["mario-kart-8-deluxe", "mario-kart-world", "mario-kart-64", "mario-kart-wii", "mario-kart-double-dash", "mario-kart-ds", "mario-kart-7", "super-mario-kart"]);
 
 /** `{name}` is the streamer. Ids match the Consequences cards they come from. */
 const ANY_GAME = [

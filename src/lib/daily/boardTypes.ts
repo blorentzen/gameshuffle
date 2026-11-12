@@ -48,6 +48,8 @@ export interface BoardView {
   total: number;
   /** When the prizes are paid (weeks and months). */
   settles: string | null;
+  /** The day board only: each place's points today (site, Discord, guests), most first (src/lib/daily/placeRace.ts). */
+  race?: import("@/lib/daily/placeRace").PlaceTotal[] | null;
 }
 
 /** A player's solve times in one game: today's (null until finished, or untimed), their best solved time, and how many solved days have a time. */

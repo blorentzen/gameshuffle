@@ -39,7 +39,8 @@ const toRow = (r: Row): WarTableRow => ({ id: r.id, warId: r.war_id, guildId: r.
 
 export const TABLE_PREFIX = "wtab:";
 const V2 = 1 << 15;
-const lounge = (g: WarGame): "mk8dx" | "mkworld12p" => (g === "mk8dx" ? "mk8dx" : "mkworld12p");
+/** The MKCentral lounge a war's players are looked up in for their name and flag (none for Mario Kart Wii). */
+const lounge = (g: WarGame): "mk8dx" | "mkworld12p" | null => (g === "mk8dx" ? "mk8dx" : g === "mkworld" ? "mkworld12p" : null);
 
 async function withTimeout<T>(p: Promise<T>, ms: number, fallback: T): Promise<T> {
   return Promise.race([p, new Promise<T>((r) => setTimeout(() => r(fallback), ms))]);
@@ -64,7 +65,7 @@ export async function prefillFor(war: War): Promise<string> {
     }
     const ids = [...pts.keys()];
     const [flags, cards] = await Promise.all([
-      withTimeout(Promise.all(ids.map((id) => loungeBasic({ discordId: id }, lounge(war.game)).catch(() => null))), 3000, ids.map(() => null)),
+      withTimeout(Promise.all(ids.map((id) => { const g = lounge(war.game); return g ? loungeBasic({ discordId: id }, g).catch(() => null) : Promise.resolve(null); })), 3000, ids.map(() => null)),
       playerCardsById(ids).catch(() => new Map()),
     ]);
     // A player's own card (/me) wins over MKCentral.

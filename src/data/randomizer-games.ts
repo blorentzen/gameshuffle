@@ -27,6 +27,7 @@ export const RANDOMIZER_GAMES: RandomizerGameMeta[] = [
   { slug: "mario-kart-8-deluxe", label: "Mario Kart 8 Deluxe", tracks: true, tourOnly: true, combo: true, items: true },
   { slug: "mario-kart-world", label: "Mario Kart World", tracks: true, tourOnly: false, combo: true, items: true },
   { slug: "super-smash-bros-ultimate", label: "Super Smash Bros. Ultimate", tracks: false, tourOnly: false, combo: false, items: false, roster: { noun: "fighter", plural: "fighters" } },
+  { slug: "super-smash-bros-melee", label: "Super Smash Bros. Melee", tracks: false, tourOnly: false, combo: false, items: false, roster: { noun: "fighter", plural: "fighters" } },
   { slug: "super-mario-party-jamboree", label: "Mario Party Jamboree", tracks: false, tourOnly: false, combo: false, items: false, roster: { noun: "character", plural: "characters" } },
   { slug: "mario-party-superstars", label: "Mario Party Superstars", tracks: false, tourOnly: false, combo: false, items: false, roster: { noun: "character", plural: "characters" } },
   { slug: "mario-party", label: "Mario Party", tracks: false, tourOnly: false, combo: false, items: false, roster: { noun: "character", plural: "characters" } },

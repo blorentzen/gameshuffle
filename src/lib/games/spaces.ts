@@ -15,6 +15,10 @@ import { gameKey, familyKeys, type GameKey } from "./key";
 import type { MmrGame } from "@/lib/mmr/rules";
 import type { TtGame } from "@/lib/timeTrials/tracks";
 import { KIRBY_PUBLIC, MARVEL_RIVALS_PUBLIC, OVERWATCH_PUBLIC, SONIC_PUBLIC, SPLATOON_PUBLIC } from "@/lib/games-visibility";
+import { MKWII_PUBLIC, POKEMON_CHAMPIONS_PUBLIC } from "@/lib/games-visibility";
+import { WONDER_PUBLIC } from "@/lib/games-visibility";
+import { MELEE_PUBLIC } from "@/lib/games-visibility";
+import { DOUBLE_DASH_PUBLIC } from "@/lib/games-visibility";
 
 export type SpaceId =
   | "mario-kart-8-deluxe" | "mario-kart-world" | "pokemon" | "mario-party" | "smash"
@@ -22,19 +26,42 @@ export type SpaceId =
   | "overwatch" | "marvel-rivals" | "street-fighter-6" | "tekken-8" | "splatoon-3" | "kirby-air-riders"
   // ...and ideas spaces, for big games we have no tools for yet.
   | "fortnite" | "valorant" | "league-of-legends" | "minecraft" | "apex-legends" | "dead-by-daylight" | "rocket-league"
-  | "call-of-duty-warzone" | "sonic" | "gran-turismo-7";
+  | "call-of-duty-warzone" | "sonic" | "gran-turismo-7"
+  // Levels from players (picks 2026-11-11): games whose levels travel by code.
+  | "super-mario-maker-2" | "fall-guys" | "geometry-dash"
+  // Pokémon Champions (picks 2026-11-11): its own space, for battle players (teams and tournaments).
+  | "pokemon-champions"
+  // Mario Kart Wii (picks 2026-11-11): its own space, with the randomizer and the war bot.
+  | "mario-kart-wii"
+  // Super Mario Bros. Wonder (picks 2026-11-11): its own space, a co-op game where rolls make a challenge night.
+  | "super-mario-bros-wonder"
+  // Super Smash Bros. Melee (picks 2026-11-11): its own space for the Melee scene, apart from Ultimate.
+  | "super-smash-bros-melee"
+  // Retro Mario Kart (picks 2026-11-12): Double Dash!!, DS, 64, 7 and Super Mario Kart in one space.
+  | "retro-mario-kart";
 
 /**
  * A space's tabs, picked per game like a sports app's (phone picks 2026-11-05, 2A): each tab one kind of thing.
  * Built so far: now, boards, events, lounge, people, posts (posts belong to games, step 3).
  */
-export type SpaceTab = "now" | "you" | "rolls" | "boards" | "events" | "lounge" | "people" | "posts" | "dailies" | "road" | "cards" | "nights" | "ideas";
+export type SpaceTab = "now" | "you" | "rolls" | "boards" | "events" | "lounge" | "people" | "posts" | "dailies" | "road" | "cards" | "nights" | "ideas" | "levels" | "seeds";
 export const SPACE_TAB_LABEL: Record<SpaceTab, string> = {
   now: "Now", you: "You", rolls: "Rolls", boards: "Boards", events: "Events", lounge: "Lounge", people: "People", posts: "Posts",
-  dailies: "Dailies", road: "Road", cards: "Cards", nights: "Nights", ideas: "Ideas",
+  dailies: "Dailies", road: "Road", cards: "Cards", nights: "Nights", ideas: "Ideas", levels: "Levels", seeds: "Seeds",
 };
 
 export interface SpaceTool { label: string; href: string }
+
+/** One game a space's Rolls can switch to (Retro Mario Kart: Double Dash, Mario Kart DS, Mario Kart 64...). */
+export interface SpaceRollGame {
+  game: GameKey;
+  /** Its name on the switch ("Double Dash"). */
+  short: string;
+  /** The roll button for it ("Roll a pair"). */
+  label: string;
+  /** Its randomizer page. */
+  href: string;
+}
 
 /**
  * What an ideas space asks (spaces first wave, 2026-11-09): a game we have no tools for yet opens on its Ideas tab with
@@ -93,9 +120,24 @@ export interface GameSpace {
   you?: boolean;
   /** What joining keeps, on the sign-up sheet a visitor's Join opens (the sheet's own line when unset). */
   join?: string;
+  /**
+   * The roll, where it isn't the main button (Melee's main button is Run a bracket): the Rolls tab's button label and
+   * its link to the full randomizer. Unset = the main button is the roll.
+   */
+  roll?: SpaceTool;
+  /** A Smash game whose tournament stage list Now explains (game 1 strikes, the counterpicks, the organizer's list). */
+  strikes?: GameKey;
+  /** A co-op game with no winner (Super Mario Bros. Wonder): the space offers game nights and its roll, never a tournament. */
+  coop?: boolean;
+  /**
+   * A space with more than one game to roll (Retro Mario Kart, picks 2026-11-12): the games Rolls can switch between, in
+   * order, the first one shown first. Each keeps its own randomizer page (search is per game). Unset = the main game.
+   */
+  rollGames?: SpaceRollGame[];
 }
 
-const POKEMON_GAMES = familyKeys("pokemon");
+// Pokémon Champions has its own space (battle players come for teams and tournaments, picks 2026-11-11).
+const POKEMON_GAMES = familyKeys("pokemon").filter((g) => g !== "pokemon-champions");
 const MARIO_PARTY_GAMES = familyKeys("mario-party");
 const SONIC_GAMES = familyKeys("sonic");
 
@@ -290,11 +332,46 @@ export const GAME_SPACES: GameSpace[] = [
     join: "Free. Your saved setups and points from live nights stay here, and you hear when a cup or a night starts.",
   },
 
+  // Mario Kart Wii (picks 2026-11-11, all as recommended): its own space with the randomizer, the war bot (its own
+  // points table) and tournaments; no time trial boards. Opens with the 2026-11-11 release (Britton, 2026-11-12), and
+  // stays hidden while the randomizer is (MKWII_PUBLIC). Ideas sits at the end for what comes next.
+  {
+    id: "mario-kart-wii", name: "Mario Kart Wii", short: "MKWii", games: ["mario-kart-wii"], primary: "mario-kart-wii",
+    tabs: ["now", "rolls", "events", "people", "posts", "ideas"], you: false,
+    hero: "/images/mario-kart-wii/mario-kart-wii-keyart.webp", box: "/images/box-art/mario-kart-wii.webp", accent: "#0a8fd8",
+    tools: [
+      { label: "Randomizer", href: "/randomizers/mario-kart-wii" },
+      { label: "Wars", href: "/help/competitive/wars" },
+      { label: "Run a tournament", href: "/tournament/create?game=mario-kart-wii" },
+      { label: "Track tier list", href: "/tier-list-maker/mario-kart-wii-tracks" },
+      { label: "Bracket", href: "/bracket-generator" },
+    ],
+    main: { label: "Roll a combo", href: "/randomizers/mario-kart-wii" },
+    merch: /kart|race|drift|lap|blue shell|podium/i,
+    opens: "2026-11-11", shown: MKWII_PUBLIC, isNew: true,
+    join: "Free. Your posts and events in Mario Kart Wii stay here, and you hear when a tournament starts.",
+    ideas: {
+      line: "Custom track rolls, rules for a couch night, more for your wars.",
+      starters: ["Custom track randomizer", "Couch night item rules", "Chat picks the next track"],
+    },
+  },
+
   // ── First wave (2026-11-09): ideas spaces, for big games we have no tools for yet ──
-  ideasSpace("fortnite", "Fortnite", "Fortnite", "#7b3fe4", "A randomizer, a mode for your squad, a chat game for stream.", ["Drop spot roll", "Loadout roulette", "Challenge rules"]),
+  // Levels from players (picks 2026-11-11): Fortnite's island codes get a Levels board, second after Ideas.
+  { ...ideasSpace("fortnite", "Fortnite", "Fortnite", "#7b3fe4", "A randomizer, a mode for your squad, a chat game for stream.", ["Drop spot roll", "Loadout roulette", "Challenge rules"]),
+    tabs: ["ideas", "levels", "now", "posts", "people"] },
   ideasSpace("valorant", "VALORANT", "VALORANT", "#ff4655", "An agent roll, a mode for your five, a chat game for stream.", ["Agent roll by role", "Map roll", "Chat picks your agent"]),
   ideasSpace("league-of-legends", "League of Legends", "League", "#c89b3c", "A champion roll, rules for a chaos night, a chat game for stream.", ["Champion roll by role", "ARAM chaos rules", "Chat picks your champion"]),
-  ideasSpace("minecraft", "Minecraft", "Minecraft", "#3c8527", "A challenge run, rules for your server, a chat game for stream.", ["Challenge seed", "Run rules roll", "Chat picks the twist"]),
+  // Minecraft's first tools, from the speedrun roster (2026-11-11): its splits page and the speedrun overlay, whose races
+  // show one set seed to everyone at the countdown. Now leads; Ideas stays for what comes next.
+  // Seeds (curation picks 15A, 2026-11-11): a board of seeds, second after Now (shown once supabase/levels-m2.sql has run).
+  { ...ideasSpace("minecraft", "Minecraft", "Minecraft", "#3c8527", "A challenge run, rules for your server, a chat game for stream.", ["Challenge seed", "Run rules roll", "Chat picks the twist"]),
+    tabs: ["now", "seeds", "ideas", "posts", "people"],
+    tools: [
+      { label: "Speedrun splits", href: "/speedrun/splits/minecraft" },
+      { label: "Speedrun overlay and races", href: "/speedrun" },
+    ],
+    main: { label: "Get speedrun splits", href: "/speedrun/splits/minecraft" } },
   ideasSpace("apex-legends", "Apex Legends", "Apex", "#cd3333", "A legend roll, a mode for your squad, a chat game for stream.", ["Legend roll by class", "Drop spot roll", "Squad challenge rules"]),
   ideasSpace("dead-by-daylight", "Dead by Daylight", "DBD", "#9b1c1c", "A build roll, rules for a lobby, a chat game for stream.", ["Killer roll", "Survivor perk build", "Chat picks the killer"]),
   ideasSpace("rocket-league", "Rocket League", "Rocket League", "#1f6feb", "A car and arena roll, a mode for your team, a chat game for stream.", ["Car roll", "Arena roll", "Mutator chaos"]),
@@ -316,6 +393,153 @@ export const GAME_SPACES: GameSpace[] = [
     join: "Free. Your saved setups and posts stay here, and you hear when a tournament starts.",
   },
   ideasSpace("gran-turismo-7", "Gran Turismo 7", "GT7", "#1d4ed8", "A car and track roll, rules for a lobby race, a chat game for stream.", ["Car roll by class", "Track roll", "Lobby race rules"]),
+
+  // ── Levels from players (picks 2026-11-11): spaces for games whose levels travel by code. Britton opened both on
+  //    2026-11-11 ("we need some good ones for curating UGC"). Their Levels board, and the queue streamers run from chat. ──
+  {
+    ...ideasSpace("super-mario-maker-2", "Super Mario Maker 2", "Mario Maker 2", "#e8a317",
+      "A course roll for chat, a level race night, challenge rules for your viewers.", ["Chat picks the course style", "Level race night", "Endless challenge rules"]),
+    tabs: ["now", "levels", "ideas", "posts", "people"],
+    tools: [
+      { label: "Levels", href: "/games/super-mario-maker-2?tab=levels" },
+      { label: "Level queue for streamers", href: "/help/streaming/level-queue" },
+    ],
+    main: { label: "Share a level", href: "/games/super-mario-maker-2?tab=levels" },
+    opens: "2026-11-11", isNew: true,
+    join: "Free. Share your courses, see which ones streamers played, and post with other makers.",
+  },
+  {
+    ...ideasSpace("fall-guys", "Fall Guys", "Fall Guys", "#e0679a",
+      "A round roll for custom lobbies, rules for a party night, a chat game for stream.", ["Round roll", "Party night rules", "Chat picks the round"]),
+    tabs: ["now", "levels", "ideas", "posts", "people"],
+    tools: [
+      { label: "Levels", href: "/games/fall-guys?tab=levels" },
+      { label: "Level queue for streamers", href: "/help/streaming/level-queue" },
+    ],
+    main: { label: "Share a level", href: "/games/fall-guys?tab=levels" },
+    opens: "2026-11-11", isNew: true,
+    join: "Free. Share your Creative levels, see which ones streamers played, and post with other players.",
+  },
+  // Geometry Dash (curation picks 14A, 2026-11-11): level IDs in the queue and a board. Opens with the 2026-11-11
+  // release (Britton, 2026-11-12; its board needs supabase/levels-m2.sql, in the release's before-push file).
+  {
+    ...ideasSpace("geometry-dash", "Geometry Dash", "Geometry Dash", "#2f9e44",
+      "A level roll for chat, a demon night for your group, challenge rules for your viewers.", ["Chat picks the next level", "Demon night rules", "Random level challenge"]),
+    tabs: ["now", "levels", "ideas", "posts", "people"],
+    tools: [
+      { label: "Levels", href: "/games/geometry-dash?tab=levels" },
+      { label: "Level queue for streamers", href: "/help/streaming/level-queue" },
+    ],
+    main: { label: "Share a level", href: "/games/geometry-dash?tab=levels" },
+    opens: "2026-11-11", isNew: true,
+    join: "Free. Share your levels, see which ones streamers beat, and post with other players.",
+  },
+
+  // ── Pokémon Champions (picks 2026-11-11, all as recommended): its own space, apart from Pokémon, for battle players.
+  //    The team builder is the main button and the first tool; tournaments take team lists. Opens with the 2026-11-11
+  //    release (Britton, 2026-11-12). ──
+  {
+    ...ideasSpace("pokemon-champions", "Pokémon Champions", "Champions", "#2b4fc7",
+      "Rules for a draft night, a ladder for your group, a chat game for stream.", ["Draft night rules", "A ladder for my group", "Chat guesses my lead"]),
+    tabs: ["now", "events", "people", "posts", "ideas"],
+    tools: [
+      { label: "Team builder", href: "/pokemon-champions-team-builder" },
+      { label: "Tournament with team lists", href: "/tournament/create?game=pokemon-champions" },
+      { label: "Chat Draft for streamers", href: "/help/streaming/chat-draft" },
+      { label: "Swiss pairings", href: "/swiss-pairing-generator" },
+    ],
+    main: { label: "Build a team", href: "/pokemon-champions-team-builder" },
+    opens: "2026-11-11", shown: POKEMON_CHAMPIONS_PUBLIC, isNew: true,
+    join: "Free. Your posts and events in Pokémon Champions stay here, and you hear when a tournament starts.",
+  },
+  // ── Super Mario Bros. Wonder (picks 2026-11-11, all as recommended): four-player couch co-op, where a roll turns a
+  //    play-through into a challenge night (a character and badge each, a level by world, rules). Staff only until
+  //    Britton sets an opening day: `opens` and WONDER_PUBLIC. Ideas sits further along for what comes next. ──
+  {
+    id: "super-mario-bros-wonder", name: "Super Mario Bros. Wonder", short: "Wonder", games: ["super-mario-bros-wonder"], primary: "super-mario-bros-wonder",
+    tabs: ["now", "rolls", "events", "people", "posts", "ideas"], you: false,
+    hero: "/images/super-mario-bros-wonder/super-mario-bros-wonder-keyart.webp", box: "/images/box-art/super-mario-bros-wonder.webp", accent: "#6d3fd1",
+    tools: [
+      { label: "Challenge randomizer", href: "/randomizers/super-mario-bros-wonder" },
+      { label: "Badge tier list", href: "/tier-list-maker/super-mario-bros-wonder-badges" },
+    ],
+    main: { label: "Roll a challenge", href: "/randomizers/super-mario-bros-wonder" },
+    opens: null, shown: WONDER_PUBLIC, isNew: true, coop: true,
+    join: "Free. Your posts and events in Super Mario Bros. Wonder stay here, and you hear when one starts.",
+    ideas: {
+      line: "Chat games for stream, a race night mode, more rules for your co-op nights.",
+      starters: ["Chat picks our badges", "Race to the Goal Pole night", "Wonder Seed hunt for four"],
+    },
+  },
+
+  // ── Retro Mario Kart (picks 2026-11-12, all as recommended): Mario Kart: Double Dash!!, Mario Kart DS, Mario Kart
+  //    64, Mario Kart 7 and Super Mario Kart (DS, 7 and Super Mario Kart added the same day, each with its own picks)
+  //    in one space, with a game switch on Rolls and wherever a roll shows. Each game keeps its own randomizer page and
+  //    address (search is per game). Tournaments by name (brackets, Swiss, points), no wars or time trial boards. Staff
+  //    only until Britton sets an opening day: `opens`, DOUBLE_DASH_PUBLIC, MARIO_KART_DS_PUBLIC, MARIO_KART_7_PUBLIC
+  //    and SUPER_MARIO_KART_PUBLIC (Mario Kart 64's page stays public as it was). Ideas sits further along for what
+  //    comes next. ──
+  {
+    id: "retro-mario-kart", name: "Retro Mario Kart", short: "Retro MK", games: ["mario-kart-double-dash", "mario-kart-ds", "mario-kart-64", "mario-kart-7", "super-mario-kart"], primary: "mario-kart-double-dash",
+    tabs: ["now", "rolls", "events", "people", "posts", "ideas"], you: false,
+    hero: "/images/mario-kart-double-dash/mario-kart-double-dash-keyart.webp", box: "/images/box-art/mario-kart-double-dash.webp", accent: "#6b3fb5",
+    tools: [
+      { label: "Double Dash randomizer", href: "/randomizers/mario-kart-double-dash" },
+      { label: "Mario Kart DS randomizer", href: "/randomizers/mario-kart-ds" },
+      { label: "Mario Kart 64 randomizer", href: "/randomizers/mario-kart-64" },
+      { label: "Mario Kart 7 randomizer", href: "/randomizers/mario-kart-7" },
+      { label: "Super Mario Kart randomizer", href: "/randomizers/super-mario-kart" },
+      { label: "Run a tournament", href: "/tournament/create?game=mario-kart-double-dash" },
+      { label: "Double Dash track tier list", href: "/tier-list-maker/mario-kart-double-dash-tracks" },
+      { label: "Double Dash kart tier list", href: "/tier-list-maker/mario-kart-double-dash-karts" },
+      { label: "Mario Kart DS track tier list", href: "/tier-list-maker/mario-kart-ds-tracks" },
+      { label: "Mario Kart 64 track tier list", href: "/tier-list-maker/mario-kart-64-tracks" },
+      { label: "Mario Kart 7 track tier list", href: "/tier-list-maker/mario-kart-7-tracks" },
+      { label: "Super Mario Kart track tier list", href: "/tier-list-maker/super-mario-kart-tracks" },
+      { label: "Bracket", href: "/bracket-generator" },
+    ],
+    main: { label: "Roll a pair", href: "/randomizers/mario-kart-double-dash" },
+    rollGames: [
+      { game: "mario-kart-double-dash", short: "Double Dash", label: "Roll a pair", href: "/randomizers/mario-kart-double-dash" },
+      { game: "mario-kart-ds", short: "Mario Kart DS", label: "Roll a racer and kart", href: "/randomizers/mario-kart-ds" },
+      { game: "mario-kart-64", short: "Mario Kart 64", label: "Roll a racer", href: "/randomizers/mario-kart-64" },
+      { game: "mario-kart-7", short: "Mario Kart 7", label: "Roll a kart", href: "/randomizers/mario-kart-7" },
+      { game: "super-mario-kart", short: "Super Mario Kart", label: "Roll a racer", href: "/randomizers/super-mario-kart" },
+    ],
+    merch: /kart|race|drift|lap|blue shell|podium/i,
+    opens: null, shown: DOUBLE_DASH_PUBLIC, isNew: true,
+    join: "Free. Your posts and events in Double Dash, Mario Kart DS, 64, 7 and Super Mario Kart stay here, and you hear when a tournament starts.",
+    ideas: {
+      line: "Super Circuit next, rules for a couch night, chat games for stream.",
+      starters: ["Mario Kart: Super Circuit randomizer", "Couch night item rules", "Chat picks the next cup"],
+    },
+  },
+
+  // ── Super Smash Bros. Melee (picks 2026-11-11, all as recommended): its own space, since Melee players run their own
+  //    scene. Opens with the randomizer and tournaments that strike stages from each event's own list; Run a bracket is
+  //    the main button and the roll lives on Rolls. Staff only until Britton sets an opening day: `opens` and
+  //    MELEE_PUBLIC. ──
+  {
+    id: "super-smash-bros-melee", name: "Super Smash Bros. Melee", short: "Melee", games: ["super-smash-bros-melee"], primary: "super-smash-bros-melee",
+    tabs: ["now", "events", "rolls", "people", "posts", "ideas"], you: false,
+    hero: "/images/super-smash-bros-melee/super-smash-bros-melee-keyart.webp", box: "/images/box-art/super-smash-bros-melee.webp", accent: "#c8102e",
+    tools: [
+      { label: "Randomizer", href: "/randomizers/super-smash-bros-melee" },
+      { label: "Fighter tier list", href: "/tier-list-maker/smash-melee-fighters" },
+      { label: "Stage tier list", href: "/tier-list-maker/smash-melee-stages" },
+      { label: "Free bracket maker", href: "/bracket-generator" },
+    ],
+    main: { label: "Run a bracket", href: "/tournament/create?game=super-smash-bros-melee" },
+    roll: { label: "Roll a fighter", href: "/randomizers/super-smash-bros-melee" },
+    strikes: "super-smash-bros-melee",
+    merch: /smash|main|stock|fighter/i,
+    opens: null, shown: MELEE_PUBLIC, isNew: true,
+    join: "Free. Your posts and events in Melee stay here, and you hear when a bracket starts.",
+    ideas: {
+      line: "Crew battle nights, a ladder for your netplay group, more for your brackets.",
+      starters: ["Crew battle night", "A netplay ladder for my group", "Chat picks my fighter"],
+    },
+  },
 ];
 
 const BY_ID = new Map<string, GameSpace>(GAME_SPACES.map((s) => [s.id, s]));

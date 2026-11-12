@@ -1,14 +1,15 @@
 "use client";
 
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Select } from "@empac/cascadeds";
 import { seasonLabel } from "@/lib/seasons/ranks";
+import { ProTrialPrompt } from "@/components/billing/ProTrialPrompt";
 
 /**
  * Which month's season to show. Past seasons are GS Pro (decided 2026-10-07),
  * judged on the page owner: with Pro everyone can browse them; without it the
- * picker doesn't show, and only the owner sees a pointer to the trial.
+ * picker doesn't show, and only the owner sees the trial prompt (owners pay to show
+ * their own history; viewers never see a wall here).
  * Navigates with ?season=YYYY-MM (plus any `extra` params, e.g. the profile tab).
  */
 export function SeasonPicker({ value, months, allowPast, ownerUpsell, extra }: {
@@ -23,9 +24,11 @@ export function SeasonPicker({ value, months, allowPast, ownerUpsell, extra }: {
   const router = useRouter();
   if (!allowPast) {
     return ownerUpsell ? (
-      <p className="season-picker__upsell">
-        <Link href="/account?tab=plans">See past seasons with GS Pro</Link>
-      </p>
+      <div className="season-picker__upsell">
+        <ProTrialPrompt compact title="Past seasons are part of GS Pro" from="seasons">
+          <p>Everyone who visits can browse your earlier months too.</p>
+        </ProTrialPrompt>
+      </div>
     ) : null;
   }
   return (

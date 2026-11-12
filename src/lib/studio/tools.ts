@@ -5,7 +5,7 @@
  */
 
 import {
-  IconAdjustmentsHorizontal, IconArrowsShuffle, IconBrain, IconChartBar, IconClock, IconDice5, IconGridDots, IconLayoutDashboard,
+  IconAdjustmentsHorizontal, IconArrowsShuffle, IconBrain, IconChartBar, IconClock, IconDice5, IconGridDots, IconLayoutDashboard, IconListNumbers,
   IconMessageCircle, IconMusic, IconPuzzle, IconStopwatch, IconTerminal2, IconUsers, IconUsersGroup, type Icon,
 } from "@tabler/icons-react";
 import { speedrunShown } from "@/lib/games-visibility";
@@ -33,6 +33,7 @@ export const STUDIO_TOOLS: StudioTool[] = [
   { id: "chat-brain", label: "Chat Brain", line: "Chat guesses the top answers", icon: IconBrain, tone: "magenta", screen: "chat-brain", pic: "/images/guides/chat-games/chat-brain.webp", chat: "!cb start · !a", group: "games" },
   { id: "break-mode", label: "Break mode", line: "Games that run while you're away", icon: IconClock, tone: "teal", screen: "break-mode", pic: "/images/guides/chat-games/break.webp", chat: "!gs brb · !gs back", group: "games" },
   { id: "draft", label: "Chat Draft", line: "Chat picks your team, one pick at a time", icon: IconUsers, tone: "violet", screen: "draft", pic: "/images/guides/chat-games/chat-draft.webp", chat: "!draft start", group: "games" },
+  { id: "level-queue", label: "Level queue", line: "Viewers send levels, you play them in order", icon: IconListNumbers, tone: "red", screen: "level-queue", chat: "!add · !level next", group: "games" },
   { id: "wheels", label: "Wheels", line: "Spin from chat, the overlay lands it", icon: IconArrowsShuffle, tone: "green", screen: "wheels", pic: "/images/guides/chat-games/wheel.webp", chat: "!spin", group: "games" },
   { id: "overlay", label: "Overlay layout", line: "Where every piece sits in OBS", icon: IconLayoutDashboard, tone: "violet", screen: "overlay-layout", group: "overlay" },
   { id: "tool-looks", label: "Dice, coin and timer", line: "How the overlay's tools look", icon: IconDice5, tone: "orange", screen: "stream-tools", chat: "!roll · !flip · !gs timer", group: "overlay" },

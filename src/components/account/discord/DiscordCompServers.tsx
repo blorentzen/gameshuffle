@@ -20,7 +20,7 @@ import { useConfirm } from "@/components/confirm/ConfirmProvider";
 
 type PanelGame = "mk8dx" | "mkworld" | "both";
 interface Lounge { rankUps: boolean; rolesGame: string | null; boardGame: string | null; carried: boolean }
-interface Speedrun { pbs: boolean; pace: boolean; paceRole: string | null }
+interface Speedrun { pbs: boolean; pace: boolean; paceRole: string | null; races: boolean }
 interface Server { guildId: string; name: string | null; removedAt: string | null; settings: { channel?: string | null; ttPanels?: Partial<Record<PanelGame, { channel: string; message: string }>> }; lounge?: Lounge; speedrun?: Speedrun }
 interface Data { live: boolean; ready: boolean; limit: number; pro?: boolean; servers: Server[] }
 
@@ -56,7 +56,7 @@ function LoungePanel({ guildId, start, pro, hasChannel }: { guildId: string; sta
   );
 }
 
-/** Speedrun posts (speedrun Discord picks 2026-11-10): new PBs (free), PB pace alerts with an optional role ping (GS Pro). */
+/** Speedrun posts (speedrun Discord picks 2026-11-10): new PBs and races (free), PB pace alerts with an optional role ping (GS Pro). */
 function SpeedrunPanel({ guildId, start, pro, hasChannel, roles }: { guildId: string; start: Speedrun; pro: boolean; hasChannel: boolean; roles: { id: string; name: string }[] | null }) {
   const toast = useToast();
   const [sr, setSr] = useState(start);
@@ -73,6 +73,8 @@ function SpeedrunPanel({ guildId, start, pro, hasChannel, roles }: { guildId: st
       <p className="discord-apps__help">For you and members who connected GameShuffle with Discord and run with a <Link href="/speedrun">GameShuffle speedrun setup</Link>. Anyone can look a runner up with /pb.</p>
       <Switch label="Post new PBs" checked={sr.pbs} onChange={(e) => void save({ pbs: e.target.checked })} />
       <p className="discord-apps__help">{hasChannel ? "The time, how much faster, gold splits and a Watch on Twitch button, after the runner's stream delay." : "PB posts need a channel: pick where posts go above."}</p>
+      <Switch label="Post races and duels" checked={sr.races} onChange={(e) => void save({ races: e.target.checked })} />
+      <p className="discord-apps__help">{hasChannel ? "When a speedrun race or a Trainer Road duel you or a member is in starts, with a Watch button, then its results after everyone's stream delay." : "These posts need a channel: pick where posts go above."}</p>
       <Switch label="PB pace alerts" checked={sr.pace} disabled={!pro} onChange={(e) => void save({ pace: e.target.checked })} />
       <div className="discord-apps__panel-row">
         <Select id={`comp-pace-role-${guildId}`} floatingLabel="Pace alerts ping" fullWidth value={sr.paceRole ?? ""} disabled={!pro || !sr.pace || !roles}

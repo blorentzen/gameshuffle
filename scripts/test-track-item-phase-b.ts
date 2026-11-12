@@ -17,7 +17,12 @@
  *   - Activity-feed event filter (verify only viewer-visible event
  *     types map to ActivityItemData; internal events are dropped)
  *   - Public-read RLS policies present in the migration SQL (file
- *     content check — DB-level enforcement is the runbook's job)
+ *     content check — DB-level enforcement is the runbook's job).
+ *     `supabase/` is gitignored, so a release worktree may not hold the
+ *     file: `findLocal` also looks in the main checkout, and the checks
+ *     are reported as SKIP (never as passed) when no copy is found.
+ *
+ *   npx tsx -r ./scripts/server-only-shim.cjs scripts/test-track-item-phase-b.ts
  */
 
 import assert from "node:assert/strict";
@@ -25,6 +30,41 @@ import fs from "node:fs/promises";
 
 let passed = 0;
 let failed = 0;
+let skipped = 0;
+
+function skip(name: string, why: string) {
+  skipped += 1;
+  console.log(`  - SKIP ${name}: ${why}`);
+}
+
+/** First existing copy of a gitignored file: this checkout, then the
+ *  main checkout when this is a linked worktree. `rels` are tried in order. */
+async function findLocal(rels: string[]): Promise<string | null> {
+  const { execFileSync } = await import("node:child_process");
+  const { dirname, resolve } = await import("node:path");
+  const roots = [process.cwd()];
+  try {
+    const common = execFileSync("/usr/bin/git", ["rev-parse", "--path-format=absolute", "--git-common-dir"], {
+      encoding: "utf8",
+    }).trim();
+    const main = dirname(common);
+    if (resolve(main) !== resolve(process.cwd())) roots.push(main);
+  } catch {
+    // Not a git checkout: only this folder.
+  }
+  for (const root of roots) {
+    for (const rel of rels) {
+      const path = resolve(root, rel);
+      try {
+        await fs.access(path);
+        return path;
+      } catch {
+        // try the next one
+      }
+    }
+  }
+  return null;
+}
 
 function test(name: string, fn: () => void | Promise<void>) {
   const run = async () => {
@@ -191,48 +231,56 @@ async function main() {
 
   section("Phase B migration — public-read RLS policies");
 
-  const migrationSource = await fs.readFile(
-    new URL("../supabase/archive/phase-b-public-read-policies.sql", import.meta.url),
-    "utf8"
-  );
-
-  await test("Migration creates public-read policy for session_events", () => {
-    assert.match(migrationSource, /Public read events of active sessions/);
-    assert.match(
-      migrationSource,
-      /CREATE POLICY[\s\S]*?ON public\.session_events[\s\S]*?FOR SELECT/
-    );
-  });
-
-  await test("Migration creates public-read policy for session_modules", () => {
-    assert.match(migrationSource, /Public read modules of active sessions/);
-    assert.match(
-      migrationSource,
-      /CREATE POLICY[\s\S]*?ON public\.session_modules[\s\S]*?FOR SELECT/
-    );
-  });
-
-  await test("Both policies scope to active/ending status only", () => {
-    // Status filter prevents leaking historical data from ended/cancelled
-    // sessions through anonymous read access.
-    const eventPolicy = migrationSource.match(
-      /CREATE POLICY[\s\S]*?ON public\.session_events[\s\S]*?USING\s*\(([\s\S]*?)\);/
-    );
-    const modulePolicy = migrationSource.match(
-      /CREATE POLICY[\s\S]*?ON public\.session_modules[\s\S]*?USING\s*\(([\s\S]*?)\);/
-    );
-    assert.ok(eventPolicy, "session_events policy USING clause not found");
-    assert.ok(modulePolicy, "session_modules policy USING clause not found");
-    assert.match(eventPolicy![1], /'active'\s*,\s*'ending'/);
-    assert.match(modulePolicy![1], /'active'\s*,\s*'ending'/);
-  });
-
-  await test("Migration is idempotent (DROP POLICY IF EXISTS guards)", () => {
-    // Both policies should drop-if-exists before create so re-running
-    // the migration is safe.
-    const drops = migrationSource.match(/DROP POLICY IF EXISTS/g) ?? [];
-    assert.ok(drops.length >= 2, `expected ≥2 DROP POLICY guards, got ${drops.length}`);
-  });
+  const migrationPath = await findLocal([
+    "supabase/phase-b-public-read-policies.sql",
+    "supabase/archive/phase-b-public-read-policies.sql",
+  ]);
+  const migrationChecks: Array<[string, (migrationSource: string) => void]> = [
+    ["Migration creates public-read policy for session_events", (migrationSource) => {
+      assert.match(migrationSource, /Public read events of active sessions/);
+      assert.match(
+        migrationSource,
+        /CREATE POLICY[\s\S]*?ON public\.session_events[\s\S]*?FOR SELECT/
+      );
+    }],
+    ["Migration creates public-read policy for session_modules", (migrationSource) => {
+      assert.match(migrationSource, /Public read modules of active sessions/);
+      assert.match(
+        migrationSource,
+        /CREATE POLICY[\s\S]*?ON public\.session_modules[\s\S]*?FOR SELECT/
+      );
+    }],
+    ["Both policies scope to active/ending status only", (migrationSource) => {
+      // Status filter prevents leaking historical data from ended/cancelled
+      // sessions through anonymous read access.
+      const eventPolicy = migrationSource.match(
+        /CREATE POLICY[\s\S]*?ON public\.session_events[\s\S]*?USING\s*\(([\s\S]*?)\);/
+      );
+      const modulePolicy = migrationSource.match(
+        /CREATE POLICY[\s\S]*?ON public\.session_modules[\s\S]*?USING\s*\(([\s\S]*?)\);/
+      );
+      assert.ok(eventPolicy, "session_events policy USING clause not found");
+      assert.ok(modulePolicy, "session_modules policy USING clause not found");
+      assert.match(eventPolicy![1], /'active'\s*,\s*'ending'/);
+      assert.match(modulePolicy![1], /'active'\s*,\s*'ending'/);
+    }],
+    ["Migration is idempotent (DROP POLICY IF EXISTS guards)", (migrationSource) => {
+      // Both policies should drop-if-exists before create so re-running
+      // the migration is safe.
+      const drops = migrationSource.match(/DROP POLICY IF EXISTS/g) ?? [];
+      assert.ok(drops.length >= 2, `expected ≥2 DROP POLICY guards, got ${drops.length}`);
+    }],
+  ];
+  if (migrationPath) {
+    const migrationSource = await fs.readFile(migrationPath, "utf8");
+    for (const [name, check] of migrationChecks) {
+      await test(name, () => check(migrationSource));
+    }
+  } else {
+    for (const [name] of migrationChecks) {
+      skip(name, "phase-b-public-read-policies.sql not found in supabase/ or supabase/archive/ (gitignored)");
+    }
+  }
 
   // ---------- Auth-prompt modal — Twitch-only flow ------------------------
 
@@ -261,7 +309,7 @@ async function main() {
 
   // ---------- Summary -----------------------------------------------------
 
-  console.log(`\n${passed} passed, ${failed} failed`);
+  console.log(`\n${passed} passed, ${failed} failed${skipped ? `, ${skipped} skipped` : ""}`);
   if (failed > 0) {
     process.exit(1);
   }

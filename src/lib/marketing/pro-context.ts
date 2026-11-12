@@ -30,7 +30,7 @@ const FROM: Record<string, ProContext> = {
   },
   "discord-bot": {
     headline: "Bring GameShuffle into your Discord.",
-    lede: "Pro adds the bot: announcements routed to the right channel, roles, QOTD and polls, in the server your community already uses.",
+    lede: "The bot is free in one server. Pro adds up to five servers, posts routed to the right channel, roles, AutoMod, polls, reminders and Question of the Day.",
   },
   collection: {
     headline: "Go deeper on your collection.",
@@ -88,10 +88,62 @@ const FROM: Record<string, ProContext> = {
     headline: "Draft deck cards with AI.",
     lede: "Pro drafts Chance cards, missions and house rules from a theme, and you publish the ones that fit your table.",
   },
+  "trivia-stream": {
+    headline: "Play trivia on your stream.",
+    lede: "Pro puts your trivia night on stream: chat answers with !a, viewers play on your live page, and the questions show on your overlay.",
+  },
+  "level-queue": {
+    headline: "Run a level queue for your chat.",
+    lede: "Pro takes Mario Maker 2, Fortnite and Fall Guys codes from chat with !add, keeps the line fair and shows what's next on your overlay.",
+  },
+  seasons: {
+    headline: "Show every season you've played.",
+    lede: "Pro keeps your past months on your profile and your community's page, for everyone who visits.",
+  },
   "ai-trivia": {
     headline: "Draft trivia questions with AI.",
     lede: "Pro drafts questions for your trivia night with sources to check, and you approve every one before it's used.",
   },
+  "banner-gif": {
+    headline: "Make your banner move.",
+    lede: "Pro turns one of your GIFs into an animated banner on your profile, along with brand themes, skins and your own CSS.",
+  },
+  "comp-lounge": {
+    headline: "Give your server lounge division roles.",
+    lede: "Pro has the bot hand out Iron to Grandmaster roles as members rank up and post a Monday board of the server's lounge players. Rank-up posts stay free.",
+  },
+  "comp-speedrun": {
+    headline: "Ping your server when a run is on pace.",
+    lede: "Pro posts an alert when a live runner is ahead of their PB with a quarter of the run left. PB posts stay free.",
+  },
+  "mmr-goal": {
+    headline: "Set a goal for tonight's lounge.",
+    lede: "Pro puts a number on your MMR card for the night, counts down to it as you play and plays a moment when you reach it.",
+  },
+  "mmr-recap": {
+    headline: "Recap your lounge night.",
+    lede: "Pro adds a card of tonight's run for your ending scene and a lounge report in your inbox every Monday.",
+  },
+  "home-competitive": {
+    headline: "Get more from your MMR card.",
+    lede: "Pro adds a goal for the night on your card, a recap card after it and a lounge report every Monday.",
+  },
+  "home-pokemon": {
+    headline: "Keep your whole collection.",
+    lede: "Pro keeps more than 250 cards and every deck list, and plays the TCG Companion together on two phones.",
+  },
+  "home-game-night": {
+    headline: "Make your own party packs with AI.",
+    lede: "Pro drafts packs from a theme you give it, like a Most Likely To deck about your family or a bingo card for the party.",
+  },
+};
+// The welcome page's streaming section sends people to the same pitch as Streaming ▸ Get started.
+FROM.welcome = FROM["streaming-get-started"];
+
+/** A game space's "Chat rolls on stream" link (`?from=game-band-<space>`). */
+const GAME_BAND: ProContext = {
+  headline: "Let chat roll on your stream.",
+  lede: "Pro connects Twitch: chat rolls picks and match setups for the game you're playing, and they show on your overlay.",
 };
 
 /** Any other AI tool (`?from=ai-<feature>` from AiGate): the allowance pitch. */
@@ -102,7 +154,7 @@ const AI_ANY: ProContext = {
 
 export function proContextFor(from: string | null | undefined): ProContext | null {
   if (!from) return null;
-  return FROM[from] ?? (from.startsWith("ai-") ? AI_ANY : null);
+  return FROM[from] ?? (from.startsWith("ai-") ? AI_ANY : from.startsWith("game-band-") ? GAME_BAND : null);
 }
 
 /** The keys a link may pass, for the test and for anyone adding a new gate. */

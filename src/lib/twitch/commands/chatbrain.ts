@@ -126,6 +126,7 @@ const GAME_ERRORS: Record<string, string> = {
   blocked: "🧠 That answer can't be used.",
   no_choice: "🧠 There's nothing to choose between right now.",
   has_control: "🧠 Someone already has control this round.",
+  no_control: "🧠 Both chats are one team in this co-stream: there's no control to give.",
   nothing_to_undo: "🧠 There's no answer to take back.",
   use_next: "🧠 Not in a co-stream. !cb next moves on to the next round.",
   speed_round: "🧠 Not in a speed round: answers count the moment someone finds them. !cb next moves on, !cb end finishes.",
@@ -269,7 +270,7 @@ registerCommand({
       if (!isMod(cmd)) return { ok: false, reason: "not_mod" };
       if (!econ) return { ok: false, reason: "no_economy" };
       if (!(await isProUser(cmd.userId))) {
-        await cmd.reply("🧠 Chat Brain games on stream are part of GS Pro. Surveys (!cb ask) are free.");
+        await cmd.reply("🧠 Chat Brain games on stream are part of GS Pro. !cb ask with a GameShuffle question still works here.");
         return { ok: false, reason: "not_pro" };
       }
       await tickChannel(channel);

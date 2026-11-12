@@ -24,6 +24,7 @@ import {
 } from "@/lib/polls/store";
 import type { PollOption } from "@/lib/polls/types";
 import { actionRow, button, channelMessage, ephemeralMessage } from "../respond";
+import { proWallReply } from "@/lib/discord/proReply";
 
 type ActionRow = ReturnType<typeof actionRow>;
 
@@ -96,7 +97,7 @@ export async function handleGsPoll(interaction: Record<string, unknown>): Promis
       "GameShuffle isn't linked to this server yet. The streamer connects it in their GameShuffle account.",
     );
   }
-  if (!ctx.isPro) return ephemeralMessage("📊 Polls are a GS Pro feature.");
+  if (!ctx.isPro) return ephemeralMessage(proWallReply("📊 Polls are", "discord-bot"));
   if (!canManage(interaction)) {
     return ephemeralMessage("Only members who can manage the server can run polls.");
   }

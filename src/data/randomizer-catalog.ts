@@ -32,7 +32,12 @@ const GROUPS: CatalogGroup[] = [
     entries: [
       { slug: "mario-kart-8-deluxe", href: "/randomizers/mario-kart-8-deluxe", title: "Mario Kart 8 Deluxe", blurb: "Kart combos for up to 12 players, plus tracks and items.", image: "/images/fg/mk8dx-kart-selection-screen.jpg", imageAlt: "Mario Kart 8 Deluxe selection screen" },
       { slug: "mario-kart-world", href: "/randomizers/mario-kart-world", title: "Mario Kart World", blurb: "Characters, karts, tracks and knockout rallies for up to 24.", image: "/images/bg/mkw-main-image.jpg", imageAlt: "Mario Kart World" },
+      { slug: "mario-kart-wii", href: "/randomizers/mario-kart-wii", title: "Mario Kart Wii", blurb: "A character and a kart or bike in their size class for up to 12, all 32 tracks and battle arenas.", image: GAME_ART["mario-kart-wii"].hero.src, imageAlt: GAME_ART["mario-kart-wii"].hero.alt, isNew: true },
+      { slug: "mario-kart-double-dash", href: "/randomizers/mario-kart-double-dash", title: "Mario Kart: Double Dash!!", short: "Double Dash", blurb: "Two characters and a kart that fits them for each kart, two to a kart, cups and battles.", image: GAME_ART["mario-kart-double-dash"].hero.src, imageAlt: GAME_ART["mario-kart-double-dash"].hero.alt, isNew: true },
+      { slug: "mario-kart-ds", href: "/randomizers/mario-kart-ds", title: "Mario Kart DS", blurb: "A character and a kart your save has opened for up to 8, cups, battles and Mission Mode.", image: GAME_ART["mario-kart-ds"].hero.src, imageAlt: GAME_ART["mario-kart-ds"].hero.alt, isNew: true },
+      { slug: "mario-kart-7", href: "/randomizers/mario-kart-7", title: "Mario Kart 7", blurb: "A character and a body, tires and glider for up to 8, cups and battles.", image: GAME_ART["mario-kart-7"].hero.src, imageAlt: GAME_ART["mario-kart-7"].hero.alt, isNew: true },
       { slug: "mario-kart-64", href: "/randomizers/mario-kart-64", title: "Mario Kart 64", blurb: "A different character for up to 4, all 16 tracks and battle courses.", image: GAME_ART["mario-kart-64"].hero.src, imageAlt: GAME_ART["mario-kart-64"].hero.alt, isNew: true },
+      { slug: "super-mario-kart", href: "/randomizers/super-mario-kart", title: "Super Mario Kart", blurb: "A different racer for each of two players, cups, race lists and battle courses.", image: GAME_ART["super-mario-kart"].hero.src, imageAlt: GAME_ART["super-mario-kart"].hero.alt, isNew: true },
     ],
   },
   {
@@ -68,17 +73,28 @@ const GROUPS: CatalogGroup[] = [
     heading: "More games",
     entries: [
       { slug: "super-smash-bros-ultimate", href: "/randomizers/super-smash-bros-ultimate", title: "Smash Ultimate", blurb: "Fighters, stages, rules and Squad Strike for up to 8.", image: GAME_ART["super-smash-bros-ultimate"].hero.src, imageAlt: "Super Smash Bros. Ultimate cast artwork" },
+      { slug: "super-smash-bros-melee", href: "/randomizers/super-smash-bros-melee", title: "Super Smash Bros. Melee", short: "Melee", blurb: "A fighter and costume for up to 4, a legal stage or any of the 29.", image: GAME_ART["super-smash-bros-melee"].hero.src, imageAlt: GAME_ART["super-smash-bros-melee"].hero.alt, isNew: true },
       { slug: "goldeneye-007", href: "/randomizers/goldeneye-007", title: "GoldenEye 007", blurb: "Scenario, map, weapons and characters for 2 to 4.", image: GAME_ART["goldeneye-007"].hero.src, imageAlt: GAME_ART["goldeneye-007"].hero.alt, isNew: true },
       { slug: "perfect-dark", href: "/randomizers/perfect-dark", title: "Perfect Dark", blurb: "Scenario, arena, weapons and simulants for a Combat Simulator match.", image: GAME_ART["perfect-dark"].cover, imageAlt: GAME_ART["perfect-dark"].hero.alt, isNew: true },
       { slug: "kirby-air-riders", href: "/randomizers/kirby-air-riders", title: "Kirby Air Riders", blurb: "Riders, machines, courses and City Trial Stadiums.", image: GAME_ART["kirby-air-riders"].cover, imageAlt: "Kirby Air Riders artwork", isNew: true },
       // No art yet: "Image coming soon" on /randomizers, generated art in the More randomizers carousel.
       { slug: "sonic-racing-crossworlds", href: "/randomizers/sonic-racing-crossworlds", title: "Sonic Racing: CrossWorlds", short: "Sonic Racing", blurb: "Racers, machines, Gadget Plates, races and Grands Prix for up to 12.", art: { category: "video", ramp: ["#0b2a6f", "#1e5bd8"] }, isNew: true },
+      { slug: "super-mario-bros-wonder", href: "/randomizers/super-mario-bros-wonder", title: "Super Mario Bros. Wonder", short: "Mario Wonder", blurb: "A character and badge for up to 4, a level by world and challenge rules.", image: GAME_ART["super-mario-bros-wonder"].hero.src, imageAlt: GAME_ART["super-mario-bros-wonder"].hero.alt, isNew: true },
       { slug: "splatoon-3", href: "/randomizers/splatoon-3", title: "Splatoon 3", blurb: "Weapon kits, battles, Salmon Run and teams.", image: GAME_ART["splatoon-3"].cover, imageAlt: "Splatoon 3 artwork", isNew: true },
     ],
   },
 ];
 
 /** The groups with only the randomizers that are public right now. */
+/**
+ * What a link to this randomizer says after the name on its card, for screen readers and search (SEO check-in,
+ * 2026-11-10): a card that shows "Mario Kart World" in a grid of games links as "Mario Kart World randomizer".
+ * Empty when the title already says what it is ("Random Pokémon Generator", the run challenge).
+ */
+export function linkSuffix(entry: Pick<CatalogEntry, "title">): string {
+  return /randomi[sz]er|generator|challenge/i.test(entry.title) ? "" : " randomizer";
+}
+
 export function randomizerCatalog(): CatalogGroup[] {
   return GROUPS.map((g) => ({ ...g, entries: g.entries.filter((e) => randomizerPublic(e.slug)) })).filter((g) => g.entries.length);
 }

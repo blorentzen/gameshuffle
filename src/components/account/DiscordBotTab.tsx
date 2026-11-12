@@ -22,6 +22,7 @@ import { EVENTS, tagged } from "@/lib/analytics/events";
 import { LoadingLines } from "@/components/loading/LoadingLines";
 import { DiscordLiveAlerts } from "@/components/account/DiscordLiveAlerts";
 import { DiscordLoungeCard } from "@/components/account/DiscordLoungeCard";
+import { ProTrialPrompt } from "@/components/billing/ProTrialPrompt";
 
 interface Channel {
   id: string;
@@ -495,6 +496,25 @@ export function DiscordBotTab({ part, setupHere = false }: { part?: DiscordBotPa
     void saveLogging({ events: next });
   }
 
+  /** The free opt-in posts (picks 2026-11-11): the Monday Weekly card and the daily Chat Brain question. */
+  const [optInSaving, setOptInSaving] = useState(false);
+  async function saveOptIn(key: "weekly" | "chatbrain", enabled: boolean) {
+    setOptInSaving(true);
+    const next = { ...eventSubs, [key]: enabled };
+    const res = await fetch(withGuild("/api/discord/bot/routing"), {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ event_subscriptions: next }),
+    }).catch(() => null);
+    setOptInSaving(false);
+    if (res?.ok) {
+      setEventSubs(next);
+      toast.success("Saved");
+    } else {
+      toast.error("Could not update that setting.");
+    }
+  }
+
   async function saveQotd(enabled: boolean) {
     setQotdSaving(true);
     const next = { ...eventSubs, qotd: enabled };
@@ -682,14 +702,38 @@ export function DiscordBotTab({ part, setupHere = false }: { part?: DiscordBotPa
         />
       )}
 
+      {/* The Weekly and Chat Brain posts: free to turn on (picks 2026-11-11). A route with the switch never touched counts as on (src/lib/adapters/discord/index.ts optInChannel). */}
+      {show("posts") && installed && current?.active !== false && !current?.removed && (
+        <div className="account-card">
+          <h2 className="account-card__title">Daily and weekly posts</h2>
+          <p className="dbot-muted">
+            Turn on the posts you want. Each goes to {defaultChannelId ? <strong>#{channelName(defaultChannelId)}</strong> : "your announcement channel"}{isPro ? ", or the channel you route it to below" : ""}.
+            {!defaultChannelId && <> Pick that channel on <Link href="/account/discord?tab=discord">Servers</Link> first.</>}
+          </p>
+          <div className="dbot-optins">
+            {([
+              { key: "weekly", label: "Post the Weekly each Monday", hint: "The new Weekly Challenge with a Play button, and last week's winner." },
+              { key: "chatbrain", label: "Post a Chat Brain question each day", hint: "One question at 9am Pacific with an Answer button. Answers build the boards." },
+            ] as const).map((o) => (
+              <div key={o.key} className="dbot-optin">
+                <Switch
+                  checked={eventSubs[o.key] ?? (isPro && !!routes[o.key])}
+                  disabled={optInSaving}
+                  onChange={(e) => void saveOptIn(o.key, e.target.checked)}
+                  label={o.label}
+                />
+                <p className="dbot-muted">{o.hint}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Free accounts: one clear indicator + CTA (full comparison lives on /gs-pro). */}
       {show("posts") && !isPro && (
-        <div className="dbot-pro-banner">
-          <span>
-            The sections below are GS Pro. On Free, the bot posts to your single default channel.
-          </span>
-          <Link href="/gs-pro?from=discord-bot" className={tagged(EVENTS.upgradeClicked, { from: "discord-bot" })}><Button variant="primary" size="small">See GS Pro</Button></Link>
-        </div>
+        <ProTrialPrompt compact title="The rest of the server tools are part of GS Pro" from="discord-bot" headingLevel={2}>
+          <p>Up to 5 servers, channel routing, go-live alerts, announcements, roles, AutoMod, logging and Question of the Day. On Free, the bot runs in one server and posts to its default channel.</p>
+        </ProTrialPrompt>
       )}
 
       {/* Routing board */}

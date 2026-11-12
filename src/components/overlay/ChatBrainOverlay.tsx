@@ -47,7 +47,7 @@ export function ChatBrainOverlay({ game, style }: { game: StreamGameView; style?
   return (
     <div className="gs-brain" style={style}>
       <div className="gs-brain__head">
-        <span>Chat Brain{speed ? " · Speed round" : ""}{game.boardCount > 1 ? ` · Board ${game.boardIndex + 1} of ${game.boardCount}` : ""}</span>
+        <span>Chat Brain{speed ? " · Speed round" : game.together ? " · Co-stream together" : ""}{game.boardCount > 1 ? ` · Board ${game.boardIndex + 1} of ${game.boardCount}` : ""}</span>
         <span className="gs-brain__score">{game.score} pts</span>
       </div>
       {game.prize > 0 && game.status === "playing" && <div className="gs-brain__prize">Prize for the top brains: {game.prize} tokens</div>}
@@ -69,7 +69,7 @@ export function ChatBrainOverlay({ game, style }: { game: StreamGameView; style?
         <span className="gs-brain__clock">{status}</span>
       </div>
       {game.phase === "guessing" && game.leaning.length > 0 && (
-        <div className="gs-brain__lean">Chat is leaning: {game.leaning.map((l) => `${l.label} ${Math.round(l.share * 100)}%`).join("  ·  ")}</div>
+        <div className="gs-brain__lean">{game.together ? "Both chats are leaning" : "Chat is leaning"}: {game.leaning.map((l) => `${l.label} ${Math.round(l.share * 100)}%`).join("  ·  ")}</div>
       )}
       {flash && (
         <div className={`gs-brain__flash gs-brain__flash--${flash.result === "hit" ? "hit" : "miss"}`}>
